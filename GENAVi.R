@@ -10,11 +10,15 @@ count.matrix <- final.counts[,c(1,8:25)] ##subset data for functions
 #final.RPKM   <- read.csv("final.RPKM.csv",header = TRUE) ##read in data going to view
 #RPKM.matrix  <- final.RPKM[,c(1,8:25)] ##subset data for functions
 meh <- gather(count.matrix,"cell_line", "value", 2:19) ##use these for barplot but may be deleting soon, will have to change name
-meh2 <- data.frame() ##will have to change name to something that makes sense in rmarkdown
+meh2 <- data.frame() ##will have to change name to something that makes sense in rmarkdown, need this for making reactive barplot
 
 final.rownorm <- read.csv("final.rownorm.csv",header = TRUE)
-cmf.rownorm <- read.csv("cmf.rownorm.csv",header = TRUE)
-##now need to create meh objects for barcharts
+cmf.rownorm <- read.csv("cmf.rownorm.csv",header = TRUE) ##will need to have gene names and other first data columns to id genes
+cmf.rownorm <- as.matrix(cmf.rownorm)
+rownorm.matrix <- final.rownorm[,c(1,8:25)]
+meh.rownorm <- data.frame()
+meh.rownorm <- gather(rownorm.matrix,"cell_line","value",2:19) ##now use this for barplot
+##cmf data tables need gene names and other identifiers, will fix this when reading in data tables (will calc manually instead of reading in objects)
 
 #counts.rlog <- rlog(as.matrix(count.matrix[,2:19]))
 #write.csv(counts.rlog, "counts.rlog.csv",row.names = FALSE)
@@ -36,10 +40,11 @@ vst.matrix  <- final.vst[,c(1,8:25)]
 meh.vst    <- data.frame()
 meh.vst <- gather(vst.matrix,"cell_line","value",2:19)
 
+
 #matrix_expr <- matrix()
 
-transforms <- c("raw counts", "rlog", "vst")
-cell.line.clusters <- c("-no selection-","filtered genes", "selected genes") ##do this for cell line cluster heatmaps, changed all to filtered
+transforms <- c("raw counts", "row normalized", "rlog", "vst") ##adding "t-score" -> row normalized, ask michelle about normalizing with FTSEC lines 
+cell.line.clusters <- c("-no selection-","filtered genes", "selected genes") ##do this for cell line cluster heatmaps, changed all to filtered, should "all" be an option?
 
 ###objects for cell line clustering
 count.matrix.filtered <- count.matrix[rowSums(count.matrix[,-1]) > 1,] ##treat this as if it were "cmf"
@@ -49,22 +54,28 @@ cmf.vst  <- vst(as.matrix(count.matrix.filtered[,-1]),blind = FALSE)
 
 ui <- fluidPage(tabsetPanel(
   tabPanel("Expression", ##changing from tab 1, but still using tab1 in the other parts of code
-           h2('Ovarian Cancer Cell Lines'), 
+           h2('GENAVi'), 
            #selectInput("select", "Select Columns", names(final.counts), multiple = TRUE),
            selectInput("select_tab1", "Select Transform", transforms, multiple = FALSE), ##need individual selectInputs for each tab
+           fileInput("input_gene_list_tab1", "Input Gene List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"), ##what is accept parameter???
+           actionButton("but_sortSelectedFirst_tab1", "Selected Rows First"), ##do this to put selected rows at top of data table, trying it out
            DT::dataTableOutput('tbl.tab1'),
+           verbatimTextOutput("warning_message_tab1", placeholder = FALSE), ##trying this out, 
            #numericInput("num","Input row index",1,min = 1,max = 60554),
            #verbatimTextOutput("warning_message"), ##may need to take this out for  now
-           DT::dataTableOutput('tbl.tab1.selected'), ##doing this to keep track of selected rows
+           #DT::dataTableOutput('tbl.tab1.selected'), ##doing this to keep track of selected rows, take this out
            plotOutput("barplot"), 
            iheatmaprOutput("heatmap_expr") ##expr for expression
   ),
   tabPanel("Clustering", ##changing from tab 2, but still usibg tab2 in other parts of code
-           h2("Clustering Cell Lines"), 
+           h2("GENAVi"), 
            selectInput("select_tab2", "Select Transform", transforms, multiple = FALSE),
+           fileInput("input_gene_list_tab2", "Input Gene List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"),
+           actionButton("but_sortSelectedFirst_tab2", "Selected Rows First"), ##repeat in tab2
            DT::dataTableOutput('tbl.tab2'),
-           DT::dataTableOutput('tbl.tab2.selected'),
+           #DT::dataTableOutput('tbl.tab2.selected'),
            selectInput("select_clus", "Cluster by what genes", cell.line.clusters, multiple = FALSE),
+           verbatimTextOutput("warning_message_tab2", placeholder = FALSE), ##do this to guide making heatmap in tab2
            iheatmaprOutput("heatmap_clus") ##clus for clusters
   )
 )
@@ -113,34 +124,39 @@ server <- function(input,output)
   #table.rlog   <- final.rlog #reactive({(final.rlog)})
   #table.vst    <- final.vst #reactive({(final.vst)})
   
-  ###maybe have to make distinct select input objects???
+  ###might have to change how to render selected data table section bc rows dont stay selected
   output$tbl.tab1 <-  DT::renderDataTable({
     if(input$select_tab1 == "rlog") tbl.tab1 <- final.rlog#table.rlog #DT::datatable(table.rlog)
     if(input$select_tab1 == "vst") tbl.tab1 <- final.vst#table.vst #DT::datatable(table.vst)
     if(input$select_tab1 == "raw counts") tbl.tab1 <- final.counts#table.counts #DT::datatable(table.counts)
+    if(input$select_tab1 == "row normalized") tbl.tab1 <- final.rownorm
     tbl.tab1
   })
   
   ##display selected rows separately in another data table object
-  output$tbl.tab1.selected <- DT::renderDataTable({
-    if(input$select_tab1 == "rlog") {tbl.tab1.selected <- final.rlog[c(input$tbl.tab1_rows_selected),]}
-    if(input$select_tab1 == "vst") {tbl.tab1.selected <- final.vst[c(input$tbl.tab1_rows_selected),]}
-    if(input$select_tab1 == "raw counts") {tbl.tab1.selected <- final.counts[c(input$tbl.tab1_rows_selected),]}
-    tbl.tab1.selected
-  })
+  #output$tbl.tab1.selected <- DT::renderDataTable({
+  #if(input$select_tab1 == "rlog") {tbl.tab1.selected <- final.rlog[c(input$tbl.tab1_rows_selected),]}
+  #if(input$select_tab1 == "vst") {tbl.tab1.selected <- final.vst[c(input$tbl.tab1_rows_selected),]}
+  #if(input$select_tab1 == "raw counts") {tbl.tab1.selected <- final.counts[c(input$tbl.tab1_rows_selected),]}
+  #if(input$select_tab1 == "row normalized") tbl.tab1.selected <- final.rownorm[c(input$tbl.tab1_rows_selected),]
+  #tbl.tab1.selected
+  #})
   
   output$tbl.tab2 <-  DT::renderDataTable({
     if(input$select_tab2 == "rlog") tbl.tab2 <- final.rlog#table.rlog #DT::datatable(table.rlog)
     if(input$select_tab2 == "vst") tbl.tab2 <- final.vst#table.vst #DT::datatable(table.vst)
     if(input$select_tab2 == "raw counts") tbl.tab2 <- final.counts#table.counts #DT::datatable(table.counts)
+    if(input$select_tab2 == "row normalized") tbl.tab2 <- final.rownorm
     tbl.tab2
   })
   
-  output$tbl.tab2.selected <- DT::renderDataTable({
-    if(input$select_tab2 == "rlog") {tbl.tab2.selected <- final.rlog[c(input$tbl.tab2_rows_selected),]}
-    if(input$select_tab2 == "vst") {tbl.tab2.selected <- final.vst[c(input$tbl.tab2_rows_selected),]}
-    if(input$select_tab2 == "raw counts") {tbl.tab2.selected <- final.counts[c(input$tbl.tab2_rows_selected),]}
-  })
+  #output$tbl.tab2.selected <- DT::renderDataTable({
+  # if(input$select_tab2 == "rlog") {tbl.tab2.selected <- final.rlog[c(input$tbl.tab2_rows_selected),]}
+  #if(input$select_tab2 == "vst") {tbl.tab2.selected <- final.vst[c(input$tbl.tab2_rows_selected),]}
+  #if(input$select_tab2 == "raw counts") {tbl.tab2.selected <- final.counts[c(input$tbl.tab2_rows_selected),]}
+  #if(input$select_tab2 == "row normalized") tbl.tab2.selected <- final.rownorm[c(input$tbl.tab2_rows_selected),]
+  #tbl.tab2.selected
+  #})
   
   
   
@@ -154,14 +170,47 @@ server <- function(input,output)
   #})
   #warning_message() ##this breaks the app???
   
-  warning_message <- "Barplot is only displayed when exactly one gene is selected" ##putting in top of code doesn't work either
-  renderText({warning_message})
+  #warning_message <- "Barplot is only displayed when exactly one gene is selected" ##putting in top of code doesn't work either
+  
+  #output$warning_message <- renderText({ ##making this conditional did not work
+  # if(nrow(matrix_expr[c(input$tbl.tab1_rows_selected),]) != 1) warning_message <- "Barplot is only displayed when exactly one gene is selected"
+  #warning_message
+  #})
+  
+  observeEvent(input$but_sortSelectedFirst_tab1,
+               {
+                 ## selected row info is stored in var input$tbl.tab1_rows_selected
+                 selected_rows <- input$tbl.tab1_rows_selected
+                 ##alc new row order w/ selected rows on top
+                 row_order <- order(seq_along(tbl.tab1[[1]]) %in% selected_rows, decreasing = TRUE)
+               })
+  output$tbl.tab1 <- output$tbl.tab1[row_order,]
+  
+  proxy <- DT::dataTableProxy('tbl.tab1')
+  DT::replaceData(proxy, output$tbl.tab1)
+  ## make sure to select rows again
+  DT::selectRows(proxy, seq_along(selected_rows))
+  
+  output$tbl.tab1 <- DT::renderDataTable(isolate(output$tbl.tab1))
+  
+  output$warning_message_tab1 <- renderText({
+    if(length(input$tbl.tab1_rows_selected) > 1)
+    {
+      return("Barplot is only displayed when exactly one gene is selected")
+    }
+    else
+    {
+      return(NULL)
+    }
+  })
+  
   
   output$barplot <- renderPlot({
     
     if(is.null(input$tbl.tab1_rows_selected)) {return(NULL)} ##may need to put this in heatmap section and in tab2
+    if(length(input$tbl.tab1_rows_selected) > 1) {return(NULL)}
     
-    if(input$select_tab1 == "raw counts")
+    if(input$select_tab1 == "raw counts") ##try adding condition here...we'll see
     {
       for(i in seq(input$tbl.tab1_rows_selected,1089972,60554)) ##1089972 is 18 repetitions of 60554 change to vars instead of numbers later, will have to change for filetered data???
       {
@@ -188,6 +237,15 @@ server <- function(input,output)
       barplot <- ggplot(meh2, aes(x=cell_line, y=value)) + geom_bar(stat = "identity")
     }
     
+    if(input$select_tab1 == "row normalized")
+    {
+      for(i in seq(input$tbl.tab1_rows_selected,1089972,60554))
+      {
+        meh2 <- rbind(meh2,meh.rownorm[i,])
+      }
+      barplot <- ggplot(meh2, aes(x=cell_line, y=value)) + geom_bar(stat = "identity") ##this is weird bc full data table of rownorm has NA's, how to address???
+    }
+    
     barplot
     
   })
@@ -199,14 +257,15 @@ server <- function(input,output)
     if(input$select_tab1 == "raw counts") matrix_expr <- count.matrix ##first instance of matrix_expr...why cant app find it???
     if(input$select_tab1 == "rlog") matrix_expr <- rlog.matrix
     if(input$select_tab1 == "vst") matrix_expr <- vst.matrix
+    if(input$select_tab1 == "row normalized") matrix_expr <- rownorm.matrix
     
     ##may need to change order of cell lines from default alphabetic to histotype specific???...do that with dendro???
     heatmap_expr <- main_heatmap(as.matrix(matrix_expr[c(input$tbl.tab1_rows_selected),-1])) %>%
       add_col_labels(ticktext = colnames(matrix_expr[,-1])) %>%
       add_row_labels(ticktext = matrix_expr[input$tbl.tab1_rows_selected,1]) %>% ##trying to add dendro
       add_col_dendro(hclust(dist(t(matrix_expr[input$tbl.tab1_rows_selected,-1])))) ##may have to take out -1 to avoid losing 1st data col
-    if(nrow(matrix_expr[input$tbl.tab1_rows_selected,] ) > 2) 
-    {heatmap_expr <- heatmap_expr %>% add_row_dendro(hclust(dist(t(matrix_expr[c(input$tbl.tab1_rows_selected),]))))}
+    if(nrow(matrix_expr[input$tbl.tab1_rows_selected,] ) > 1) ##currently still trying to cluster genes selected
+    {heatmap_expr <- heatmap_expr %>% add_row_dendro(hclust(dist((matrix_expr[c(input$tbl.tab1_rows_selected),]))), reorder = TRUE, side = "right")} ##taking out t() works but still has to be there...see DESeq2 workflow
     #add_row_dendro(hclust(as.matrix(matrix_expr[c(input$tbl.tab1_rows_selected),-1]))) %>% ##trying row dendro first to see possible clustering???
     #add_col_dendro(hclust(as.matrix(matrix_expr[c(input$tbl.tab1_rows_selected),-1])))
     
@@ -236,6 +295,20 @@ server <- function(input,output)
   })
   
   ##now working on heatmap on tab2 for clustering cell lines based on input genes
+  
+  ##will probably have to put tab2 warning message here
+  output$warning_message_tab2 <- renderText({
+    if(length(input$tbl.tab2_rows_selected) < 2 && input$select_clus == "selected genes")
+    {
+      return("Selected gene heatmap will be displayed when 2 or more genes are selected")
+    }
+    else
+    {
+      return(NULL) ##might not need this
+    }
+  })
+  
+  
   output$heatmap_clus <- renderIheatmap({
     
     ##will need to do something to show filtering step (taking out genes with all-zero-rows), or is filtering step necessary????? review DESeq2 vignette
@@ -244,10 +317,15 @@ server <- function(input,output)
     if(input$select_tab2 == "raw counts") matrix_clus <- count.matrix.filtered[,-1] ##clus for cluster, treat as cmf, do -1 to take out gene names
     if(input$select_tab2 == "rlog") matrix_clus <- cmf.rlog
     if(input$select_tab2 == "vst") matrix_clus <- cmf.vst
+    if(input$select_tab2 == "row normalized") matrix_clus <- cmf.rownorm
     
     #replace above command with this based on select input
     if(input$select_clus == "-no selection-") {return(NULL)} ##commenting it out still has filtered hm show automatically
     #if(is.null(input$tbl.tab2_rows_selected)) {return(NULL)} ##necessary???
+    
+    if(length(input$tbl.tab2_rows_selected) < 2 ) {return(NULL)} ## check how it works with filtered genes...works fine, need to add warning message to select 2+ genes
+    
+    if(is.null(input$tbl.tab2_rows_selected) && input$select_clus == "selected genes") {return(NULL)} ##try this out to see how affects heatmaps
     
     ##BT549 disapears from list of cell lines???
     ##how to make this heatmap show by default/automatically
@@ -277,8 +355,8 @@ server <- function(input,output)
       ##line ~218 doesn't stop this from showing, it's the dendrogram fcts fault
       
       ##checking row selection is working right
-      testprint <- renderPrint({input$tbl.tab2_rows_selected})
-      testprint()
+      #testprint <- renderPrint({input$tbl.tab2_rows_selected})
+      #testprint()
       
       
     }
