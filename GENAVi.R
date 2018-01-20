@@ -58,7 +58,7 @@ ui <- fluidPage(tabsetPanel(
            #selectInput("select", "Select Columns", names(final.counts), multiple = TRUE),
            selectInput("select_tab1", "Select Transform", transforms, multiple = FALSE), ##need individual selectInputs for each tab
            fileInput("input_gene_list_tab1", "Input Gene List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"), ##what is accept parameter???
-           actionButton("but_sortSelectedFirst_tab1", "Selected Rows First"), ##do this to put selected rows at top of data table, trying it out
+           #actionButton("but_sortSelectedFirst_tab1", "Selected Rows First"), ##do this to put selected rows at top of data table, trying it out
            DT::dataTableOutput('tbl.tab1'),
            verbatimTextOutput("warning_message_tab1", placeholder = FALSE), ##trying this out, 
            #numericInput("num","Input row index",1,min = 1,max = 60554),
@@ -71,7 +71,7 @@ ui <- fluidPage(tabsetPanel(
            h2("GENAVi"), 
            selectInput("select_tab2", "Select Transform", transforms, multiple = FALSE),
            fileInput("input_gene_list_tab2", "Input Gene List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"),
-           actionButton("but_sortSelectedFirst_tab2", "Selected Rows First"), ##repeat in tab2
+           #actionButton("but_sortSelectedFirst_tab2", "Selected Rows First"), ##repeat in tab2
            DT::dataTableOutput('tbl.tab2'),
            #DT::dataTableOutput('tbl.tab2.selected'),
            selectInput("select_clus", "Cluster by what genes", cell.line.clusters, multiple = FALSE),
@@ -125,13 +125,63 @@ server <- function(input,output)
   #table.vst    <- final.vst #reactive({(final.vst)})
   
   ###might have to change how to render selected data table section bc rows dont stay selected
+  #output$tbl.tab1 <-  DT::renderDataTable({
+  # if(input$select_tab1 == "rlog") tbl.tab1 <- final.rlog#table.rlog #DT::datatable(table.rlog)
+  #  if(input$select_tab1 == "vst") tbl.tab1 <- final.vst#table.vst #DT::datatable(table.vst)
+  # if(input$select_tab1 == "raw counts") tbl.tab1 <- final.counts#table.counts #DT::datatable(table.counts)
+  #  if(input$select_tab1 == "row normalized") tbl.tab1 <- final.rownorm
+  # tbl.tab1
+  #})
+  
   output$tbl.tab1 <-  DT::renderDataTable({
+    
     if(input$select_tab1 == "rlog") tbl.tab1 <- final.rlog#table.rlog #DT::datatable(table.rlog)
     if(input$select_tab1 == "vst") tbl.tab1 <- final.vst#table.vst #DT::datatable(table.vst)
     if(input$select_tab1 == "raw counts") tbl.tab1 <- final.counts#table.counts #DT::datatable(table.counts)
     if(input$select_tab1 == "row normalized") tbl.tab1 <- final.rownorm
-    tbl.tab1
-  })
+    
+    selected_rows <- input$tbl.tab1_rows_selected
+    
+    status <- factor("Unselected",levels = c("Unselected","Selected"))
+    tbl.tab1 <- cbind(status,tbl.tab1)
+    tbl.tab1$status[selected_rows] <- 'Selected'
+    
+    tbl.tab1 %>% 
+      DT::datatable(extensions = c('Buttons',"FixedHeader"),
+                    class = 'cell-border stripe',
+                    selection = list(mode = "multiple", target= 'row', selected = selected_rows),
+                    options = list(dom = 'Blfrtip',
+                                   order = c(1,"desc"),
+                                   deferRender = TRUE,
+                                   paging = T,
+                                   buttons =
+                                     list('colvis', list(
+                                       extend = 'collection',
+                                       buttons = list(list(extend='csv',
+                                                           filename = "Cell"),
+                                                      list(extend='excel',
+                                                           filename = "Cell"),
+                                                      list(extend='pdf',
+                                                           title = "",
+                                                           filename= "Cell")),
+                                       text = 'Download'
+                                     )),
+                                   fixedHeader = TRUE,
+                                   pageLength = 20,
+                                   scrollX = TRUE,
+                                   lengthMenu = list(c(10, 20, -1), c('10', '20', 'All')) ##might have to change this
+                    ),
+                    filter = 'top'
+      )
+  }) ##works to get selected rows on top but fucks up if select more than one at a time.....worry about it later
+  
+  #output$tbl.tab1 <-  reactiveValues({ ##trying this to get reordering rows to work...
+  #if(input$select_tab1 == "rlog") tbl.tab1 <- final.rlog#table.rlog #DT::datatable(table.rlog)
+  #if(input$select_tab1 == "vst") tbl.tab1 <- final.vst#table.vst #DT::datatable(table.vst)
+  #if(input$select_tab1 == "raw counts") tbl.tab1 <- final.counts#table.counts #DT::datatable(table.counts)
+  #if(input$select_tab1 == "row normalized") tbl.tab1 <- final.rownorm
+  #tbl.tab1
+  #})
   
   ##display selected rows separately in another data table object
   #output$tbl.tab1.selected <- DT::renderDataTable({
@@ -142,12 +192,54 @@ server <- function(input,output)
   #tbl.tab1.selected
   #})
   
+  #output$tbl.tab2 <-  DT::renderDataTable({
+  #if(input$select_tab2 == "rlog") tbl.tab2 <- final.rlog#table.rlog #DT::datatable(table.rlog)
+  #if(input$select_tab2 == "vst") tbl.tab2 <- final.vst#table.vst #DT::datatable(table.vst)
+  #if(input$select_tab2 == "raw counts") tbl.tab2 <- final.counts#table.counts #DT::datatable(table.counts)
+  #if(input$select_tab2 == "row normalized") tbl.tab2 <- final.rownorm
+  #tbl.tab2
+  #})
+  
   output$tbl.tab2 <-  DT::renderDataTable({
+    
     if(input$select_tab2 == "rlog") tbl.tab2 <- final.rlog#table.rlog #DT::datatable(table.rlog)
     if(input$select_tab2 == "vst") tbl.tab2 <- final.vst#table.vst #DT::datatable(table.vst)
     if(input$select_tab2 == "raw counts") tbl.tab2 <- final.counts#table.counts #DT::datatable(table.counts)
     if(input$select_tab2 == "row normalized") tbl.tab2 <- final.rownorm
-    tbl.tab2
+    
+    selected_rows <- input$tbl.tab2_rows_selected ###may need to label this for tab1 and tab2...nope don't need to
+    
+    status <- factor("Unselected",levels = c("Unselected","Selected"))
+    tbl.tab2 <- cbind(status,tbl.tab2)
+    tbl.tab2$status[selected_rows] <- 'Selected'
+    
+    tbl.tab2 %>% 
+      DT::datatable(extensions = c('Buttons',"FixedHeader"),
+                    class = 'cell-border stripe',
+                    selection = list(mode = "multiple", target= 'row', selected = selected_rows),
+                    options = list(dom = 'Blfrtip',
+                                   order = c(1,"desc"),
+                                   deferRender = TRUE,
+                                   paging = T,
+                                   buttons =
+                                     list('colvis', list(
+                                       extend = 'collection',
+                                       buttons = list(list(extend='csv',
+                                                           filename = "Cell"),
+                                                      list(extend='excel',
+                                                           filename = "Cell"),
+                                                      list(extend='pdf',
+                                                           title = "",
+                                                           filename= "Cell")),
+                                       text = 'Download'
+                                     )),
+                                   fixedHeader = TRUE,
+                                   pageLength = 20,
+                                   scrollX = TRUE,
+                                   lengthMenu = list(c(10, 20, -1), c('10', '20', 'All'))
+                    ),
+                    filter = 'top'
+      )
   })
   
   #output$tbl.tab2.selected <- DT::renderDataTable({
@@ -177,21 +269,34 @@ server <- function(input,output)
   #warning_message
   #})
   
-  observeEvent(input$but_sortSelectedFirst_tab1,
-               {
-                 ## selected row info is stored in var input$tbl.tab1_rows_selected
-                 selected_rows <- input$tbl.tab1_rows_selected
-                 ##alc new row order w/ selected rows on top
-                 row_order <- order(seq_along(tbl.tab1[[1]]) %in% selected_rows, decreasing = TRUE)
-               })
-  output$tbl.tab1 <- output$tbl.tab1[row_order,]
   
-  proxy <- DT::dataTableProxy('tbl.tab1')
-  DT::replaceData(proxy, output$tbl.tab1)
+  ################### making selected rows first in tabl.tab1...currently breaks the whole app ###################
+  
+  #test_data <- reactiveValues(table_data = tbl.tab1) ##trying this out, may not need this bc i render the data object above, possibly dont need this
+  
+  #observeEvent(input$but_sortSelectedFirst_tab1, ##adding just this part within the ({}) works but breaks when you click the button
+  #            {
+  #             ## selected row info is stored in var input$tbl.tab1_rows_selected
+  #            selected_rows <- input$tbl.tab1_rows_selected
+  #           ##alc new row order w/ selected rows on top
+  #          row_order <- order(seq_along(output$tbl.tab1[[1]]) %in% selected_rows, decreasing = TRUE)
+  #       })
+  
+  #output$tbl.tab1 <- output$tbl.tab1[row_order,] ##trying this out, including this line breaks the app
+  
+  #proxy <- DT::dataTableProxy('tbl.tab1')
+  #DT::replaceData(proxy, output$tbl.tab1)
   ## make sure to select rows again
-  DT::selectRows(proxy, seq_along(selected_rows))
+  #DT::selectRows(proxy, seq_along(selected_rows))
   
-  output$tbl.tab1 <- DT::renderDataTable(isolate(output$tbl.tab1))
+  #output$tbl.tab1 <- DT::renderDataTable(isolate(output$tbl.tab1))
+  
+  ### start manipulating input file to grep for and select genes ###
+  #output$input_gene_list_tab1 <- DT::dataTableProxy({ ##this breaks the app
+  
+  # input_gene_list_tab1 <- input$input_gene_list_tab1 ##see if this breaks the app
+  
+  #})
   
   output$warning_message_tab1 <- renderText({
     if(length(input$tbl.tab1_rows_selected) > 1)
@@ -302,10 +407,10 @@ server <- function(input,output)
     {
       return("Selected gene heatmap will be displayed when 2 or more genes are selected")
     }
-    else
-    {
-      return(NULL) ##might not need this
-    }
+    #else
+    #{
+    # return(NULL) ##might not need this, this might be messing up filtered genes heatmap
+    #}
   })
   
   
@@ -323,9 +428,7 @@ server <- function(input,output)
     if(input$select_clus == "-no selection-") {return(NULL)} ##commenting it out still has filtered hm show automatically
     #if(is.null(input$tbl.tab2_rows_selected)) {return(NULL)} ##necessary???
     
-    if(length(input$tbl.tab2_rows_selected) < 2 ) {return(NULL)} ## check how it works with filtered genes...works fine, need to add warning message to select 2+ genes
-    
-    if(is.null(input$tbl.tab2_rows_selected) && input$select_clus == "selected genes") {return(NULL)} ##try this out to see how affects heatmaps
+    if(length(input$tbl.tab2_rows_selected) < 2 && input$select_clus == "selected genes") {return(NULL)} ##try this out to see how affects heatmaps
     
     ##BT549 disapears from list of cell lines???
     ##how to make this heatmap show by default/automatically
