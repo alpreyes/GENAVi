@@ -458,7 +458,7 @@ server <- function(input,output)
   })
   
   
-  output$barplot <- renderPlot({ ############ bar plot is under construction ################...somethig wrong with the gather fcts
+  output$barplot <- renderPlot({
     
     if(is.null(input$tbl.tab1_rows_selected)) {return(NULL)} ##may need to put this in heatmap section and in tab2
     if(length(input$tbl.tab1_rows_selected) > 1) {return(NULL)}
@@ -666,10 +666,47 @@ server <- function(input,output)
     ##will need to do something to show filtering step (taking out genes with all-zero-rows), or is filtering step necessary????? review DESeq2 vignette
     ##for filtering steps will have to put all object manipulation in top of code
     
-    if(input$select_tab2 == "raw counts") matrix_clus <- count.matrix.filtered[,-1] ##clus for cluster, treat as cmf, do -1 to take out gene names
-    if(input$select_tab2 == "rlog") matrix_clus <- cmf.rlog
-    if(input$select_tab2 == "vst") matrix_clus <- cmf.vst
-    if(input$select_tab2 == "row normalized") matrix_clus <- cmf.rownorm
+    #if(input$select_tab2 == "raw counts") matrix_clus <- count.matrix.filtered[,-1] ##clus for cluster, treat as cmf, do -1 to take out gene names
+    #if(input$select_tab2 == "rlog") matrix_clus <- cmf.rlog
+    #if(input$select_tab2 == "vst") matrix_clus <- cmf.vst
+    #if(input$select_tab2 == "row normalized") matrix_clus <- cmf.rownorm
+    
+    ###calc transforms live and assign to matrix_clus
+    if(input$select_tab2 == "raw counts") 
+    {
+      tbl.tab2 <- all_cell_lines
+    }#table.counts #DT::datatable(table.counts)
+    ######### this code calculates the normalization methods live but takes too long...apply in tab2 based on what tiago and michelle say ######
+    if(input$select_tab2 == "rlog")
+    {
+      tbl.tab2 <- all_cell_lines#table.rlog #DT::datatable(table.rlog)
+      tbl.tab2 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step, actually change the object
+      tbl.tab2 <- cbind(tbl.tab2[,1:7], rlog(as.matrix(tbl.tab2[,8:dim(tbl.tab2)[2]]), blind = FALSE))
+      #tbl.tab1
+    }
+    if(input$select_tab2 == "vst")
+    {
+      tbl.tab2 <- all_cell_lines#table.vst #DT::datatable(table.vst)
+      tbl.tab2 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
+      tbl.tab2 <- cbind(tbl.tab2[,1:7], vst(as.matrix(tbl.tab2[,8:dim(tbl.tab2)[2]]), blind = FALSE))
+      #tbl.tab1
+    }
+    if(input$select_tab2 == "row normalized")
+    {
+      tbl.tab2 <- all_cell_lines
+      tbl.tab2 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
+      tbl.tab2 <- cbind(tbl.tab2[,1:7], rownorm(tbl.tab2[,8:dim(tbl.tab2)[2]]))
+      #tbl.tab1
+    }
+    if(input$select_tab2 == "logCPM")
+    {
+      tbl.tab2 <- all_cell_lines
+      tbl.tab2 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
+      tbl.tab2 <- cbind(tbl.tab2[,1:7], cpm(tbl.tab2[,8:dim(tbl.tab2)[2]]), log =  TRUE)
+      #tbl.tab1
+    }
+    
+    matrix_clus <- tbl.tab2[,c(1,8:dim(tbl.tab2)[2])] ### trying this out
     
     #replace above command with this based on select input
     if(input$select_clus == "-no selection-") {return(NULL)} ##commenting it out still has filtered hm show automatically
