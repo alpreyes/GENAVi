@@ -3,68 +3,81 @@ library(shiny)
 library(tidyr) ##use this for barplot
 library(ggplot2) ##use this for barplot
 library(DESeq2)
+library(edgeR)
 library(iheatmapr)
+library(tidyverse)
+library(readr)
 
-final.counts <- read.csv("final.counts.csv",header = TRUE) ##read in data going to view
-count.matrix <- final.counts[,c(1,8:25)] ##subset data for functions
+all_cell_lines <- read_csv("all_cell_lines.csv", col_names = TRUE) ##read in data going to view
+#count.matrix <- final.counts[,c(1,8:dim(final.counts)[2])] ##subset data for functions
 #final.RPKM   <- read.csv("final.RPKM.csv",header = TRUE) ##read in data going to view
 #RPKM.matrix  <- final.RPKM[,c(1,8:25)] ##subset data for functions
-meh <- gather(count.matrix,"cell_line", "value", 2:19) ##use these for barplot but may be deleting soon, will have to change name
-meh2 <- data.frame() ##will have to change name to something that makes sense in rmarkdown, need this for making reactive barplot
+#meh <- gather(count.matrix,"cell_line", "value", 2:dim(count.matrix)[2]) ##use these for barplot but may be deleting soon, will have to change name, will need to change this
+#meh2 <- data.frame() ##will have to change name to something that makes sense in rmarkdown, need this for making reactive barplot
 
-final.rownorm <- read.csv("final.rownorm.csv",header = TRUE)
-cmf.rownorm <- read.csv("cmf.rownorm.csv",header = TRUE) ##will need to have gene names and other first data columns to id genes
-cmf.rownorm <- as.matrix(cmf.rownorm)
-rownorm.matrix <- final.rownorm[,c(1,8:25)]
-meh.rownorm <- data.frame()
-meh.rownorm <- gather(rownorm.matrix,"cell_line","value",2:19) ##now use this for barplot
+#final.rownorm <- read.csv("final.rownorm.csv",header = TRUE)
+#cmf.rownorm <- read.csv("cmf.rownorm.csv",header = TRUE) ##will need to have gene names and other first data columns to id genes
+#cmf.rownorm <- as.matrix(cmf.rownorm)
+#rownorm.matrix <- final.rownorm[,c(1,8:25)]
+#meh.rownorm <- data.frame()
+#meh.rownorm <- gather(rownorm.matrix,"cell_line","value",2:19) ##now use this for barplot
 ##cmf data tables need gene names and other identifiers, will fix this when reading in data tables (will calc manually instead of reading in objects)
 
 #counts.rlog <- rlog(as.matrix(count.matrix[,2:19]))
 #write.csv(counts.rlog, "counts.rlog.csv",row.names = FALSE)
 #rm(counts.rlog)
-counts.rlog <- read.csv("counts.rlog.csv",header = TRUE)
+#counts.rlog <- read.csv("counts.rlog.csv",header = TRUE)
 
-final.rlog <- cbind(final.counts[,1:7],counts.rlog) ##might change to just reading in final.rlog matrix with read.csv (after writing final versions of tables)
-rlog.matrix <- final.rlog[,c(1,8:25)]
-meh.rlog   <- data.frame()
-meh.rlog <- gather(rlog.matrix,"cell_line","value",2:19)
+#final.rlog <- cbind(final.counts[,1:7],counts.rlog) ##might change to just reading in final.rlog matrix with read.csv (after writing final versions of tables)
+#rlog.matrix <- final.rlog[,c(1,8:25)]
+#meh.rlog   <- data.frame()
+#meh.rlog <- gather(rlog.matrix,"cell_line","value",2:19)
 
 #counts.vst <- vst(as.matrix(count.matrix[,2:19]))
 #write.csv(counts.vst, "counts.vst.csv",row.names = FALSE)
 #rm(counts.vst)
-counts.vst <- read.csv("counts.vst.csv",header = TRUE)
+#counts.vst <- read.csv("counts.vst.csv",header = TRUE)
 
-final.vst <- cbind(final.counts[,1:7],counts.vst)
-vst.matrix  <- final.vst[,c(1,8:25)]
-meh.vst    <- data.frame()
-meh.vst <- gather(vst.matrix,"cell_line","value",2:19)
+#final.vst <- cbind(final.counts[,1:7],counts.vst)
+#vst.matrix  <- final.vst[,c(1,8:25)]
+#meh.vst    <- data.frame()
+#meh.vst <- gather(vst.matrix,"cell_line","value",2:19)
 
+###objects for cell line clustering
+#count.matrix.filtered <- count.matrix[rowSums(count.matrix[,-1]) > 1,] ##treat this as if it were "cmf"
+#cmf.rlog <- rlog(as.matrix(count.matrix.filtered[,-1]),blind = FALSE)
+#cmf.vst  <- vst(as.matrix(count.matrix.filtered[,-1]),blind = FALSE)
+####will have to add one for zscore when zscore is finally implemented####
 
 #matrix_expr <- matrix()
 
-transforms <- c("raw counts", "row normalized", "rlog", "vst") ##adding "t-score" -> row normalized, ask michelle about normalizing with FTSEC lines 
+transforms <- c("raw counts", "row normalized", "logCPM", "rlog", "vst") ##adding "t-score" -> row normalized, ask michelle about normalizing with FTSEC lines, have to add log(CPM+1)
+sortby <- c("-no selection-","mean", "standard deviation")
 cell.line.clusters <- c("-no selection-","filtered genes", "selected genes") ##do this for cell line cluster heatmaps, changed all to filtered, should "all" be an option?
 
-###objects for cell line clustering
-count.matrix.filtered <- count.matrix[rowSums(count.matrix[,-1]) > 1,] ##treat this as if it were "cmf"
-cmf.rlog <- rlog(as.matrix(count.matrix.filtered[,-1]),blind = FALSE)
-cmf.vst  <- vst(as.matrix(count.matrix.filtered[,-1]),blind = FALSE)
-####will have to add one for zscore when zscore is finally implemented####
+rownorm <- function(counts.filtered)
+{
+  rownorm.tbl <-  (counts.filtered - rowMeans(counts.filtered,na.rm = TRUE)) / apply(counts.filtered,1,sd)
+  colnames(rownorm.tbl) <- colnames(counts.filtered)
+  rownorm.tbl
+}
 
 ui <- fluidPage(tabsetPanel(
   tabPanel("Expression", ##changing from tab 1, but still using tab1 in the other parts of code
            h2('GENAVi'), 
            #selectInput("select", "Select Columns", names(final.counts), multiple = TRUE),
            selectInput("select_tab1", "Select Transform", transforms, multiple = FALSE), ##need individual selectInputs for each tab
-           fileInput("input_gene_list_tab1", "Input Gene List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"), ##what is accept parameter???
+           fileInput("input_gene_list_tab1", "Input Gene List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"), ##how to increase max upload size
            #actionButton("but_sortSelectedFirst_tab1", "Selected Rows First"), ##do this to put selected rows at top of data table, trying it out
-           DT::dataTableOutput('tbl.tab1'),
-           verbatimTextOutput("warning_message_tab1", placeholder = FALSE), ##trying this out, 
+           selectInput("select_sort_tab1", "Sort Table By", sortby, multiple = FALSE),
+           DT::dataTableOutput('tbl.tab1'), ##dont think i need to change this to calc/render data tables live
+           verbatimTextOutput("warning_message_tab1", placeholder = FALSE), ##NEED TO ADD ERROR MESSAGE FOR HEATMAP
+           #verbatimTextOutput("warning_message_tab1_hm",placeholder = FALSE), ## hm for heatmap
+           #verbatimTextOutput("test_message",placeholder = FALSE), ###testing to see if reactive fct is being called
            #numericInput("num","Input row index",1,min = 1,max = 60554),
            #verbatimTextOutput("warning_message"), ##may need to take this out for  now
            #DT::dataTableOutput('tbl.tab1.selected'), ##doing this to keep track of selected rows, take this out
-           plotOutput("barplot"), 
+           plotOutput("barplot"),
            iheatmaprOutput("heatmap_expr") ##expr for expression
   ),
   tabPanel("Clustering", ##changing from tab 2, but still usibg tab2 in other parts of code
@@ -133,13 +146,97 @@ server <- function(input,output)
   # tbl.tab1
   #})
   
+  ### reactive fct that calcs the transforms and saves them so it doesnt take too long each time
+  #getNormalizedData <- reactive({
+  # tbl.tab1 <- all_cell_lines 
+  #tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step, actually change the object
+  #rlog     <- cbind(tbl.tab1[,1:7], rlog(as.matrix(tbl.tab1[,8:dim(tbl.tab1)[2]]), blind = FALSE))
+  #vst      <- cbind(tbl.tab1[,1:7], vst(as.matrix(tbl.tab1[,8:dim(tbl.tab1)[2]]), blind = FALSE))
+  #rownorm  <- cbind(tbl.tab1[,1:7], rownorm(tbl.tab1[,8:dim(all_cell_lines)[2]]))
+  #raw      <- cbind(tbl.tab1[,1:7], as.matrix(tbl.tab1[,8:dim(tbl.tab1)[2]]), blind = FALSE) ##might might have to take out blind option???
+  #cpm      <- cbind(tbl.tab1[,1:7], cpm(tbl.tab1[,8:dim(tbl.tab1)[2]]), log =  TRUE)
+  #ret      <- list(rlog,vst,rownorm,raw,cpm)
+  #names(ret) <- c("rlog","vst","rownorm","raw","cpm")
+  #return(ret)
+  #})
+  
+  ### diff reactive fct that does the same as above???
+  #getTbl1 <- reactive({
+  # select <- input$select_tab1
+  #tbl.tab1 <- NULL
+  #data <- getNormalizedData()
+  #if(select == "raw counts") tbl.tab1 <- data$raw #table.counts #DT::datatable(table.counts)
+  #if(select == "rlog")  tbl.tab1 <- data$rlog
+  #if(select == "vst")  tbl.tab1 <- data$vst
+  #if(select == "row normalized")  tbl.tab1 <- data$rownorm
+  #if(select == "logCPM")  tbl.tab1 <- data$cpm
+  #tbl.tab1
+  #})
+  
   output$tbl.tab1 <-  DT::renderDataTable({
     
-    if(input$select_tab1 == "rlog") tbl.tab1 <- final.rlog#table.rlog #DT::datatable(table.rlog)
-    if(input$select_tab1 == "vst") tbl.tab1 <- final.vst#table.vst #DT::datatable(table.vst)
-    if(input$select_tab1 == "raw counts") tbl.tab1 <- final.counts#table.counts #DT::datatable(table.counts)
-    if(input$select_tab1 == "row normalized") tbl.tab1 <- final.rownorm
+    ####### try replacing this chunk with Tiago's edit to save the norms so it doesn't take long each time ###########
+    if(input$select_tab1 == "raw counts") 
+    {
+      tbl.tab1 <- all_cell_lines
+    }#table.counts #DT::datatable(table.counts)
+    ######### this code calculates the normalization methods live but takes too long...apply in tab2 based on what tiago and michelle say ######
+    if(input$select_tab1 == "rlog")
+    {
+      tbl.tab1 <- all_cell_lines#table.rlog #DT::datatable(table.rlog)
+      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step, actually change the object
+      tbl.tab1 <- cbind(tbl.tab1[,1:7], rlog(as.matrix(tbl.tab1[,8:dim(tbl.tab1)[2]]), blind = FALSE))
+      #tbl.tab1
+    }
+    if(input$select_tab1 == "vst")
+    {
+      tbl.tab1 <- all_cell_lines#table.vst #DT::datatable(table.vst)
+      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
+      tbl.tab1 <- cbind(tbl.tab1[,1:7], vst(as.matrix(tbl.tab1[,8:dim(tbl.tab1)[2]]), blind = FALSE))
+      #tbl.tab1
+    }
+    if(input$select_tab1 == "row normalized")
+    {
+      tbl.tab1 <- all_cell_lines
+      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
+      tbl.tab1 <- cbind(tbl.tab1[,1:7], rownorm(tbl.tab1[,8:dim(tbl.tab1)[2]]))
+      #tbl.tab1
+    }
+    if(input$select_tab1 == "logCPM")
+    {
+      tbl.tab1 <- all_cell_lines
+      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
+      tbl.tab1 <- cbind(tbl.tab1[,1:7], cpm(tbl.tab1[,8:dim(tbl.tab1)[2]]), log =  TRUE)
+      #tbl.tab1
+    }
     
+    tbl.tab1
+    
+    ######### partner this with the above reactive fcts that save the transforms
+    #data <- getNormalizedData() ##either run this or the 2 lines below
+    #data <- getTbl1()
+    #tbl.tab1
+    #if(input$select_tab1 == "raw counts") tbl.tab1 <- data$raw #table.counts #DT::datatable(table.counts)
+    #if(input$select_tab1 == "rlog")  tbl.tab1 <- data$rlog
+    #if(input$select_tab1 == "vst")  tbl.tab1 <- data$vst
+    #if(input$select_tab1 == "row normalized")  tbl.tab1 <- data$rownorm
+    #if(input$select_tab1 == "logCPM")  tbl.tab1 <- data$cpm
+    
+    
+    ######### sorting by mean and sd ##################### ....fucks up the select sorting thing...
+    #if(input$select_sort_tab1 == "-no selection-") {return(tbl.tab1)}
+    #if(input$select_sort_tab1 == "mean")
+    #{
+    # tbl.tab1 <- tbl.tab1[order(apply(tbl.tab1[,8:dim(tbl.tab1)[2]],1,mean), decreasing = TRUE),]
+    #}
+    #if(input$select_sort_tab1 == "standard deviation")
+    #{
+    # tbl.tab1 <- tbl.tab1[order(apply(tbl.tab1[,8:dim(tbl.tab1)[2]],1,sd), decreasing = TRUE),]
+    #}
+    
+    ######## this section sorts the table so that selected rows are first #######
+    ####### ordering rows like this makes the selection wonky in the figures, other rows than what you select are being displayed
+    ####### try taking this out to see how tables are rendered...or not rendered???
     selected_rows <- input$tbl.tab1_rows_selected
     
     status <- factor("Unselected",levels = c("Unselected","Selected"))
@@ -173,7 +270,13 @@ server <- function(input,output)
                     ),
                     filter = 'top'
       )
+    
+    ## try adding the genes list to match() here, see if it breaks the app
+    ##gene_list_tab1 <- input$input_gene_list_tab1 ##create object here see if it breaks the app.....yup breaks the app
+    
   }) ##works to get selected rows on top but fucks up if select more than one at a time.....worry about it later
+  
+  
   
   #output$tbl.tab1 <-  reactiveValues({ ##trying this to get reordering rows to work...
   #if(input$select_tab1 == "rlog") tbl.tab1 <- final.rlog#table.rlog #DT::datatable(table.rlog)
@@ -200,12 +303,49 @@ server <- function(input,output)
   #tbl.tab2
   #})
   
-  output$tbl.tab2 <-  DT::renderDataTable({
+  output$tbl.tab2 <-  DT::renderDataTable({ ###need to update this to match for tab1 whatever we discover works
     
-    if(input$select_tab2 == "rlog") tbl.tab2 <- final.rlog#table.rlog #DT::datatable(table.rlog)
-    if(input$select_tab2 == "vst") tbl.tab2 <- final.vst#table.vst #DT::datatable(table.vst)
-    if(input$select_tab2 == "raw counts") tbl.tab2 <- final.counts#table.counts #DT::datatable(table.counts)
-    if(input$select_tab2 == "row normalized") tbl.tab2 <- final.rownorm
+    #if(input$select_tab2 == "rlog") tbl.tab2 <- final.rlog#table.rlog #DT::datatable(table.rlog)
+    #if(input$select_tab2 == "vst") tbl.tab2 <- final.vst#table.vst #DT::datatable(table.vst)
+    #if(input$select_tab2 == "raw counts") tbl.tab2 <- final.counts#table.counts #DT::datatable(table.counts)
+    #if(input$select_tab2 == "row normalized") tbl.tab2 <- final.rownorm
+    
+    ####### try replacing this chunk with Tiago's edit to save the norms so it doesn't take long each time ###########
+    if(input$select_tab2 == "raw counts") 
+    {
+      tbl.tab2 <- all_cell_lines
+    }#table.counts #DT::datatable(table.counts)
+    ######### this code calculates the normalization methods live but takes too long...apply in tab2 based on what tiago and michelle say ######
+    if(input$select_tab2 == "rlog")
+    {
+      tbl.tab2 <- all_cell_lines#table.rlog #DT::datatable(table.rlog)
+      tbl.tab2 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step, actually change the object
+      tbl.tab2 <- cbind(tbl.tab2[,1:7], rlog(as.matrix(tbl.tab2[,8:dim(tbl.tab2)[2]]), blind = FALSE))
+      #tbl.tab1
+    }
+    if(input$select_tab2 == "vst")
+    {
+      tbl.tab2 <- all_cell_lines#table.vst #DT::datatable(table.vst)
+      tbl.tab2 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
+      tbl.tab2 <- cbind(tbl.tab2[,1:7], vst(as.matrix(tbl.tab2[,8:dim(tbl.tab2)[2]]), blind = FALSE))
+      #tbl.tab1
+    }
+    if(input$select_tab2 == "row normalized")
+    {
+      tbl.tab2 <- all_cell_lines
+      tbl.tab2 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
+      tbl.tab2 <- cbind(tbl.tab2[,1:7], rownorm(tbl.tab2[,8:dim(tbl.tab2)[2]]))
+      #tbl.tab1
+    }
+    if(input$select_tab2 == "logCPM")
+    {
+      tbl.tab2 <- all_cell_lines
+      tbl.tab2 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
+      tbl.tab2 <- cbind(tbl.tab2[,1:7], cpm(tbl.tab2[,8:dim(tbl.tab2)[2]]), log =  TRUE)
+      #tbl.tab1
+    }
+    
+    tbl.tab2
     
     selected_rows <- input$tbl.tab2_rows_selected ###may need to label this for tab1 and tab2...nope don't need to
     
@@ -298,6 +438,14 @@ server <- function(input,output)
   
   #})
   
+  input_gene_list_tab1 <- reactive({ ######### may need to take this out bc not working ##########
+    
+    input_gene_list_tab1 <- input$input_gene_list_tab1
+    
+    input$tbl.tab1_rows_selected <- match(input_gene_list_tab1$V1, tbl.tab1$Genename)
+    
+  })
+  
   output$warning_message_tab1 <- renderText({
     if(length(input$tbl.tab1_rows_selected) > 1)
     {
@@ -310,59 +458,158 @@ server <- function(input,output)
   })
   
   
-  output$barplot <- renderPlot({
+  output$barplot <- renderPlot({ ############ bar plot is under construction ################...somethig wrong with the gather fcts
     
     if(is.null(input$tbl.tab1_rows_selected)) {return(NULL)} ##may need to put this in heatmap section and in tab2
     if(length(input$tbl.tab1_rows_selected) > 1) {return(NULL)}
     
-    if(input$select_tab1 == "raw counts") ##try adding condition here...we'll see
+    if(input$select_tab1 == "raw counts")
     {
-      for(i in seq(input$tbl.tab1_rows_selected,1089972,60554)) ##1089972 is 18 repetitions of 60554 change to vars instead of numbers later, will have to change for filetered data???
-      {
-        meh2 <- rbind(meh2,meh[i,]) ##will have to change name of meh and meh2
-      }
-      barplot <- ggplot(meh2, aes(x=cell_line, y=value)) + geom_bar(stat = "identity")
-    }  
-    
-    if(input$select_tab1 == "rlog")
-    {
-      for(i in seq(input$tbl.tab1_rows_selected,1089972,60554))
-      {
-        meh2 <- rbind(meh2,meh.rlog[i,])
-      }
-      barplot <- ggplot(meh2, aes(x=cell_line, y=value)) + geom_bar(stat = "identity")
+      tbl.tab1 <- all_cell_lines
+      #meh <- gather(tbl.tab1[,c(1,8:dim(tbl.tab1)[2])],"cell_line", "value", 2:dim(tbl.tab1)[2]) ##use these for barplot but may be deleting soon, will have to change name, will need to change this
+      #meh2 <- data.frame()
     }
-    
-    if(input$select_tab1 == "vst")
+    if(input$select_tab1 == "logCPM")
     {
-      for(i in seq(input$tbl.tab1_rows_selected,1089972,60554))
-      {
-        meh2 <- rbind(meh2,meh.vst[i,])
-      }
-      barplot <- ggplot(meh2, aes(x=cell_line, y=value)) + geom_bar(stat = "identity")
+      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
+      tbl.tab1 <- cbind(tbl.tab1[,1:7], cpm(tbl.tab1[,8:dim(tbl.tab1)[2]]), log =  TRUE)
+      #meh <- gather(tbl.tab1[,c(1,8:dim(tbl.tab1)[2])],"cell_line", "value", 2:dim(tbl.tab1)[2]) ##use these for barplot but may be deleting soon, will have to change name, will need to change this
+      #meh2 <- data.frame()
     }
-    
     if(input$select_tab1 == "row normalized")
     {
-      for(i in seq(input$tbl.tab1_rows_selected,1089972,60554))
-      {
-        meh2 <- rbind(meh2,meh.rownorm[i,])
-      }
-      barplot <- ggplot(meh2, aes(x=cell_line, y=value)) + geom_bar(stat = "identity") ##this is weird bc full data table of rownorm has NA's, how to address???
+      tbl.tab1 <- all_cell_lines
+      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
+      tbl.tab1 <- cbind(tbl.tab1[,1:7], rownorm(tbl.tab1[,8:dim(all_cell_lines)[2]]))
+      #meh <- gather(tbl.tab1[,c(1,8:dim(tbl.tab1)[2])],"cell_line", "value", 2:dim(tbl.tab1)[2]) ##use these for barplot but may be deleting soon, will have to change name, will need to change this
+      #meh2 <- data.frame()
     }
+    if(input$select_tab1 == "rlog")
+    {
+      tbl.tab1 <- all_cell_lines#table.rlog #DT::datatable(table.rlog)
+      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step, actually change the object
+      tbl.tab1 <- cbind(tbl.tab1[,1:7], rlog(as.matrix(tbl.tab1[,8:dim(tbl.tab1)[2]]), blind = FALSE)) 
+      #meh <- gather(tbl.tab1[,c(1,8:dim(tbl.tab1)[2])],"cell_line", "value", 2:dim(tbl.tab1)[2]) ##use these for barplot but may be deleting soon, will have to change name, will need to change this
+      #meh2 <- data.frame()  
+    }
+    if(input$select_tab1 == "vst")
+    {
+      tbl.tab1 <- all_cell_lines#table.vst #DT::datatable(table.vst)
+      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
+      tbl.tab1 <- cbind(tbl.tab1[,1:7], vst(as.matrix(tbl.tab1[,8:dim(tbl.tab1)[2]]), blind = FALSE))
+      #meh <- gather(tbl.tab1[,c(1,8:dim(tbl.tab1)[2])],"cell_line", "value", 2:dim(tbl.tab1)[2]) ##use these for barplot but may be deleting soon, will have to change name, will need to change this
+      #meh2 <- data.frame()
+    }  
     
-    barplot
+    meh <- gather(tbl.tab1[,c(1,8:dim(tbl.tab1)[2])],"cell_line", "value", 2:dim(tbl.tab1[,c(1,8:dim(tbl.tab1)[2])])[2]) ##use these for barplot but may be deleting soon, will have to change name, will need to change this
+    meh2 <- data.frame()
+    
+    for(i in seq(input$tbl.tab1_rows_selected, (dim(tbl.tab1)[2]-7)*dim(tbl.tab1)[1], dim(tbl.tab1)[1]))
+    {
+      meh2 <- rbind(meh2,meh[i,])
+    }
+    barplot <- ggplot(meh2, aes(x=cell_line, y=value)) + geom_bar(stat = "identity")
+    
+    #if(input$select_tab1 == "raw counts") ##try adding condition here...we'll see
+    #{
+    # for(i in seq(input$tbl.tab1_rows_selected,(dim(tbl.tab1)[2]-7)*dim(tbl.tab1)[1],dim(tbl.tab1)[1])) ##1089972 is 18 repetitions of 60554 change to vars instead of numbers later, will have to change for filetered data???
+    #{
+    # meh2 <- rbind(meh2,meh[i,]) ##will have to change name of meh and meh2
+    #}
+    #barplot <- ggplot(meh2, aes(x=cell_line, y=value)) + geom_bar(stat = "identity")
+    #}  
+    
+    #if(input$select_tab1 == "rlog")
+    #{
+    # for(i in seq(input$tbl.tab1_rows_selected,(dim(tbl.tab1)[2]-7)*dim(tbl.tab1)[1],dim(tbl.tab1)[1]))
+    #{
+    # meh2 <- rbind(meh2,meh.rlog[i,])
+    #}
+    #barplot <- ggplot(meh2, aes(x=cell_line, y=value)) + geom_bar(stat = "identity")
+    #}
+    
+    #if(input$select_tab1 == "vst")
+    #{
+    # for(i in seq(input$tbl.tab1_rows_selected,(dim(tbl.tab1)[2]-7)*dim(tbl.tab1)[1],dim(tbl.tab1)[1]))
+    #{
+    # meh2 <- rbind(meh2,meh.vst[i,])
+    #}
+    #barplot <- ggplot(meh2, aes(x=cell_line, y=value)) + geom_bar(stat = "identity")
+    #}
+    
+    #if(input$select_tab1 == "row normalized")
+    #{
+    #for(i in seq(input$tbl.tab1_rows_selected,(dim(tbl.tab1)[2]-7)*dim(tbl.tab1)[1],dim(tbl.tab1)[1]))
+    #{
+    # meh2 <- rbind(meh2,meh.rownorm[i,])
+    #}
+    #barplot <- ggplot(meh2, aes(x=cell_line, y=value)) + geom_bar(stat = "identity") ##this is weird bc full data table of rownorm has NA's, how to address???
+    #}
+    
+    #if(input$select_tab1 == "logCPM")
+    #{
+    
+    #}
+    
+    print(barplot)
     
   })
   
-  output$heatmap_expr <- renderIheatmap({ ##expr for expression other barplot will have clus
+  #output$warning_message_tab1_hm <- renderText({ ##see how this is displayed
+  # if(length(input$tbl.tab1_rows_selected) < 2)
+  #{
+  # return("Heatmap is only displayed when two or more genes are selected")
+  #}
+  #else
+  #{
+  # return(NULL)
+  #}
+  #})
+  
+  output$heatmap_expr <- renderIheatmap({ ###### heatmap is under construction too...raw counts doesnt work...need to get saving obj code to work
     
-    if(is.null(input$tbl.tab1_rows_selected)) {return(NULL)} ##necessary???
+    #if(is.null(input$tbl.tab1_rows_selected)) {return(NULL)} ##necessary???
+    if(length(input$tbl.tab1_rows_selected) < 2) {return(NULL)}
     
-    if(input$select_tab1 == "raw counts") matrix_expr <- count.matrix ##first instance of matrix_expr...why cant app find it???
-    if(input$select_tab1 == "rlog") matrix_expr <- rlog.matrix
-    if(input$select_tab1 == "vst") matrix_expr <- vst.matrix
-    if(input$select_tab1 == "row normalized") matrix_expr <- rownorm.matrix
+    #if(input$select_tab1 == "raw counts") matrix_expr <- count.matrix ##first instance of matrix_expr...why cant app find it???
+    #if(input$select_tab1 == "rlog") matrix_expr <- rlog.matrix
+    #if(input$select_tab1 == "vst") matrix_expr <- vst.matrix
+    #if(input$select_tab1 == "row normalized") matrix_expr <- rownorm.matrix
+    
+    if(input$select_tab1 == "raw counts") 
+    {
+      tbl.tab1 <- all_cell_lines
+    }#table.counts #DT::datatable(table.counts)
+    ######### this code calculates the normalization methods live but takes too long...apply in tab2 based on what tiago and michelle say ######
+    if(input$select_tab1 == "rlog")
+    {
+      tbl.tab1 <- all_cell_lines#table.rlog #DT::datatable(table.rlog)
+      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step, actually change the object
+      tbl.tab1 <- cbind(tbl.tab1[,1:7], rlog(as.matrix(tbl.tab1[,8:dim(tbl.tab1)[2]]), blind = FALSE))
+      #tbl.tab1
+    }
+    if(input$select_tab1 == "vst")
+    {
+      tbl.tab1 <- all_cell_lines#table.vst #DT::datatable(table.vst)
+      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
+      tbl.tab1 <- cbind(tbl.tab1[,1:7], vst(as.matrix(tbl.tab1[,8:dim(tbl.tab1)[2]]), blind = FALSE))
+      #tbl.tab1
+    }
+    if(input$select_tab1 == "row normalized")
+    {
+      tbl.tab1 <- all_cell_lines
+      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
+      tbl.tab1 <- cbind(tbl.tab1[,1:7], rownorm(tbl.tab1[,8:dim(all_cell_lines)[2]]))
+      #tbl.tab1
+    }
+    if(input$select_tab1 == "logCPM")
+    {
+      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
+      tbl.tab1 <- cbind(tbl.tab1[,1:7], cpm(tbl.tab1[,8:dim(tbl.tab1)[2]]), log =  TRUE)
+      #tbl.tab1
+    }
+    
+    matrix_expr <- tbl.tab1[,c(1,8:dim(tbl.tab1)[2])] ##raw counts heat map not working...has to do with rows???
     
     ##may need to change order of cell lines from default alphabetic to histotype specific???...do that with dendro???
     heatmap_expr <- main_heatmap(as.matrix(matrix_expr[c(input$tbl.tab1_rows_selected),-1])) %>%
@@ -395,7 +642,7 @@ server <- function(input,output)
     # add_row_labels(ticktext = vst.matrix[input$tbl.tab1_rows_selected,1])
     #}
     
-    heatmap_expr  
+    heatmap_expr  ## currently rlog visualization takes too long
     
   })
   
