@@ -617,7 +617,7 @@ server <- function(input,output)
       add_row_labels(ticktext = matrix_expr[input$tbl.tab1_rows_selected,1]) %>% ##trying to add dendro
       add_col_dendro(hclust(dist(t(matrix_expr[input$tbl.tab1_rows_selected,-1])))) ##may have to take out -1 to avoid losing 1st data col
     if(nrow(matrix_expr[input$tbl.tab1_rows_selected,] ) > 1) ##currently still trying to cluster genes selected
-    {heatmap_expr <- heatmap_expr %>% add_row_dendro(hclust(dist((matrix_expr[c(input$tbl.tab1_rows_selected),]))), reorder = TRUE, side = "right")} ##taking out t() works but still has to be there...see DESeq2 workflow
+    {heatmap_expr <- heatmap_expr %>% add_row_dendro(hclust(dist((matrix_expr[c(input$tbl.tab1_rows_selected),-1]))), reorder = TRUE, side = "right")} ##taking out t() works but still has to be there...see DESeq2 workflow
     #add_row_dendro(hclust(as.matrix(matrix_expr[c(input$tbl.tab1_rows_selected),-1]))) %>% ##trying row dendro first to see possible clustering???
     #add_col_dendro(hclust(as.matrix(matrix_expr[c(input$tbl.tab1_rows_selected),-1])))
     
@@ -642,7 +642,7 @@ server <- function(input,output)
     # add_row_labels(ticktext = vst.matrix[input$tbl.tab1_rows_selected,1])
     #}
     
-    heatmap_expr  ## currently rlog visualization takes too long
+    print(heatmap_expr)  ## currently rlog visualization takes too long
     
   })
   
@@ -724,8 +724,8 @@ server <- function(input,output)
       heatmap_clus <- main_heatmap(as.matrix(dist(t(matrix_clus)))) %>%
         add_col_labels(ticktext = colnames(matrix_clus[,-1])) %>%
         add_row_labels(ticktext = colnames(matrix_clus[,-1])) %>%
-        add_col_dendro(hclust(dist(t(matrix_clus))), reorder = TRUE) %>%
-        add_row_dendro(hclust(dist(t(matrix_clus))), reorder = TRUE, side = "right")
+        add_col_dendro(hclust(dist(t(matrix_clus[,-1]))), reorder = TRUE) %>%
+        add_row_dendro(hclust(dist(t(matrix_clus[,-1]))), reorder = TRUE, side = "right")
     }
     
     ##selecting one works with raw counts but not other transforms??? is it calculating distances right???
