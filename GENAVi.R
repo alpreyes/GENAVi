@@ -1,59 +1,69 @@
-
 library(shiny)
-library(tidyr) ##use this for barplot
-library(ggplot2) ##use this for barplot
+library(tidyr) 
+library(ggplot2) 
 library(DESeq2)
 library(edgeR)
 library(iheatmapr)
 library(tidyverse)
 library(readr)
+library(dplyr)
+library(plotly)
 
+options(shiny.maxRequestSize=1024^3) # Max file upload 1GB 
 all_cell_lines <- read_csv("all_cell_lines.csv", col_names = TRUE) ##read in data going to view
-#count.matrix <- final.counts[,c(1,8:dim(final.counts)[2])] ##subset data for functions
-#final.RPKM   <- read.csv("final.RPKM.csv",header = TRUE) ##read in data going to view
-#RPKM.matrix  <- final.RPKM[,c(1,8:25)] ##subset data for functions
-#meh <- gather(count.matrix,"cell_line", "value", 2:dim(count.matrix)[2]) ##use these for barplot but may be deleting soon, will have to change name, will need to change this
-#meh2 <- data.frame() ##will have to change name to something that makes sense in rmarkdown, need this for making reactive barplot
 
-#final.rownorm <- read.csv("final.rownorm.csv",header = TRUE)
-#cmf.rownorm <- read.csv("cmf.rownorm.csv",header = TRUE) ##will need to have gene names and other first data columns to id genes
-#cmf.rownorm <- as.matrix(cmf.rownorm)
-#rownorm.matrix <- final.rownorm[,c(1,8:25)]
-#meh.rownorm <- data.frame()
-#meh.rownorm <- gather(rownorm.matrix,"cell_line","value",2:19) ##now use this for barplot
-##cmf data tables need gene names and other identifiers, will fix this when reading in data tables (will calc manually instead of reading in objects)
-
-#counts.rlog <- rlog(as.matrix(count.matrix[,2:19]))
-#write.csv(counts.rlog, "counts.rlog.csv",row.names = FALSE)
-#rm(counts.rlog)
-#counts.rlog <- read.csv("counts.rlog.csv",header = TRUE)
-
-#final.rlog <- cbind(final.counts[,1:7],counts.rlog) ##might change to just reading in final.rlog matrix with read.csv (after writing final versions of tables)
-#rlog.matrix <- final.rlog[,c(1,8:25)]
-#meh.rlog   <- data.frame()
-#meh.rlog <- gather(rlog.matrix,"cell_line","value",2:19)
-
-#counts.vst <- vst(as.matrix(count.matrix[,2:19]))
-#write.csv(counts.vst, "counts.vst.csv",row.names = FALSE)
-#rm(counts.vst)
-#counts.vst <- read.csv("counts.vst.csv",header = TRUE)
-
-#final.vst <- cbind(final.counts[,1:7],counts.vst)
-#vst.matrix  <- final.vst[,c(1,8:25)]
-#meh.vst    <- data.frame()
-#meh.vst <- gather(vst.matrix,"cell_line","value",2:19)
-
-###objects for cell line clustering
-#count.matrix.filtered <- count.matrix[rowSums(count.matrix[,-1]) > 1,] ##treat this as if it were "cmf"
-#cmf.rlog <- rlog(as.matrix(count.matrix.filtered[,-1]),blind = FALSE)
-#cmf.vst  <- vst(as.matrix(count.matrix.filtered[,-1]),blind = FALSE)
-####will have to add one for zscore when zscore is finally implemented####
-
-#matrix_expr <- matrix()
-
-transforms <- c("raw counts", "row normalized", "logCPM", "rlog", "vst") ##adding "t-score" -> row normalized, ask michelle about normalizing with FTSEC lines, have to add log(CPM+1)
+transforms <- c("raw counts", "row normalized", "logCPM", "vst") ##adding "t-score" -> row normalized, ask michelle about normalizing with FTSEC lines, have to add log(CPM+1)
 sortby <- c("-no selection-","mean", "standard deviation")
 cell.line.clusters <- c("-no selection-","filtered genes", "selected genes") ##do this for cell line cluster heatmaps, changed all to filtered, should "all" be an option?
+
+# This will be used to parse the text areas input
+# possibilities of separation , ; \n
+parse.textarea.input <- function(text){
+  sep <- NULL
+  if(grepl(";",text)) sep <- ";"
+  if(grepl(",",text)) sep <- ","
+  if(grepl("\n",text)) sep <- "\n"
+  if(is.null(sep)) {
+    text <- text
+  } else {
+    text <- unlist(stringr::str_split(text,sep))
+  }
+  return (text)
+}
+
+createTable <- function(df,selected_rows,tableType = "TCGAbiolinks"){
+  DT::datatable(df,
+                extensions = c('Buttons',"FixedHeader"),
+                class = 'cell-border stripe',
+                selection = list(mode = "multiple", target= 'row', selected = selected_rows),
+                options = list(dom = 'Blfrtip',
+                               columnDefs = list(
+                                 list(visible=FALSE, targets=c(0))
+                               ),
+                               order = c(0,"desc"),
+                               deferRender = TRUE,
+                               paging = T,
+                               buttons =
+                                 list('colvis', list(
+                                   extend = 'collection',
+                                   buttons = list(list(extend='csv',
+                                                       filename = tableType),
+                                                  list(extend='excel',
+                                                       filename = tableType),
+                                                  list(extend='pdf',
+                                                       title = "",
+                                                       filename= tableType)),
+                                   text = 'Download'
+                                 )),
+                               fixedHeader = TRUE,
+                               pageLength = 20,
+                               scrollX = TRUE,
+                               lengthMenu = list(c(10, 20, -1), c('10', '20', 'All'))
+                ),
+                rownames = FALSE,
+                filter   = 'top'
+  )
+}
 
 rownorm <- function(counts.filtered)
 {
@@ -63,11 +73,14 @@ rownorm <- function(counts.filtered)
 }
 
 ui <- fluidPage(tabsetPanel(
+  
+  
   tabPanel("Expression", ##changing from tab 1, but still using tab1 in the other parts of code
            h2('GENAVi'), 
            #selectInput("select", "Select Columns", names(final.counts), multiple = TRUE),
            selectInput("select_tab1", "Select Transform", transforms, multiple = FALSE), ##need individual selectInputs for each tab
            fileInput("input_gene_list_tab1", "Input Gene List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"), ##how to increase max upload size
+           #textAreaInput(inputId = "geneList",label = "Gene list filter: separate gene names by , or ; or newline",value =  "", width = "100%"),
            #actionButton("but_sortSelectedFirst_tab1", "Selected Rows First"), ##do this to put selected rows at top of data table, trying it out
            selectInput("select_sort_tab1", "Sort Table By", sortby, multiple = FALSE),
            DT::dataTableOutput('tbl.tab1'), ##dont think i need to change this to calc/render data tables live
@@ -77,7 +90,7 @@ ui <- fluidPage(tabsetPanel(
            #numericInput("num","Input row index",1,min = 1,max = 60554),
            #verbatimTextOutput("warning_message"), ##may need to take this out for  now
            #DT::dataTableOutput('tbl.tab1.selected'), ##doing this to keep track of selected rows, take this out
-           plotOutput("barplot"),
+           plotlyOutput("barplot", width = "auto"),
            iheatmaprOutput("heatmap_expr") ##expr for expression
   ),
   tabPanel("Clustering", ##changing from tab 2, but still usibg tab2 in other parts of code
@@ -90,138 +103,93 @@ ui <- fluidPage(tabsetPanel(
            selectInput("select_clus", "Cluster by what genes", cell.line.clusters, multiple = FALSE),
            verbatimTextOutput("warning_message_tab2", placeholder = FALSE), ##do this to guide making heatmap in tab2
            iheatmaprOutput("heatmap_clus") ##clus for clusters
+  ),
+  # App title ----
+  tabPanel("Upload file",
+           # App title ----
+           titlePanel("Uploading Files"),
+           # Sidebar layout with input and output definitions ----
+           sidebarLayout(
+             
+             # Sidebar panel for inputs ----
+             sidebarPanel(
+               
+               # Input: Select a file ----
+               fileInput("rawcounts", "Choose CSV File",
+                         multiple = TRUE,
+                         accept = c("text/csv",
+                                    "text/comma-separated-values,text/plain",
+                                    ".csv"))
+             ),
+             # Main panel for displaying outputs ----
+             mainPanel(
+               # Output: Data file ----
+               DT::dataTableOutput("contents")
+             )
+           )
   )
 )
 )
 
 
-
-#### sample ui code for separate tabs
-
-#ui <- fluidPage(tabsetPanel(
-#  tabPanel("tab 1", 
-#           h2('Ovarian Cancer Cell Lines'), 
-#           #selectInput("select", "Select Columns", names(final.counts), multiple = TRUE),
-#           selectInput("select", "Select Transform", transforms, multiple = FALSE),
-#           DT::dataTableOutput('tbl'),
-#           #numericInput("num","Input row index",1,min = 1,max = 60554),
-#           #verbatimTextOutput("value"),
-#           plotOutput("barplot")
-#  ),
-#  tabPanel("tab 2",
-#           iheatmaprOutput("heat") 
-#  ))
-#)
-
-####
-
 server <- function(input,output) 
 {
-  #output$tbl = DT::renderDataTable({
-  # columns = names(final.counts)
-  #if(!is.null(input$select)) {
-  # columns = input$select
-  #}
-  #final.counts[,columns,drop=FALSE]
-  #})
+  output$contents <-  DT::renderDataTable({
+    data <- readData()
+    if(!is.null(data)) data %>% DT::datatable(
+      class = 'cell-border stripe',
+      rownames = FALSE,
+      filter   = 'top'
+    )
+  })
   
-  # if(input$select == "raw counts") {output$tbl = DT::renderDataTable({final.counts})}
-  #if(input$select == "rlog") {output$tbl = DT::renderDataTable({final.rlog})}
-  #if(input$select == "vst") {output$tbl = DT::renderDataTable({final.vst})}
-  
-  # output$tbl = DT::renderDataTable({final.counts})
-  
-  #output$tbl = DT::renderDataTable({final.rlog})
-  
-  #table.counts <- final.counts #reactive({(final.counts)}) ##might not need to do this step at all, just change "table"s in later commands
-  #table.rlog   <- final.rlog #reactive({(final.rlog)})
-  #table.vst    <- final.vst #reactive({(final.vst)})
-  
-  ###might have to change how to render selected data table section bc rows dont stay selected
-  #output$tbl.tab1 <-  DT::renderDataTable({
-  # if(input$select_tab1 == "rlog") tbl.tab1 <- final.rlog#table.rlog #DT::datatable(table.rlog)
-  #  if(input$select_tab1 == "vst") tbl.tab1 <- final.vst#table.vst #DT::datatable(table.vst)
-  # if(input$select_tab1 == "raw counts") tbl.tab1 <- final.counts#table.counts #DT::datatable(table.counts)
-  #  if(input$select_tab1 == "row normalized") tbl.tab1 <- final.rownorm
-  # tbl.tab1
-  #})
-  
+  readData <- reactive({
+    ret <- NULL
+    inFile <- input$rawcounts
+    if (!is.null(inFile))  {
+      ret <-  read_csv(inFile$datapath)
+    }
+    ret
+  })
   ### reactive fct that calcs the transforms and saves them so it doesnt take too long each time
-  #getNormalizedData <- reactive({
-  # tbl.tab1 <- all_cell_lines 
-  #tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step, actually change the object
-  #rlog     <- cbind(tbl.tab1[,1:7], rlog(as.matrix(tbl.tab1[,8:dim(tbl.tab1)[2]]), blind = FALSE))
-  #vst      <- cbind(tbl.tab1[,1:7], vst(as.matrix(tbl.tab1[,8:dim(tbl.tab1)[2]]), blind = FALSE))
-  #rownorm  <- cbind(tbl.tab1[,1:7], rownorm(tbl.tab1[,8:dim(all_cell_lines)[2]]))
-  #raw      <- cbind(tbl.tab1[,1:7], as.matrix(tbl.tab1[,8:dim(tbl.tab1)[2]]), blind = FALSE) ##might might have to take out blind option???
-  #cpm      <- cbind(tbl.tab1[,1:7], cpm(tbl.tab1[,8:dim(tbl.tab1)[2]]), log =  TRUE)
-  #ret      <- list(rlog,vst,rownorm,raw,cpm)
-  #names(ret) <- c("rlog","vst","rownorm","raw","cpm")
-  #return(ret)
-  #})
-  
-  ### diff reactive fct that does the same as above???
-  #getTbl1 <- reactive({
-  # select <- input$select_tab1
-  #tbl.tab1 <- NULL
-  #data <- getNormalizedData()
-  #if(select == "raw counts") tbl.tab1 <- data$raw #table.counts #DT::datatable(table.counts)
-  #if(select == "rlog")  tbl.tab1 <- data$rlog
-  #if(select == "vst")  tbl.tab1 <- data$vst
-  #if(select == "row normalized")  tbl.tab1 <- data$rownorm
-  #if(select == "logCPM")  tbl.tab1 <- data$cpm
-  #tbl.tab1
-  #})
-  
-  output$tbl.tab1 <-  DT::renderDataTable({
+  getNormalizedData <- reactive({
+    if (!is.null(readData())) all_cell_lines <- readData()
+    tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:ncol(all_cell_lines)]) > 1,] ##filtering step, actually change the object
+    data <- as.matrix(tbl.tab1[,8:ncol(tbl.tab1)])
+    metadata <- tbl.tab1[,1:7]
     
-    ####### try replacing this chunk with Tiago's edit to save the norms so it doesn't take long each time ###########
-    if(input$select_tab1 == "raw counts") 
-    {
-      tbl.tab1 <- all_cell_lines
-    }#table.counts #DT::datatable(table.counts)
-    ######### this code calculates the normalization methods live but takes too long...apply in tab2 based on what tiago and michelle say ######
-    if(input$select_tab1 == "rlog")
-    {
-      tbl.tab1 <- all_cell_lines#table.rlog #DT::datatable(table.rlog)
-      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step, actually change the object
-      tbl.tab1 <- cbind(tbl.tab1[,1:7], rlog(as.matrix(tbl.tab1[,8:dim(tbl.tab1)[2]]), blind = FALSE))
-      #tbl.tab1
-    }
-    if(input$select_tab1 == "vst")
-    {
-      tbl.tab1 <- all_cell_lines#table.vst #DT::datatable(table.vst)
-      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
-      tbl.tab1 <- cbind(tbl.tab1[,1:7], vst(as.matrix(tbl.tab1[,8:dim(tbl.tab1)[2]]), blind = FALSE))
-      #tbl.tab1
-    }
-    if(input$select_tab1 == "row normalized")
-    {
-      tbl.tab1 <- all_cell_lines
-      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
-      tbl.tab1 <- cbind(tbl.tab1[,1:7], rownorm(tbl.tab1[,8:dim(tbl.tab1)[2]]))
-      #tbl.tab1
-    }
-    if(input$select_tab1 == "logCPM")
-    {
-      tbl.tab1 <- all_cell_lines
-      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
-      tbl.tab1 <- cbind(tbl.tab1[,1:7], cpm(tbl.tab1[,8:dim(tbl.tab1)[2]]), log =  TRUE)
-      #tbl.tab1
-    }
-    
+    # normalization: rlog takes a lot of time (hours for a big matrix)
+    raw      <- cbind(metadata, data) ##might might have to take out blind option???
+    #rlog     <- cbind(metadata, rlog(data))
+    vst      <- cbind(metadata, vst(data))
+    rownorm  <- cbind(metadata, rownorm(data))
+    cpm      <- cbind(metadata, cpm(data))
+    ret      <- list(vst,rownorm,raw,cpm)
+    names(ret) <- c("vst","rownorm","raw","cpm")
+    return(ret)
+  })
+  getTab1 <- reactive({
+    data <- getNormalizedData()
+    select <- input$select_tab1
+    if(select == "raw counts") tbl.tab1 <- data$raw #table.counts #DT::datatable(table.counts)
+    if(select == "rlog")  tbl.tab1 <- data$rlog
+    if(select == "vst")  tbl.tab1 <- data$vst
+    if(select == "row normalized")  tbl.tab1 <- data$rownorm
+    if(select == "logCPM")  tbl.tab1 <- data$cpm
     tbl.tab1
-    
-    ######### partner this with the above reactive fcts that save the transforms
-    #data <- getNormalizedData() ##either run this or the 2 lines below
-    #data <- getTbl1()
-    #tbl.tab1
-    #if(input$select_tab1 == "raw counts") tbl.tab1 <- data$raw #table.counts #DT::datatable(table.counts)
-    #if(input$select_tab1 == "rlog")  tbl.tab1 <- data$rlog
-    #if(input$select_tab1 == "vst")  tbl.tab1 <- data$vst
-    #if(input$select_tab1 == "row normalized")  tbl.tab1 <- data$rownorm
-    #if(input$select_tab1 == "logCPM")  tbl.tab1 <- data$cpm
-    
+  })
+  getTab2 <- reactive({
+    data <- getNormalizedData()
+    select <- input$select_tab2
+    if(select == "raw counts") tbl.tab1 <- data$raw #table.counts #DT::datatable(table.counts)
+    if(select == "rlog")  tbl.tab1 <- data$rlog
+    if(select == "vst")  tbl.tab1 <- data$vst
+    if(select == "row normalized")  tbl.tab1 <- data$rownorm
+    if(select == "logCPM")  tbl.tab1 <- data$cpm
+    tbl.tab1
+  })
+  output$tbl.tab1 <-  DT::renderDataTable({
+    tbl.tab1 <- getTab1()
     
     ######### sorting by mean and sd ##################### ....fucks up the select sorting thing...
     #if(input$select_sort_tab1 == "-no selection-") {return(tbl.tab1)}
@@ -239,320 +207,65 @@ server <- function(input,output)
     ####### try taking this out to see how tables are rendered...or not rendered???
     selected_rows <- input$tbl.tab1_rows_selected
     
+    
+    inFile <- input$input_gene_list_tab1
+    if (!is.null(inFile)) {
+      geneList <- read_lines(inFile$datapath)
+      selected_rows <- unique(c(selected_rows,which(tbl.tab1[,1] %in% geneList)))
+    }    
+    #  Parse textarea
+    #text.samples <- isolate({input$geneList})
+    #if(!is.null(text.samples)){
+    #  geneList <- parse.textarea.input(text.samples)
+    #  selected_rows <- unique(c(selected_rows,which(tbl.tab1[,1] %in% geneList)))
+    #}
+    
     status <- factor("Unselected",levels = c("Unselected","Selected"))
     tbl.tab1 <- cbind(status,tbl.tab1)
     tbl.tab1$status[selected_rows] <- 'Selected'
     
-    tbl.tab1 %>% 
-      DT::datatable(extensions = c('Buttons',"FixedHeader"),
-                    class = 'cell-border stripe',
-                    selection = list(mode = "multiple", target= 'row', selected = selected_rows),
-                    options = list(dom = 'Blfrtip',
-                                   order = c(1,"desc"),
-                                   deferRender = TRUE,
-                                   paging = T,
-                                   buttons =
-                                     list('colvis', list(
-                                       extend = 'collection',
-                                       buttons = list(list(extend='csv',
-                                                           filename = "Cell"),
-                                                      list(extend='excel',
-                                                           filename = "Cell"),
-                                                      list(extend='pdf',
-                                                           title = "",
-                                                           filename= "Cell")),
-                                       text = 'Download'
-                                     )),
-                                   fixedHeader = TRUE,
-                                   pageLength = 20,
-                                   scrollX = TRUE,
-                                   lengthMenu = list(c(10, 20, -1), c('10', '20', 'All')) ##might have to change this
-                    ),
-                    filter = 'top'
-      )
+    tbl.tab1 %>% createTable(selected_rows)
     
     ## try adding the genes list to match() here, see if it breaks the app
     ##gene_list_tab1 <- input$input_gene_list_tab1 ##create object here see if it breaks the app.....yup breaks the app
     
   }) ##works to get selected rows on top but fucks up if select more than one at a time.....worry about it later
   
-  
-  
-  #output$tbl.tab1 <-  reactiveValues({ ##trying this to get reordering rows to work...
-  #if(input$select_tab1 == "rlog") tbl.tab1 <- final.rlog#table.rlog #DT::datatable(table.rlog)
-  #if(input$select_tab1 == "vst") tbl.tab1 <- final.vst#table.vst #DT::datatable(table.vst)
-  #if(input$select_tab1 == "raw counts") tbl.tab1 <- final.counts#table.counts #DT::datatable(table.counts)
-  #if(input$select_tab1 == "row normalized") tbl.tab1 <- final.rownorm
-  #tbl.tab1
-  #})
-  
-  ##display selected rows separately in another data table object
-  #output$tbl.tab1.selected <- DT::renderDataTable({
-  #if(input$select_tab1 == "rlog") {tbl.tab1.selected <- final.rlog[c(input$tbl.tab1_rows_selected),]}
-  #if(input$select_tab1 == "vst") {tbl.tab1.selected <- final.vst[c(input$tbl.tab1_rows_selected),]}
-  #if(input$select_tab1 == "raw counts") {tbl.tab1.selected <- final.counts[c(input$tbl.tab1_rows_selected),]}
-  #if(input$select_tab1 == "row normalized") tbl.tab1.selected <- final.rownorm[c(input$tbl.tab1_rows_selected),]
-  #tbl.tab1.selected
-  #})
-  
-  #output$tbl.tab2 <-  DT::renderDataTable({
-  #if(input$select_tab2 == "rlog") tbl.tab2 <- final.rlog#table.rlog #DT::datatable(table.rlog)
-  #if(input$select_tab2 == "vst") tbl.tab2 <- final.vst#table.vst #DT::datatable(table.vst)
-  #if(input$select_tab2 == "raw counts") tbl.tab2 <- final.counts#table.counts #DT::datatable(table.counts)
-  #if(input$select_tab2 == "row normalized") tbl.tab2 <- final.rownorm
-  #tbl.tab2
-  #})
-  
   output$tbl.tab2 <-  DT::renderDataTable({ ###need to update this to match for tab1 whatever we discover works
-    
-    #if(input$select_tab2 == "rlog") tbl.tab2 <- final.rlog#table.rlog #DT::datatable(table.rlog)
-    #if(input$select_tab2 == "vst") tbl.tab2 <- final.vst#table.vst #DT::datatable(table.vst)
-    #if(input$select_tab2 == "raw counts") tbl.tab2 <- final.counts#table.counts #DT::datatable(table.counts)
-    #if(input$select_tab2 == "row normalized") tbl.tab2 <- final.rownorm
-    
-    ####### try replacing this chunk with Tiago's edit to save the norms so it doesn't take long each time ###########
-    if(input$select_tab2 == "raw counts") 
-    {
-      tbl.tab2 <- all_cell_lines
-    }#table.counts #DT::datatable(table.counts)
-    ######### this code calculates the normalization methods live but takes too long...apply in tab2 based on what tiago and michelle say ######
-    if(input$select_tab2 == "rlog")
-    {
-      tbl.tab2 <- all_cell_lines#table.rlog #DT::datatable(table.rlog)
-      tbl.tab2 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step, actually change the object
-      tbl.tab2 <- cbind(tbl.tab2[,1:7], rlog(as.matrix(tbl.tab2[,8:dim(tbl.tab2)[2]]), blind = FALSE))
-      #tbl.tab1
-    }
-    if(input$select_tab2 == "vst")
-    {
-      tbl.tab2 <- all_cell_lines#table.vst #DT::datatable(table.vst)
-      tbl.tab2 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
-      tbl.tab2 <- cbind(tbl.tab2[,1:7], vst(as.matrix(tbl.tab2[,8:dim(tbl.tab2)[2]]), blind = FALSE))
-      #tbl.tab1
-    }
-    if(input$select_tab2 == "row normalized")
-    {
-      tbl.tab2 <- all_cell_lines
-      tbl.tab2 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
-      tbl.tab2 <- cbind(tbl.tab2[,1:7], rownorm(tbl.tab2[,8:dim(tbl.tab2)[2]]))
-      #tbl.tab1
-    }
-    if(input$select_tab2 == "logCPM")
-    {
-      tbl.tab2 <- all_cell_lines
-      tbl.tab2 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
-      tbl.tab2 <- cbind(tbl.tab2[,1:7], cpm(tbl.tab2[,8:dim(tbl.tab2)[2]]), log =  TRUE)
-      #tbl.tab1
-    }
-    
-    tbl.tab2
+    tbl.tab2 <- getTab2()
     
     selected_rows <- input$tbl.tab2_rows_selected ###may need to label this for tab1 and tab2...nope don't need to
+    
+    inFile <- input$input_gene_list_tab2
+    if (!is.null(inFile)) {
+      geneList <- read_lines(inFile$datapath)
+      selected_rows <- unique(c(selected_rows,which(tbl.tab2[,1] %in% geneList)))
+    }    
     
     status <- factor("Unselected",levels = c("Unselected","Selected"))
     tbl.tab2 <- cbind(status,tbl.tab2)
     tbl.tab2$status[selected_rows] <- 'Selected'
     
-    tbl.tab2 %>% 
-      DT::datatable(extensions = c('Buttons',"FixedHeader"),
-                    class = 'cell-border stripe',
-                    selection = list(mode = "multiple", target= 'row', selected = selected_rows),
-                    options = list(dom = 'Blfrtip',
-                                   order = c(1,"desc"),
-                                   deferRender = TRUE,
-                                   paging = T,
-                                   buttons =
-                                     list('colvis', list(
-                                       extend = 'collection',
-                                       buttons = list(list(extend='csv',
-                                                           filename = "Cell"),
-                                                      list(extend='excel',
-                                                           filename = "Cell"),
-                                                      list(extend='pdf',
-                                                           title = "",
-                                                           filename= "Cell")),
-                                       text = 'Download'
-                                     )),
-                                   fixedHeader = TRUE,
-                                   pageLength = 20,
-                                   scrollX = TRUE,
-                                   lengthMenu = list(c(10, 20, -1), c('10', '20', 'All'))
-                    ),
-                    filter = 'top'
-      )
-  })
-  
-  #output$tbl.tab2.selected <- DT::renderDataTable({
-  # if(input$select_tab2 == "rlog") {tbl.tab2.selected <- final.rlog[c(input$tbl.tab2_rows_selected),]}
-  #if(input$select_tab2 == "vst") {tbl.tab2.selected <- final.vst[c(input$tbl.tab2_rows_selected),]}
-  #if(input$select_tab2 == "raw counts") {tbl.tab2.selected <- final.counts[c(input$tbl.tab2_rows_selected),]}
-  #if(input$select_tab2 == "row normalized") tbl.tab2.selected <- final.rownorm[c(input$tbl.tab2_rows_selected),]
-  #tbl.tab2.selected
-  #})
-  
-  
-  
-  #output$tbl = DT::renderDataTable({if(input$select == "vst") final.vst})
-  
-  ##print error message(s): if number of selected genes is NOT equal to exactly one
-  
-  ### tbl.tab1 object not found in app???
-  #warning_message <- renderPrint({
-  # if(nrow(tbl.tab1[input$tbl.tab1_rows_selected,]) != 1) expr = "Barplot is only displayed with one selected gene"
-  #})
-  #warning_message() ##this breaks the app???
-  
-  #warning_message <- "Barplot is only displayed when exactly one gene is selected" ##putting in top of code doesn't work either
-  
-  #output$warning_message <- renderText({ ##making this conditional did not work
-  # if(nrow(matrix_expr[c(input$tbl.tab1_rows_selected),]) != 1) warning_message <- "Barplot is only displayed when exactly one gene is selected"
-  #warning_message
-  #})
-  
-  
-  ################### making selected rows first in tabl.tab1...currently breaks the whole app ###################
-  
-  #test_data <- reactiveValues(table_data = tbl.tab1) ##trying this out, may not need this bc i render the data object above, possibly dont need this
-  
-  #observeEvent(input$but_sortSelectedFirst_tab1, ##adding just this part within the ({}) works but breaks when you click the button
-  #            {
-  #             ## selected row info is stored in var input$tbl.tab1_rows_selected
-  #            selected_rows <- input$tbl.tab1_rows_selected
-  #           ##alc new row order w/ selected rows on top
-  #          row_order <- order(seq_along(output$tbl.tab1[[1]]) %in% selected_rows, decreasing = TRUE)
-  #       })
-  
-  #output$tbl.tab1 <- output$tbl.tab1[row_order,] ##trying this out, including this line breaks the app
-  
-  #proxy <- DT::dataTableProxy('tbl.tab1')
-  #DT::replaceData(proxy, output$tbl.tab1)
-  ## make sure to select rows again
-  #DT::selectRows(proxy, seq_along(selected_rows))
-  
-  #output$tbl.tab1 <- DT::renderDataTable(isolate(output$tbl.tab1))
-  
-  ### start manipulating input file to grep for and select genes ###
-  #output$input_gene_list_tab1 <- DT::dataTableProxy({ ##this breaks the app
-  
-  # input_gene_list_tab1 <- input$input_gene_list_tab1 ##see if this breaks the app
-  
-  #})
-  
-  input_gene_list_tab1 <- reactive({ ######### may need to take this out bc not working ##########
-    
-    input_gene_list_tab1 <- input$input_gene_list_tab1
-    
-    input$tbl.tab1_rows_selected <- match(input_gene_list_tab1$V1, tbl.tab1$Genename)
-    
+    tbl.tab2 %>% createTable(selected_rows)
   })
   
   output$warning_message_tab1 <- renderText({
-    if(length(input$tbl.tab1_rows_selected) > 1)
-    {
-      return("Barplot is only displayed when exactly one gene is selected")
-    }
-    else
-    {
-      return(NULL)
-    }
+    if(length(input$tbl.tab1_rows_selected) > 1) return("Barplot is only displayed when exactly one gene is selected")
+    return(NULL)
   })
   
   
-  output$barplot <- renderPlot({
+  output$barplot <- renderPlotly({
     
-    if(is.null(input$tbl.tab1_rows_selected)) {return(NULL)} ##may need to put this in heatmap section and in tab2
-    if(length(input$tbl.tab1_rows_selected) > 1) {return(NULL)}
-    
-    if(input$select_tab1 == "raw counts")
-    {
-      tbl.tab1 <- all_cell_lines
-      #meh <- gather(tbl.tab1[,c(1,8:dim(tbl.tab1)[2])],"cell_line", "value", 2:dim(tbl.tab1)[2]) ##use these for barplot but may be deleting soon, will have to change name, will need to change this
-      #meh2 <- data.frame()
-    }
-    if(input$select_tab1 == "logCPM")
-    {
-      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
-      tbl.tab1 <- cbind(tbl.tab1[,1:7], cpm(tbl.tab1[,8:dim(tbl.tab1)[2]]), log =  TRUE)
-      #meh <- gather(tbl.tab1[,c(1,8:dim(tbl.tab1)[2])],"cell_line", "value", 2:dim(tbl.tab1)[2]) ##use these for barplot but may be deleting soon, will have to change name, will need to change this
-      #meh2 <- data.frame()
-    }
-    if(input$select_tab1 == "row normalized")
-    {
-      tbl.tab1 <- all_cell_lines
-      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
-      tbl.tab1 <- cbind(tbl.tab1[,1:7], rownorm(tbl.tab1[,8:dim(all_cell_lines)[2]]))
-      #meh <- gather(tbl.tab1[,c(1,8:dim(tbl.tab1)[2])],"cell_line", "value", 2:dim(tbl.tab1)[2]) ##use these for barplot but may be deleting soon, will have to change name, will need to change this
-      #meh2 <- data.frame()
-    }
-    if(input$select_tab1 == "rlog")
-    {
-      tbl.tab1 <- all_cell_lines#table.rlog #DT::datatable(table.rlog)
-      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step, actually change the object
-      tbl.tab1 <- cbind(tbl.tab1[,1:7], rlog(as.matrix(tbl.tab1[,8:dim(tbl.tab1)[2]]), blind = FALSE)) 
-      #meh <- gather(tbl.tab1[,c(1,8:dim(tbl.tab1)[2])],"cell_line", "value", 2:dim(tbl.tab1)[2]) ##use these for barplot but may be deleting soon, will have to change name, will need to change this
-      #meh2 <- data.frame()  
-    }
-    if(input$select_tab1 == "vst")
-    {
-      tbl.tab1 <- all_cell_lines#table.vst #DT::datatable(table.vst)
-      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
-      tbl.tab1 <- cbind(tbl.tab1[,1:7], vst(as.matrix(tbl.tab1[,8:dim(tbl.tab1)[2]]), blind = FALSE))
-      #meh <- gather(tbl.tab1[,c(1,8:dim(tbl.tab1)[2])],"cell_line", "value", 2:dim(tbl.tab1)[2]) ##use these for barplot but may be deleting soon, will have to change name, will need to change this
-      #meh2 <- data.frame()
-    }  
-    
-    meh <- gather(tbl.tab1[,c(1,8:dim(tbl.tab1)[2])],"cell_line", "value", 2:dim(tbl.tab1[,c(1,8:dim(tbl.tab1)[2])])[2]) ##use these for barplot but may be deleting soon, will have to change name, will need to change this
-    meh2 <- data.frame()
-    
-    for(i in seq(input$tbl.tab1_rows_selected, (dim(tbl.tab1)[2]-7)*dim(tbl.tab1)[1], dim(tbl.tab1)[1]))
-    {
-      meh2 <- rbind(meh2,meh[i,])
-    }
-    barplot <- ggplot(meh2, aes(x=cell_line, y=value)) + geom_bar(stat = "identity")
-    
-    #if(input$select_tab1 == "raw counts") ##try adding condition here...we'll see
-    #{
-    # for(i in seq(input$tbl.tab1_rows_selected,(dim(tbl.tab1)[2]-7)*dim(tbl.tab1)[1],dim(tbl.tab1)[1])) ##1089972 is 18 repetitions of 60554 change to vars instead of numbers later, will have to change for filetered data???
-    #{
-    # meh2 <- rbind(meh2,meh[i,]) ##will have to change name of meh and meh2
-    #}
-    #barplot <- ggplot(meh2, aes(x=cell_line, y=value)) + geom_bar(stat = "identity")
-    #}  
-    
-    #if(input$select_tab1 == "rlog")
-    #{
-    # for(i in seq(input$tbl.tab1_rows_selected,(dim(tbl.tab1)[2]-7)*dim(tbl.tab1)[1],dim(tbl.tab1)[1]))
-    #{
-    # meh2 <- rbind(meh2,meh.rlog[i,])
-    #}
-    #barplot <- ggplot(meh2, aes(x=cell_line, y=value)) + geom_bar(stat = "identity")
-    #}
-    
-    #if(input$select_tab1 == "vst")
-    #{
-    # for(i in seq(input$tbl.tab1_rows_selected,(dim(tbl.tab1)[2]-7)*dim(tbl.tab1)[1],dim(tbl.tab1)[1]))
-    #{
-    # meh2 <- rbind(meh2,meh.vst[i,])
-    #}
-    #barplot <- ggplot(meh2, aes(x=cell_line, y=value)) + geom_bar(stat = "identity")
-    #}
-    
-    #if(input$select_tab1 == "row normalized")
-    #{
-    #for(i in seq(input$tbl.tab1_rows_selected,(dim(tbl.tab1)[2]-7)*dim(tbl.tab1)[1],dim(tbl.tab1)[1]))
-    #{
-    # meh2 <- rbind(meh2,meh.rownorm[i,])
-    #}
-    #barplot <- ggplot(meh2, aes(x=cell_line, y=value)) + geom_bar(stat = "identity") ##this is weird bc full data table of rownorm has NA's, how to address???
-    #}
-    
-    #if(input$select_tab1 == "logCPM")
-    #{
-    
-    #}
-    
-    print(barplot)
-    
+    if(is.null(input$tbl.tab1_rows_selected)) return(NULL) ##may need to put this in heatmap section and in tab2
+    if(length(input$tbl.tab1_rows_selected) > 1) return(NULL)
+    tbl.tab1 <- getTab1()
+    tbl.tab1 <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected)
+    p <- as.data.frame(t(tbl.tab1[,8:ncol(tbl.tab1)]))
+    colnames(p) <- "value"
+    p$cell_line <- rownames(p)
+    barplot <- ggplot(p, aes(x=cell_line, y=value)) + geom_bar(stat = "identity")
+    ggplotly(barplot)
   })
   
   #output$warning_message_tab1_hm <- renderText({ ##see how this is displayed
@@ -569,81 +282,24 @@ server <- function(input,output)
   output$heatmap_expr <- renderIheatmap({ ###### heatmap is under construction too...raw counts doesnt work...need to get saving obj code to work
     
     #if(is.null(input$tbl.tab1_rows_selected)) {return(NULL)} ##necessary???
-    if(length(input$tbl.tab1_rows_selected) < 2) {return(NULL)}
+    if(length(input$tbl.tab1_rows_selected) < 2) return(NULL)
     
-    #if(input$select_tab1 == "raw counts") matrix_expr <- count.matrix ##first instance of matrix_expr...why cant app find it???
-    #if(input$select_tab1 == "rlog") matrix_expr <- rlog.matrix
-    #if(input$select_tab1 == "vst") matrix_expr <- vst.matrix
-    #if(input$select_tab1 == "row normalized") matrix_expr <- rownorm.matrix
-    
-    if(input$select_tab1 == "raw counts") 
-    {
-      tbl.tab1 <- all_cell_lines
-    }#table.counts #DT::datatable(table.counts)
-    ######### this code calculates the normalization methods live but takes too long...apply in tab2 based on what tiago and michelle say ######
-    if(input$select_tab1 == "rlog")
-    {
-      tbl.tab1 <- all_cell_lines#table.rlog #DT::datatable(table.rlog)
-      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step, actually change the object
-      tbl.tab1 <- cbind(tbl.tab1[,1:7], rlog(as.matrix(tbl.tab1[,8:dim(tbl.tab1)[2]]), blind = FALSE))
-      #tbl.tab1
-    }
-    if(input$select_tab1 == "vst")
-    {
-      tbl.tab1 <- all_cell_lines#table.vst #DT::datatable(table.vst)
-      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
-      tbl.tab1 <- cbind(tbl.tab1[,1:7], vst(as.matrix(tbl.tab1[,8:dim(tbl.tab1)[2]]), blind = FALSE))
-      #tbl.tab1
-    }
-    if(input$select_tab1 == "row normalized")
-    {
-      tbl.tab1 <- all_cell_lines
-      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
-      tbl.tab1 <- cbind(tbl.tab1[,1:7], rownorm(tbl.tab1[,8:dim(all_cell_lines)[2]]))
-      #tbl.tab1
-    }
-    if(input$select_tab1 == "logCPM")
-    {
-      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
-      tbl.tab1 <- cbind(tbl.tab1[,1:7], cpm(tbl.tab1[,8:dim(tbl.tab1)[2]]), log =  TRUE)
-      #tbl.tab1
-    }
-    
-    matrix_expr <- tbl.tab1[,c(1,8:dim(tbl.tab1)[2])] ##raw counts heat map not working...has to do with rows???
+    tbl.tab1 <- getTab1()
+    # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
+    geneNames <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% pull(1)
+    matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% select(8:ncol(tbl.tab1)) ##raw counts heat map not working...has to do with rows???
     
     ##may need to change order of cell lines from default alphabetic to histotype specific???...do that with dendro???
-    heatmap_expr <- main_heatmap(as.matrix(matrix_expr[c(input$tbl.tab1_rows_selected),-1])) %>%
-      add_col_labels(ticktext = colnames(matrix_expr[,-1])) %>%
-      add_row_labels(ticktext = matrix_expr[input$tbl.tab1_rows_selected,1]) %>% ##trying to add dendro
-      add_col_dendro(hclust(dist(t(matrix_expr[input$tbl.tab1_rows_selected,-1])))) ##may have to take out -1 to avoid losing 1st data col
-    if(nrow(matrix_expr[input$tbl.tab1_rows_selected,] ) > 1) ##currently still trying to cluster genes selected
-    {heatmap_expr <- heatmap_expr %>% add_row_dendro(hclust(dist((matrix_expr[c(input$tbl.tab1_rows_selected),-1]))), reorder = TRUE, side = "right")} ##taking out t() works but still has to be there...see DESeq2 workflow
-    #add_row_dendro(hclust(as.matrix(matrix_expr[c(input$tbl.tab1_rows_selected),-1]))) %>% ##trying row dendro first to see possible clustering???
-    #add_col_dendro(hclust(as.matrix(matrix_expr[c(input$tbl.tab1_rows_selected),-1])))
+    heatmap_expr <- main_heatmap(as.matrix(matrix_expr)) %>%
+      add_col_labels(ticktext = colnames(matrix_expr)) %>%
+      add_row_labels(ticktext = geneNames) %>% ##trying to add dendro
+      add_col_dendro(hclust(dist(t(as.matrix(matrix_expr))))) ##may have to take out -1 to avoid losing 1st data col
     
-    #if(input$select_tab1 == "raw counts")
-    #{
-    # heatmap_expr <- main_heatmap(as.matrix(count.matrix[c(input$tbl.tab1_rows_selected),-1])) %>%
-    #  add_col_labels(ticktext = colnames(count.matrix[,-1])) %>%
-    # add_row_labels(ticktext = count.matrix[input$tbl.tab1_rows_selected,1])
-    #}
-    
-    #if(input$select_tab1 == "rlog")
-    #{
-    # heatmap_expr <- main_heatmap(as.matrix(rlog.matrix[c(input$tbl.tab1_rows_selected),-1])) %>%
-    #  add_col_labels(ticktext = colnames(rlog.matrix[,-1])) %>% 
-    # add_row_labels(ticktext = rlog.matrix[input$tbl.tab1_rows_selected,1])
-    #}
-    
-    #if(input$selec_tab1 == "vst")
-    #{
-    # heatmap_expr <- main_heatmap(as.matrix(vst.matrix[c(input$tbl.tab1_rows_selected),-1])) %>%
-    #  add_col_labels(ticktext = colnames(vst.matrix[,-1])) %>%
-    # add_row_labels(ticktext = vst.matrix[input$tbl.tab1_rows_selected,1])
-    #}
-    
+    if(nrow(matrix_expr) > 1) ##currently still trying to cluster genes selected
+    {
+      heatmap_expr <- heatmap_expr %>% add_row_dendro(hclust(dist((matrix_expr))), reorder = TRUE, side = "right")
+    } ##taking out t() works but still has to be there...see DESeq2 workflow
     print(heatmap_expr)  ## currently rlog visualization takes too long
-    
   })
   
   ##now working on heatmap on tab2 for clustering cell lines based on input genes
@@ -663,53 +319,11 @@ server <- function(input,output)
   
   output$heatmap_clus <- renderIheatmap({
     
-    ##will need to do something to show filtering step (taking out genes with all-zero-rows), or is filtering step necessary????? review DESeq2 vignette
-    ##for filtering steps will have to put all object manipulation in top of code
-    
-    #if(input$select_tab2 == "raw counts") matrix_clus <- count.matrix.filtered[,-1] ##clus for cluster, treat as cmf, do -1 to take out gene names
-    #if(input$select_tab2 == "rlog") matrix_clus <- cmf.rlog
-    #if(input$select_tab2 == "vst") matrix_clus <- cmf.vst
-    #if(input$select_tab2 == "row normalized") matrix_clus <- cmf.rownorm
-    
-    ###calc transforms live and assign to matrix_clus
-    if(input$select_tab2 == "raw counts") 
-    {
-      tbl.tab2 <- all_cell_lines
-    }#table.counts #DT::datatable(table.counts)
-    ######### this code calculates the normalization methods live but takes too long...apply in tab2 based on what tiago and michelle say ######
-    if(input$select_tab2 == "rlog")
-    {
-      tbl.tab2 <- all_cell_lines#table.rlog #DT::datatable(table.rlog)
-      tbl.tab2 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step, actually change the object
-      tbl.tab2 <- cbind(tbl.tab2[,1:7], rlog(as.matrix(tbl.tab2[,8:dim(tbl.tab2)[2]]), blind = FALSE))
-      #tbl.tab1
-    }
-    if(input$select_tab2 == "vst")
-    {
-      tbl.tab2 <- all_cell_lines#table.vst #DT::datatable(table.vst)
-      tbl.tab2 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
-      tbl.tab2 <- cbind(tbl.tab2[,1:7], vst(as.matrix(tbl.tab2[,8:dim(tbl.tab2)[2]]), blind = FALSE))
-      #tbl.tab1
-    }
-    if(input$select_tab2 == "row normalized")
-    {
-      tbl.tab2 <- all_cell_lines
-      tbl.tab2 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
-      tbl.tab2 <- cbind(tbl.tab2[,1:7], rownorm(tbl.tab2[,8:dim(tbl.tab2)[2]]))
-      #tbl.tab1
-    }
-    if(input$select_tab2 == "logCPM")
-    {
-      tbl.tab2 <- all_cell_lines
-      tbl.tab2 <- all_cell_lines[rowSums(all_cell_lines[,8:dim(all_cell_lines)[2]]) > 1,] ##filtering step
-      tbl.tab2 <- cbind(tbl.tab2[,1:7], cpm(tbl.tab2[,8:dim(tbl.tab2)[2]]), log =  TRUE)
-      #tbl.tab1
-    }
-    
-    matrix_clus <- tbl.tab2[,c(1,8:dim(tbl.tab2)[2])] ### trying this out
+    tbl.tab2 <- getTab2()
+    matrix_clus <- tbl.tab2[,c(1,8:ncol(tbl.tab2))] ### trying this out
     
     #replace above command with this based on select input
-    if(input$select_clus == "-no selection-") {return(NULL)} ##commenting it out still has filtered hm show automatically
+    if(input$select_clus == "-no selection-") return(NULL) ##commenting it out still has filtered hm show automatically
     #if(is.null(input$tbl.tab2_rows_selected)) {return(NULL)} ##necessary???
     
     if(length(input$tbl.tab2_rows_selected) < 2 && input$select_clus == "selected genes") {return(NULL)} ##try this out to see how affects heatmaps
@@ -731,29 +345,23 @@ server <- function(input,output)
     ##selecting one works with raw counts but not other transforms??? is it calculating distances right???
     if(input$select_clus == "selected genes")
     {
+      selected_rows <- input$tbl.tab2_rows_selected
+      inFile <- input$input_gene_list_tab2
+      if (!is.null(inFile)) {
+        geneList <- read_lines(inFile$datapath)
+        selected_rows <- unique(c(selected_rows,which(matrix_clus[,1] %in% geneList)))
+      }    
+      
       #if(is.null(input$tbl.tab2_rows_selected)) {return(NULL)} ##might need to take this out (but its in tiagos code???)
       #dend.clus <- hclust(dist(t(matrix_clus))) ##try not creating it as an object ##dont need the object?
-      heatmap_clus <- main_heatmap(as.matrix(dist(t(matrix_clus[c(input$tbl.tab2_rows_selected),-1])))) %>% ##partially working,
+      heatmap_clus <- main_heatmap(as.matrix(dist(t(matrix_clus[selected_rows,-1])))) %>% ##partially working,
         add_col_labels(ticktext = colnames(matrix_clus[,-1])) %>%
         add_row_labels(ticktext = colnames(matrix_clus[,-1])) %>% ##works when not using add dendro, but calculates dist wrong?
-        add_col_dendro(hclust(dist(t(matrix_clus[c(input$tbl.tab2_rows_selected),-1]))), reorder = TRUE) %>% ##add_dendro not working...save for later, try taking out t(matrix[]), but put back in later if it doesnt work
-        add_row_dendro(hclust(dist(t(matrix_clus[c(input$tbl.tab2_rows_selected),-1]))), reorder = TRUE, side = "right") ##try taking out t(matrix[]), but put back in later if it doesnt work
-      
-      ##line ~218 doesn't stop this from showing, it's the dendrogram fcts fault
-      
-      ##checking row selection is working right
-      #testprint <- renderPrint({input$tbl.tab2_rows_selected})
-      #testprint()
-      
-      
+        add_col_dendro(hclust(dist(t(matrix_clus[selected_rows,-1]))), reorder = TRUE) %>% ##add_dendro not working...save for later, try taking out t(matrix[]), but put back in later if it doesnt work
+        add_row_dendro(hclust(dist(t(matrix_clus[selected_rows,-1]))), reorder = TRUE, side = "right") ##try taking out t(matrix[]), but put back in later if it doesnt work
     }
-    
     heatmap_clus
-    
   })
   
 }
-
 shinyApp(ui = ui, server = server)
-
-
