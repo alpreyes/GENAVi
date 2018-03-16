@@ -11,6 +11,7 @@ suppressPackageStartupMessages({
   library(shinyjs)
   library(plotly)
   library(shinythemes)
+  library(shinyBS)
 })
 
 options(shiny.maxRequestSize=1024^3) # Max file upload 1GB 
@@ -23,7 +24,7 @@ load("hg38.rda")
 
 transforms <- c("raw counts", "row normalized", "logCPM", "vst") ##adding "t-score" -> row normalized, ask michelle about normalizing with FTSEC lines, have to add log(CPM+1)
 sortby <- c("-no selection-","mean", "standard deviation")
-cell.line.clusters <- c("-no selection-","filtered genes", "selected genes") ##do this for cell line cluster heatmaps, changed all to filtered, should "all" be an option?
+cell.line.clusters <- c("All genes", "Selected genes") ##do this for cell line cluster heatmaps, changed all to filtered, should "all" be an option?
 
 # This will be used to parse the text areas input
 # possibilities of separation , ; \n
