@@ -8,6 +8,7 @@ library(tidyverse)
 library(readr)
 library(dplyr)
 library(plotly)
+library(shinythemes)
 
 options(shiny.maxRequestSize=1024^3) # Max file upload 1GB 
 all_cell_lines <- read_csv("all_cell_lines.csv", col_names = TRUE) ##read in data going to view
@@ -72,63 +73,66 @@ rownorm <- function(counts.filtered)
   rownorm.tbl
 }
 
-ui <- fluidPage(tabsetPanel(
-  
-  
-  tabPanel("Expression", ##changing from tab 1, but still using tab1 in the other parts of code
-           h2('GENAVi'), 
-           #selectInput("select", "Select Columns", names(final.counts), multiple = TRUE),
-           selectInput("select_tab1", "Select Transform", transforms, multiple = FALSE), ##need individual selectInputs for each tab
-           fileInput("input_gene_list_tab1", "Input Gene List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"), ##how to increase max upload size
-           #textAreaInput(inputId = "geneList",label = "Gene list filter: separate gene names by , or ; or newline",value =  "", width = "100%"),
-           #actionButton("but_sortSelectedFirst_tab1", "Selected Rows First"), ##do this to put selected rows at top of data table, trying it out
-           selectInput("select_sort_tab1", "Sort Table By", sortby, multiple = FALSE),
-           DT::dataTableOutput('tbl.tab1'), ##dont think i need to change this to calc/render data tables live
-           verbatimTextOutput("warning_message_tab1", placeholder = FALSE), ##NEED TO ADD ERROR MESSAGE FOR HEATMAP
-           #verbatimTextOutput("warning_message_tab1_hm",placeholder = FALSE), ## hm for heatmap
-           #verbatimTextOutput("test_message",placeholder = FALSE), ###testing to see if reactive fct is being called
-           #numericInput("num","Input row index",1,min = 1,max = 60554),
-           #verbatimTextOutput("warning_message"), ##may need to take this out for  now
-           #DT::dataTableOutput('tbl.tab1.selected'), ##doing this to keep track of selected rows, take this out
-           plotlyOutput("barplot", width = "auto"),
-           iheatmaprOutput("heatmap_expr") ##expr for expression
-  ),
-  tabPanel("Clustering", ##changing from tab 2, but still usibg tab2 in other parts of code
-           h2("GENAVi"), 
-           selectInput("select_tab2", "Select Transform", transforms, multiple = FALSE),
-           fileInput("input_gene_list_tab2", "Input Gene List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"),
-           #actionButton("but_sortSelectedFirst_tab2", "Selected Rows First"), ##repeat in tab2
-           DT::dataTableOutput('tbl.tab2'),
-           #DT::dataTableOutput('tbl.tab2.selected'),
-           selectInput("select_clus", "Cluster by what genes", cell.line.clusters, multiple = FALSE),
-           verbatimTextOutput("warning_message_tab2", placeholder = FALSE), ##do this to guide making heatmap in tab2
-           iheatmaprOutput("heatmap_clus") ##clus for clusters
-  ),
-  # App title ----
-  tabPanel("Upload file",
-           # App title ----
-           titlePanel("Uploading Files"),
-           # Sidebar layout with input and output definitions ----
-           sidebarLayout(
-             
-             # Sidebar panel for inputs ----
-             sidebarPanel(
+ui <- fluidPage(theme = shinytheme("spacelab"),
+  tabsetPanel(
+    tabPanel("Expression",  ##changing from tab 1, but still using tab1 in the other parts of code
+             icon = icon("table"),
+             h2('GENAVi'), 
+             #selectInput("select", "Select Columns", names(final.counts), multiple = TRUE),
+             selectInput("select_tab1", "Select Transform", transforms, multiple = FALSE), ##need individual selectInputs for each tab
+             fileInput("input_gene_list_tab1", "Input Gene List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"), ##how to increase max upload size
+             #textAreaInput(inputId = "geneList",label = "Gene list filter: separate gene names by , or ; or newline",value =  "", width = "100%"),
+             #actionButton("but_sortSelectedFirst_tab1", "Selected Rows First"), ##do this to put selected rows at top of data table, trying it out
+             selectInput("select_sort_tab1", "Sort Table By", sortby, multiple = FALSE),
+             DT::dataTableOutput('tbl.tab1'), ##dont think i need to change this to calc/render data tables live
+             verbatimTextOutput("warning_message_tab1", placeholder = FALSE), ##NEED TO ADD ERROR MESSAGE FOR HEATMAP
+             #verbatimTextOutput("warning_message_tab1_hm",placeholder = FALSE), ## hm for heatmap
+             #verbatimTextOutput("test_message",placeholder = FALSE), ###testing to see if reactive fct is being called
+             #numericInput("num","Input row index",1,min = 1,max = 60554),
+             #verbatimTextOutput("warning_message"), ##may need to take this out for  now
+             #DT::dataTableOutput('tbl.tab1.selected'), ##doing this to keep track of selected rows, take this out
+             plotlyOutput("barplot", width = "auto"),
+             tags$hr(),
+             iheatmaprOutput("heatmap_expr") ##expr for expression
+    ),
+    tabPanel("Clustering", ##changing from tab 2, but still usibg tab2 in other parts of code
+             icon = icon("object-group"),
+             h2("GENAVi"), 
+             selectInput("select_tab2", "Select Transform", transforms, multiple = FALSE),
+             fileInput("input_gene_list_tab2", "Input Gene List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"),
+             #actionButton("but_sortSelectedFirst_tab2", "Selected Rows First"), ##repeat in tab2
+             DT::dataTableOutput('tbl.tab2'),
+             #DT::dataTableOutput('tbl.tab2.selected'),
+             selectInput("select_clus", "Cluster by what genes", cell.line.clusters, multiple = FALSE),
+             verbatimTextOutput("warning_message_tab2", placeholder = FALSE), ##do this to guide making heatmap in tab2
+             iheatmaprOutput("heatmap_clus") ##clus for clusters
+    ),
+    # App title ----
+    tabPanel("Upload file",
+             icon = icon("upload"),
+             # App title ----
+             titlePanel("Uploading Files"),
+             # Sidebar layout with input and output definitions ----
+             sidebarLayout(
                
-               # Input: Select a file ----
-               fileInput("rawcounts", "Choose CSV File",
-                         multiple = TRUE,
-                         accept = c("text/csv",
-                                    "text/comma-separated-values,text/plain",
-                                    ".csv"))
-             ),
-             # Main panel for displaying outputs ----
-             mainPanel(
-               # Output: Data file ----
-               DT::dataTableOutput("contents")
+               # Sidebar panel for inputs ----
+               sidebarPanel(
+                 
+                 # Input: Select a file ----
+                 fileInput("rawcounts", "Choose CSV File",
+                           multiple = TRUE,
+                           accept = c("text/csv",
+                                      "text/comma-separated-values,text/plain",
+                                      ".csv"))
+               ),
+               # Main panel for displaying outputs ----
+               mainPanel(
+                 # Output: Data file ----
+                 DT::dataTableOutput("contents")
+               )
              )
-           )
+    )
   )
-)
 )
 
 
@@ -142,6 +146,8 @@ server <- function(input,output)
       filter   = 'top'
     )
   })
+  
+  
   
   readData <- reactive({
     ret <- NULL
@@ -255,6 +261,16 @@ server <- function(input,output)
   })
   
   
+  observeEvent(input$tbl.tab1_rows_selected, {
+    if(length(input$tbl.tab1_rows_selected) == 1){
+      shinyjs::show(id = "divbarplot", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+      shinyjs::hide(id = "divheatmap", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+    } else {
+      print("hide barplot")
+      shinyjs::hide(id = "divbarplot", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+    }
+  })
+  
   output$barplot <- renderPlotly({
     
     if(is.null(input$tbl.tab1_rows_selected)) return(NULL) ##may need to put this in heatmap section and in tab2
@@ -278,6 +294,8 @@ server <- function(input,output)
   # return(NULL)
   #}
   #})
+  
+  
   
   output$heatmap_expr <- renderIheatmap({ ###### heatmap is under construction too...raw counts doesnt work...need to get saving obj code to work
     
