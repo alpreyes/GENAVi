@@ -1,95 +1,60 @@
-library(shiny)
-library(tidyr) 
-library(ggplot2) 
-library(DESeq2)
-library(edgeR)
-library(iheatmapr)
-library(tidyverse)
-library(readr)
-library(dplyr)
-library(shinyjs)
-library(plotly)
-library(shinythemes)
+source("aux_functions.R")$value
 
 ui <- fluidPage(theme = shinytheme("spacelab"),
                 useShinyjs(),
                 tabsetPanel(
-                  tabPanel("Expression",  ##changing from tab 1, but still using tab1 in the other parts of code
+                  tabPanel("Data Expression",  ##changing from tab 1, but still using tab1 in the other parts of code
                            icon = icon("table"),
-                           h2('GENAVi'), 
-                           tabsetPanel(type ="pills",
-                                       tabPanel("Data", ##changing from tab 2, but still usibg tab2 in other parts of code
-                                                #selectInput("select", "Select Columns", names(final.counts), multiple = TRUE),
-                                                selectInput("select_tab1", "Select Transform", transforms, multiple = FALSE), ##need individual selectInputs for each tab
-                                                fileInput("input_gene_list_tab1", "Input Gene List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"), ##how to increase max upload size
-                                                #textAreaInput(inputId = "geneList",label = "Gene list filter: separate gene names by , or ; or newline",value =  "", width = "100%"),
-                                                #actionButton("but_sortSelectedFirst_tab1", "Selected Rows First"), ##do this to put selected rows at top of data table, trying it out
-                                                selectInput("select_sort_tab1", "Sort Table By", sortby, multiple = FALSE),
-                                                DT::dataTableOutput('tbl.tab1') ##dont think i need to change this to calc/render data tables live
-                                       ), 
-                                       tabPanel("Plots",
-                                                div(id = "expression_plots",
-                                                    plotlyOutput("barplot", width = "auto")
-                                                ),
-                                                iheatmaprOutput("heatmap_expr",height = "auto")
-                                       )
+                           h1('GENAVi'), 
+                           sidebarPanel(
+                             h2('Table'), 
+                             selectInput("select_tab1", "Select Transform", transforms, multiple = FALSE), ##need individual selectInputs for each tab
+                             fileInput("input_gene_list_tab1", "Input Gene Symbol List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"), ##how to increase max upload size
+                             #textAreaInput(inputId = "geneList",label = "Gene list filter: separate gene names by , or ; or newline",value =  "", width = "100%"),
+                             #actionButton("but_sortSelectedFirst_tab1", "Selected Rows First"), ##do this to put selected rows at top of data table, trying it out
+                             selectInput("select_sort_tab1", "Sort Table By", sortby, multiple = FALSE),
+                             tags$hr(),
+                             h2('Data upload'), 
+                             # Input: Select a file ----
+                             fileInput("rawcounts", "Choose CSV File",
+                                       multiple = TRUE,
+                                       accept = c("text/csv",
+                                                  "text/comma-separated-values,text/plain",
+                                                  ".csv")),
+                             tags$div(
+                               HTML(paste(help_text))
+                             )
+                           ),
+                           mainPanel(
+                             DT::dataTableOutput('tbl.tab1') ##dont think i need to change this to calc/render data tables live
                            )
                   ),
-                  tabPanel("Clustering", ##changing from tab 2, but still usibg tab2 in other parts of code
+                  tabPanel("Plots", ##changing from tab 2, but still usibg tab2 in other parts of code
                            icon = icon("object-group"),
                            h2("GENAVi"), 
-                           tabsetPanel(type ="pills",
-                                       tabPanel("Data", ##changing from tab 2, but still usibg tab2 in other parts of code
-                                                selectInput("select_tab2", "Select Transform", transforms, multiple = FALSE),
-                                                fileInput("input_gene_list_tab2", "Input Gene List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"),
-                                                #actionButton("but_sortSelectedFirst_tab2", "Selected Rows First"), ##repeat in tab2
-                                                DT::dataTableOutput('tbl.tab2')
-                                       ), 
-                                       tabPanel("Plots",
-                                                div(id = "cluster_plots",
-                                                    selectInput("select_clus", "Cluster by what genes", cell.line.clusters, multiple = FALSE),
-                                                    iheatmaprOutput("heatmap_clus") 
-                                                )
-                                       )
+                           
+                           div(id = "expression_plots",
+                               h2('Counts Barplot'), 
+                               plotlyOutput("barplot", width = "auto")
+                           ),
+                           h2('Counts Heatmap'),
+                           iheatmaprOutput("heatmap_expr",height = "auto"),
+                           div(id = "cluster_plots",
+                               h2('Correlation Heatmap'), 
+                               selectInput("select_clus", "Cluster by what genes", cell.line.clusters, multiple = FALSE),
+                               iheatmaprOutput("heatmap_clus") 
                            )
-                  ),
-                  # App title ----
-                  tabPanel("Upload file",
-                           icon = icon("upload"),
-                           # App title ----
-                           titlePanel("Uploading Files"),
-                           # Sidebar layout with input and output definitions ----
-                           sidebarLayout(
-                             
-                             # Sidebar panel for inputs ----
-                             sidebarPanel(
-                               
-                               # Input: Select a file ----
-                               fileInput("rawcounts", "Choose CSV File",
-                                         multiple = TRUE,
-                                         accept = c("text/csv",
-                                                    "text/comma-separated-values,text/plain",
-                                                    ".csv"))
-                             ),
-                             # Main panel for displaying outputs ----
-                             mainPanel(
-                               # Output: Data file ----
-                               tags$div(
-                                 HTML(paste(help_text))
-                               ),
-                               DT::dataTableOutput("contents")
-                             )
-                           )
+                           
                   )
                 )
+                
 )
 
 server <- function(input,output) 
 {
-  source("aux_functions.R")$value
   
   output$contents <-  DT::renderDataTable({
-    data <- readData()
+    data <- getNormalizedData()$raw
     if(!is.null(data)) data %>% DT::datatable(
       class = 'cell-border stripe',
       rownames = FALSE,
@@ -97,12 +62,16 @@ server <- function(input,output)
     )
   })
   
-  
   readData <- reactive({
     ret <- NULL
     inFile <- input$rawcounts
     if (!is.null(inFile))  {
-      ret <-  read_csv(inFile$datapath)
+      withProgress(message = 'Reading the data',
+                   detail = "This may take a while", value = 0, {
+                     ret <-  read_csv(inFile$datapath)
+                     setProgress(1, detail = paste("Completed"))
+                   }
+      )
     }
     ret
   })
@@ -111,22 +80,32 @@ server <- function(input,output)
     if (!is.null(readData())) all_cell_lines <- readData()
     
     # Add gene metadata information
-    print(head(all_cell_lines))
-    all_cell_lines <- addgeneinfo(all_cell_lines) 
-    print(head(all_cell_lines))
+    withProgress(message = 'Adding gene metadata',
+                 detail = "This may take a while", value = 0, {
+                   all_cell_lines <- addgeneinfo(all_cell_lines) 
+                 }
+    )
     
-    tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,8:ncol(all_cell_lines)]) > 1,] ##filtering step, actually change the object
-    data <- as.matrix(tbl.tab1[,8:ncol(tbl.tab1)])
-    metadata <- tbl.tab1[,1:7]
+    tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,7:ncol(all_cell_lines)]) > 1,] ##filtering step, actually change the object
+    data <- as.matrix(tbl.tab1[,7:ncol(tbl.tab1)])
+    metadata <- tbl.tab1[,1:6]
     
-    # normalization: rlog takes a lot of time (hours for a big matrix)
-    raw      <- cbind(metadata, data) ##might might have to take out blind option???
-    #rlog     <- cbind(metadata, rlog(data))
-    vst      <- cbind(metadata, vst(data))
-    rownorm  <- cbind(metadata, rownorm(data))
-    cpm      <- cbind(metadata, cpm(data))
-    ret      <- list(vst,rownorm,raw,cpm)
-    names(ret) <- c("vst","rownorm","raw","cpm")
+    withProgress(message = 'Normalizing data',
+                 detail = "This may take a while", value = 0, {
+                   # normalization: rlog takes a lot of time (hours for a big matrix)
+                   raw      <- cbind(metadata, data) ##might might have to take out blind option???
+                   #rlog     <- cbind(metadata, rlog(data))
+                   vst      <- cbind(metadata, vst(data))
+                   setProgress(0.2, detail = paste("vst completed"))
+                   rownorm  <- cbind(metadata, rownorm(data))
+                   setProgress(0.5, detail = paste("rownorm completed"))
+                   cpm      <- cbind(metadata, cpm(data))
+                   setProgress(0.7, detail = paste("cpm completed"))
+                   ret      <- list(vst,rownorm,raw,cpm)
+                   names(ret) <- c("vst","rownorm","raw","cpm")
+                   setProgress(1, detail = paste("Completed"))
+                 }
+    )
     return(ret)
   })
   getTab1 <- reactive({
@@ -139,16 +118,7 @@ server <- function(input,output)
     if(select == "logCPM")  tbl.tab1 <- data$cpm
     tbl.tab1
   })
-  getTab2 <- reactive({
-    data <- getNormalizedData()
-    select <- input$select_tab2
-    if(select == "raw counts") tbl.tab1 <- data$raw #table.counts #DT::datatable(table.counts)
-    if(select == "rlog")  tbl.tab1 <- data$rlog
-    if(select == "vst")  tbl.tab1 <- data$vst
-    if(select == "row normalized")  tbl.tab1 <- data$rownorm
-    if(select == "logCPM")  tbl.tab1 <- data$cpm
-    tbl.tab1
-  })
+
   output$tbl.tab1 <-  DT::renderDataTable({
     tbl.tab1 <- getTab1()
     
@@ -172,7 +142,7 @@ server <- function(input,output)
     inFile <- input$input_gene_list_tab1
     if (!is.null(inFile)) {
       geneList <- read_lines(inFile$datapath)
-      selected_rows <- unique(c(selected_rows,which(tbl.tab1[,1] %in% geneList)))
+      selected_rows <- unique(c(selected_rows,which(tbl.tab1$Symbol %in% geneList)))
     }    
     #  Parse textarea
     #text.samples <- isolate({input$geneList})
@@ -192,23 +162,6 @@ server <- function(input,output)
     
   }) ##works to get selected rows on top but fucks up if select more than one at a time.....worry about it later
   
-  output$tbl.tab2 <-  DT::renderDataTable({ ###need to update this to match for tab1 whatever we discover works
-    tbl.tab2 <- getTab2()
-    
-    selected_rows <- input$tbl.tab2_rows_selected ###may need to label this for tab1 and tab2...nope don't need to
-    
-    inFile <- input$input_gene_list_tab2
-    if (!is.null(inFile)) {
-      geneList <- read_lines(inFile$datapath)
-      selected_rows <- unique(c(selected_rows,which(tbl.tab2[,1] %in% geneList)))
-    }    
-    
-    status <- factor("Unselected",levels = c("Unselected","Selected"))
-    tbl.tab2 <- cbind(status,tbl.tab2)
-    tbl.tab2$status[selected_rows] <- 'Selected'
-    
-    tbl.tab2 %>% createTable(selected_rows)
-  })
   
   observeEvent(input$tbl.tab1_rows_selected, {
     if(length(input$tbl.tab1_rows_selected) == 1){
@@ -218,21 +171,13 @@ server <- function(input,output)
     }
   })
   
-  observeEvent(input$tbl.ta21_rows_selected, {
-    if(length(input$tbl.tab2_rows_selected) == 1){
-      shinyjs::show(id = "cluster_plots", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
-    } else {
-      shinyjs::hide(id = "cluster_plots", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
-    }
-  })
-  
   output$barplot <- renderPlotly({
     
     if(is.null(input$tbl.tab1_rows_selected)) return(NULL) ##may need to put this in heatmap section and in tab2
     if(length(input$tbl.tab1_rows_selected) > 1) return(NULL)
     tbl.tab1 <- getTab1()
     tbl.tab1 <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected)
-    p <- as.data.frame(t(tbl.tab1[,8:ncol(tbl.tab1)]))
+    p <- as.data.frame(t(tbl.tab1[,7:ncol(tbl.tab1)]))
     colnames(p) <- "value"
     p$cell_line <- rownames(p)
     barplot <- ggplot(p, aes(x=cell_line, y=value)) + geom_bar(stat = "identity") +  theme_bw()
@@ -246,10 +191,9 @@ server <- function(input,output)
     if(length(input$tbl.tab1_rows_selected) < 2) return(NULL)
     
     tbl.tab1 <- getTab1()
-    # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
-    geneNames <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% pull(1)
-    matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% select(8:ncol(tbl.tab1)) ##raw counts heat map not working...has to do with rows???
-    
+    # Columns 1 to 6: Genename  Geneid Chr   Start   End Strand  
+    geneNames <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% pull("Symbol")
+    matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% select(7:ncol(tbl.tab1)) 
     ##may need to change order of cell lines from default alphabetic to histotype specific???...do that with dendro???
     heatmap_expr <- main_heatmap(as.matrix(matrix_expr)) %>%
       add_col_labels(ticktext = colnames(matrix_expr)) %>%
@@ -266,14 +210,14 @@ server <- function(input,output)
   
   output$heatmap_clus <- renderIheatmap({
     
-    tbl.tab2 <- getTab2()
-    matrix_clus <- tbl.tab2[,c(1,8:ncol(tbl.tab2))] ### trying this out
+    tbl.tab2 <- getTab1()
+    matrix_clus <- tbl.tab2[,c(1,7:ncol(tbl.tab2))] ### trying this out
     
     #replace above command with this based on select input
     if(input$select_clus == "-no selection-") return(NULL) ##commenting it out still has filtered hm show automatically
     #if(is.null(input$tbl.tab2_rows_selected)) {return(NULL)} ##necessary???
     
-    if(length(input$tbl.tab2_rows_selected) < 2 && input$select_clus == "selected genes") {return(NULL)} ##try this out to see how affects heatmaps
+    if(length(input$tbl.tab1_rows_selected) < 2 && input$select_clus == "selected genes") {return(NULL)} ##try this out to see how affects heatmaps
     
     ##BT549 disapears from list of cell lines???
     ##how to make this heatmap show by default/automatically
@@ -292,8 +236,8 @@ server <- function(input,output)
     ##selecting one works with raw counts but not other transforms??? is it calculating distances right???
     if(input$select_clus == "selected genes")
     {
-      selected_rows <- input$tbl.tab2_rows_selected
-      inFile <- input$input_gene_list_tab2
+      selected_rows <- input$tbl.tab1_rows_selected
+      inFile <- input$input_gene_list_tab1
       if (!is.null(inFile)) {
         geneList <- read_lines(inFile$datapath)
         selected_rows <- unique(c(selected_rows,which(matrix_clus[,1] %in% geneList)))

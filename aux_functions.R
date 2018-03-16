@@ -1,3 +1,17 @@
+suppressPackageStartupMessages({
+  library(shiny)
+  library(tidyr) 
+  library(ggplot2) 
+  library(DESeq2)
+  library(edgeR)
+  library(iheatmapr)
+  library(tidyverse)
+  library(readr)
+  library(dplyr)
+  library(shinyjs)
+  library(plotly)
+  library(shinythemes)
+})
 
 options(shiny.maxRequestSize=1024^3) # Max file upload 1GB 
 
@@ -68,10 +82,7 @@ rownorm <- function(counts.filtered)
 }
 
 addgeneinfo <- function(data){
-  print("### Adding gene info")
   id <- data %>% pull(1)
-  print(head(id))
-  print(any(id %in% hg38$Symbol))
   if(all(grepl("ENSG",id))) {
     colnames(data)[1] <- "EnsemblID"
     aux <- strsplit(data$EnsemblID,"\\.")
@@ -83,7 +94,6 @@ addgeneinfo <- function(data){
   } else {
     return(NULL)
   }
-  print(head(data))
   return(data)
 }
 
