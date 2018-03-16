@@ -7,6 +7,7 @@ library(iheatmapr)
 library(tidyverse)
 library(readr)
 library(dplyr)
+library(shinyjs)
 library(plotly)
 library(shinythemes)
 
