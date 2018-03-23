@@ -178,7 +178,7 @@ server <- function(input,output,session)
     tbl.tab1 <- cbind(status,tbl.tab1)
     tbl.tab1$status[selected_rows] <- 'Selected'
     
-    tbl.tab1 %>% createTable(selected_rows)
+    tbl.tab1 %>% createTable(selected_rows,tableType = isolate({input$select_tab1}))
     
     ## try adding the genes list to match() here, see if it breaks the app
     ##gene_list_tab1 <- input$input_gene_list_tab1 ##create object here see if it breaks the app.....yup breaks the app

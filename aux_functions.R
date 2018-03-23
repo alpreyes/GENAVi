@@ -41,7 +41,7 @@ parse.textarea.input <- function(text){
   return (text)
 }
 
-createTable <- function(df,selected_rows,tableType = "TCGAbiolinks"){
+createTable <- function(df,selected_rows,tableType = "GENAVi"){
   DT::datatable(df,
                 extensions = c('Buttons',"FixedHeader"),
                 class = 'cell-border stripe',
