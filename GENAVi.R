@@ -44,25 +44,25 @@ ui <- fluidPage(title = "GENAVi",
                            #icon = icon("object-group"),
                            icon = icon("image"),
                            tabsetPanel(type = "pills",
-                                       tabPanel("Counts plots",
+                                       tabPanel("Expression plots",
                                                 icon = icon("bar-chart-o"),
                                                 bsAlert("genemessage"),
                                                 hidden(
                                                   div(id = "expression_plots",
-                                                      h3('Counts Barplot'), 
+                                                      h3('Expression Barplot'), 
                                                       plotlyOutput("barplot", width = "auto")
                                                   )),
                                                 hidden(
                                                   div(id = "expression_heatmap",
-                                                      h3('Counts Heatmap'),
+                                                      h3('Expression Heatmap'),
                                                       iheatmaprOutput("heatmap_expr",height = "auto")
                                                   )
                                                 )
                                        ),
-                                       tabPanel("Samples correlation plots",
+                                       tabPanel("Clustering plots",
                                                 icon = icon("object-group"),
                                                 div(id = "cluster_plots",
-                                                    h3('Correlation Heatmap'), 
+                                                    h3('Euclidian Distance Heatmap'), 
                                                     selectInput("select_clus", "Cluster by what genes", cell.line.clusters, multiple = FALSE),
                                                     bsAlert("genemessage2"),
                                                     iheatmaprOutput("heatmap_clus",height = "800px")
@@ -135,7 +135,7 @@ server <- function(input,output,session)
     data <- getNormalizedData()
     select <- input$select_tab1
     if(select == "raw counts") tbl.tab1 <- data$raw #table.counts #DT::datatable(table.counts)
-    if(select == "rlog")  tbl.tab1 <- data$rlog
+    if(select == "rlog")  tbl.tab1 <- data$rlog ##took this out from app??
     if(select == "vst")  tbl.tab1 <- data$vst
     if(select == "row normalized")  tbl.tab1 <- data$rownorm
     if(select == "logCPM")  tbl.tab1 <- data$cpm
