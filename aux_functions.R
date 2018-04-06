@@ -22,7 +22,7 @@ all_cell_lines <- read_csv("ensembleid.csv", col_names = TRUE) ##read in data go
 # Load gene information data
 load("hg38.rda")
 
-transforms <- c("raw counts", "row normalized", "logCPM", "vst") ##adding "t-score" -> row normalized, ask michelle about normalizing with FTSEC lines, have to add log(CPM+1)
+transforms <- c("raw counts", "row normalized", "logCPM", "vst","rlog") ##adding "t-score" -> row normalized, ask michelle about normalizing with FTSEC lines, have to add log(CPM+1)
 sortby <- c("-no selection-","mean", "standard deviation")
 cell.line.clusters <- c("All genes", "Selected genes") ##do this for cell line cluster heatmaps, changed all to filtered, should "all" be an option?
 

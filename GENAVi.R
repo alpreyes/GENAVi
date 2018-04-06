@@ -100,7 +100,8 @@ server <- function(input,output,session)
   })
   ### reactive fct that calcs the transforms and saves them so it doesnt take too long each time
   getNormalizedData <- reactive({
-    if (!is.null(readData())) all_cell_lines <- readData()
+    if (!is.null(readData())) {
+      all_cell_lines <- readData()
     
     # Add gene metadata information
     withProgress(message = 'Adding gene metadata',
@@ -117,18 +118,23 @@ server <- function(input,output,session)
                  detail = "This may take a while", value = 0, {
                    # normalization: rlog takes a lot of time (hours for a big matrix)
                    raw      <- cbind(metadata, data) ##might might have to take out blind option???
-                   #rlog     <- cbind(metadata, rlog(data))
+                   setProgress(0.1, detail = paste("Starting VST"))
                    vst      <- cbind(metadata, vst(data))
-                   setProgress(0.2, detail = paste("vst completed"))
+                   setProgress(0.2, detail = paste("VST completed, starting rownorm"))
                    rownorm  <- cbind(metadata, rownorm(data))
-                   setProgress(0.5, detail = paste("rownorm completed"))
+                   setProgress(0.5, detail = paste("rownorm completed, starting CPM"))
                    cpm      <- cbind(metadata, cpm(data))
-                   setProgress(0.7, detail = paste("cpm completed"))
-                   ret      <- list(vst,rownorm,raw,cpm)
-                   names(ret) <- c("vst","rownorm","raw","cpm")
+                   setProgress(0.7, detail = paste("CPM completed, starting rlog"))
+                   rlog     <- cbind(metadata, rlog(data))
+                   ret      <- list(vst,rownorm,raw,cpm,rlog)
+                   names(ret) <- c("vst","rownorm","raw","cpm","rlog")
                    setProgress(1, detail = paste("Completed"))
                  }
     )
+    } else {
+      ret <- get(load("genavi.rda"))
+    }
+    save(ret,file = "genavi.rda")
     return(ret)
   })
   getTab1 <- reactive({
