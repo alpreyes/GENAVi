@@ -135,7 +135,7 @@ server <- function(input,output,session)
     data <- getNormalizedData()
     select <- input$select_tab1
     if(select == "raw counts") tbl.tab1 <- data$raw #table.counts #DT::datatable(table.counts)
-    if(select == "rlog")  tbl.tab1 <- data$rlog ##took this out from app??
+    if(select == "rlog")  tbl.tab1 <- data$rlog ##include warning in vignette, dependent on number of columns
     if(select == "vst")  tbl.tab1 <- data$vst
     if(select == "row normalized")  tbl.tab1 <- data$rownorm
     if(select == "logCPM")  tbl.tab1 <- data$cpm
