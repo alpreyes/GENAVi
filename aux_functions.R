@@ -147,3 +147,53 @@ text-align: center
 </table>
 </div>
 </div>'
+
+help_text2 <-  '<div class="panel panel-default">
+  <div class="panel-heading"> <span style="padding-left:10px"><b> Input file description</b> </span></div>
+<div class="panel-body">
+<style type="text/css">
+.tg {
+border-collapse: collapse;
+border-spacing: 0;
+border: none;
+}
+.tg td {
+font-family: Arial, sans-serif;
+font-size: 14px;
+padding: 10px 5px;
+border-style: solid;
+border-width: 0px;
+overflow: hidden;
+word-break: normal;
+}
+.tg th {
+font-family: Arial, sans-serif;
+font-size: 14px;
+font-weight: normal;
+padding: 10px 5px;
+border-style: solid;
+border-width: 0px;
+overflow: hidden;
+word-break: normal;
+}
+.tg .tg-s6z2 {
+text-align: center
+}
+</style>
+<table class="tg">
+<tr>
+<th class="tg-031e"> <span class="label label-default"> Format</span></th>
+<th class="tg-031e"> comma-separated values (CSV)
+</tr>
+<tr>
+<th class="tg-031e"> <span class="label label-default"> Column 1</span></th>
+<th class="tg-031e"> Sample ID (same from raw counts data)
+</tr>
+<tr>
+<th class="tg-031e"> <span class="label label-default"> Column 2-n</span></th>
+<th class="tg-031e"> Other metadata (condition, covariates) </th>
+</tr>
+<tr>
+</table>
+</div>
+</div>'

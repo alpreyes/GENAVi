@@ -69,7 +69,32 @@ ui <- fluidPage(title = "GENAVi",
                                                 )
                                        )
                            )
+                  ),
+                  tabPanel("Differential Expression Analysis", 
+                           icon = icon("flask"),
+                           sidebarPanel(id="sidebar",
+                                        h3('Metata upload'), 
+                                        # Input: Select a file ----
+                                        downloadButton('downloadData', 'Download example metadata file'),
+                                        fileInput("metadata", "Choose CSV File",
+                                                  multiple = TRUE,
+                                                  accept = c("text/csv",
+                                                             "text/comma-separated-values,text/plain",
+                                                             ".csv")),
+                                        tags$div(
+                                          HTML(paste(help_text2))
+                                        ),
+                                        tags$hr(),
+                                        h3('DEA'), 
+                                        selectInput("condition", "Select condition column for DEA", NULL, multiple = FALSE), ##need individual selectInputs for each tab
+                                        selectInput("covariates", "Select covariates for DEA", NULL, multiple = FALSE), ##need individual selectInputs for each tab
+                                        actionButton("dea", "Perform DEA")
+                           ),
+                           mainPanel(
+                             DT::dataTableOutput('dea.results') 
+                           )
                   )
+                  
                 )
 )
 
@@ -98,39 +123,54 @@ server <- function(input,output,session)
     }
     ret
   })
+  
+  
+  readMetaData <- reactive({
+    ret <- NULL
+    inFile <- input$metadata
+    if (!is.null(inFile))  {
+      withProgress(message = 'Reading the data',
+                   detail = "This may take a while", value = 0, {
+                     ret <-  read_csv(inFile$datapath)
+                     setProgress(1, detail = paste("Completed"))
+                   }
+      )
+    }
+    ret
+  })
   ### reactive fct that calcs the transforms and saves them so it doesnt take too long each time
   getNormalizedData <- reactive({
     if (!is.null(readData())) {
       all_cell_lines <- readData()
-    
-    # Add gene metadata information
-    withProgress(message = 'Adding gene metadata',
-                 detail = "This may take a while", value = 0, {
-                   all_cell_lines <- addgeneinfo(all_cell_lines) 
-                 }
-    )
-    
-    tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,7:ncol(all_cell_lines)]) > 1,] ##filtering step, actually change the object
-    data <- as.matrix(tbl.tab1[,7:ncol(tbl.tab1)])
-    metadata <- tbl.tab1[,1:6]
-    
-    withProgress(message = 'Normalizing data',
-                 detail = "This may take a while", value = 0, {
-                   # normalization: rlog takes a lot of time (hours for a big matrix)
-                   raw      <- cbind(metadata, data) ##might might have to take out blind option???
-                   setProgress(0.1, detail = paste("Starting VST"))
-                   vst      <- cbind(metadata, vst(data))
-                   setProgress(0.2, detail = paste("VST completed, starting rownorm"))
-                   rownorm  <- cbind(metadata, rownorm(data))
-                   setProgress(0.5, detail = paste("rownorm completed, starting CPM"))
-                   cpm      <- cbind(metadata, cpm(data))
-                   setProgress(0.7, detail = paste("CPM completed, starting rlog"))
-                   rlog     <- cbind(metadata, rlog(data))
-                   ret      <- list(vst,rownorm,raw,cpm,rlog)
-                   names(ret) <- c("vst","rownorm","raw","cpm","rlog")
-                   setProgress(1, detail = paste("Completed"))
-                 }
-    )
+      
+      # Add gene metadata information
+      withProgress(message = 'Adding gene metadata',
+                   detail = "This may take a while", value = 0, {
+                     all_cell_lines <- addgeneinfo(all_cell_lines) 
+                   }
+      )
+      
+      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,7:ncol(all_cell_lines)]) > 1,] ##filtering step, actually change the object
+      data <- as.matrix(tbl.tab1[,7:ncol(tbl.tab1)])
+      metadata <- tbl.tab1[,1:6]
+      
+      withProgress(message = 'Normalizing data',
+                   detail = "This may take a while", value = 0, {
+                     # normalization: rlog takes a lot of time (hours for a big matrix)
+                     raw      <- cbind(metadata, data) ##might might have to take out blind option???
+                     setProgress(0.1, detail = paste("Starting VST"))
+                     vst      <- cbind(metadata, vst(data))
+                     setProgress(0.2, detail = paste("VST completed, starting rownorm"))
+                     rownorm  <- cbind(metadata, rownorm(data))
+                     setProgress(0.5, detail = paste("rownorm completed, starting CPM"))
+                     cpm      <- cbind(metadata, cpm(data))
+                     setProgress(0.7, detail = paste("CPM completed, starting rlog"))
+                     rlog     <- cbind(metadata, rlog(data))
+                     ret      <- list(vst,rownorm,raw,cpm,rlog)
+                     names(ret) <- c("vst","rownorm","raw","cpm","rlog")
+                     setProgress(1, detail = paste("Completed"))
+                   }
+      )
     } else {
       ret <- get(load("genavi.rda"))
     }
@@ -305,6 +345,38 @@ server <- function(input,output,session)
         add_row_dendro(hclust(dist(t(matrix_clus[selected_rows,-1]))), reorder = TRUE, side = "right") ##try taking out t(matrix[]), but put back in later if it doesnt work
     }
     heatmap_clus
+  })
+  
+  #------------------------------------------
+  # DEA - differential expression analysis
+  #------------------------------------------
+  output$downloadData <- downloadHandler(
+    filename = function() {
+      file  <-   paste0("Genavi-metadata.csv")
+    },
+    content = function(con) {
+      if(!is.null(readData())) all_cell_lines <- readData()
+      data <- all_cell_lines
+      file  <-  paste0("Genavi-metadata.csv")
+      samples <- colnames(data)[-1]
+      metadata <- data.frame(samples,groups = "Control")
+      write_csv(metadata, con)
+    }
+  )
+  
+  observe({
+    metadata <- readMetaData()
+    if(!is.null(metadata)){
+      updateSelectizeInput(session, 'condition', choices =  colnames(metadata)[-1], server = TRUE)
+    }
+    if(!is.null(metadata)){
+      updateSelectizeInput(session, 'covariates', choices =  colnames(metadata)[-1], server = TRUE)
+    }
+    #if(is.null(getDataType(as.logical(input$tcgaDatabase),input$tcgaDataCategoryFilter))) {
+    #  shinyjs::hide("tcgaDataTypeFilter")
+    #} else {
+    #  shinyjs::show("tcgaDataTypeFilter")
+    #}
   })
   
 }
