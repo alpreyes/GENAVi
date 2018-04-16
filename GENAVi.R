@@ -443,7 +443,6 @@ server <- function(input,output,session)
                      keep <- rowSums(counts(dds)) >= 10
                      dds[[cond]] <- relevel(dds[[cond]], ref = ref)
                      dds <- dds[keep,]
-                     dds <- dds[1:10,]
                      dds <- DESeq(dds)
                    }
       )
