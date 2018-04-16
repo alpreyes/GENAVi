@@ -85,16 +85,32 @@ ui <- fluidPage(title = "GENAVi",
                                           HTML(paste(help_text2))
                                         ),
                                         tags$hr(),
-                                        h3('DEA'), 
+                                        h3('DEA - DESeq2'), 
                                         selectInput("condition", "Select condition column for DEA", NULL, multiple = FALSE), ##need individual selectInputs for each tab
                                         selectInput("covariates", "Select covariates for DEA", NULL, multiple = FALSE), ##need individual selectInputs for each tab
-                                        actionButton("dea", "Perform DEA")
+                                        verbatimTextOutput("formulatext"),
+                                        selectInput("reference", "Select reference level for DEA", NULL, multiple = FALSE), ##need individual selectInputs for each tab
+                                        actionButton("dea", "Perform DEA"),
+                                        tags$hr(),
+                                        h3('DEA - Select Results'), 
+                                        selectInput("deaSelect", "Select results", NULL, multiple = FALSE), ##need individual selectInputs for each tab
+                                        checkboxInput(inputId="lfc", label = "Perform Log fold change shrinkage", value = FALSE, width = NULL)
                            ),
                            mainPanel(
-                             DT::dataTableOutput('dea.results') 
+                             bsAlert("deamessage"),
+                             tabsetPanel(type = "pills",
+                                         id = "DEA",
+                                         tabPanel("Metadata",
+                                                  tags$hr(),
+                                                  DT::dataTableOutput('metadata.tbl')
+                                         ), 
+                                         tabPanel("DEA results",
+                                                  tags$hr(),
+                                                  DT::dataTableOutput('dea.results') 
+                                         )
+                             )
                            )
                   )
-                  
                 )
 )
 
@@ -379,5 +395,131 @@ server <- function(input,output,session)
     #}
   })
   
+  
+  get.DEA.results <- reactive({
+    closeAlert(session, "deaAlert")
+    
+    if(isolate({input$dea})) { # Summarized Experiment
+      metadata <- readMetaData()
+      if(is.null(metadata)) {
+        createAlert(session, "deamessage", "deaAlert", title = "Missing metadata", style =  "danger",
+                    content = paste0("Please upload metadata file"),
+                    append = FALSE)
+        return(NULL)
+      }
+      if(!is.null(readData())) all_cell_lines <- readData()
+      genes <- all_cell_lines %>% pull(1)
+      cts <- as.matrix(all_cell_lines[,-1])
+      rownames(cts) <-  genes
+      cond <- isolate(input$condition)
+      cov <- isolate(input$covariates)
+      if(is.null(cond))   {
+        createAlert(session, "deamessage", "deaAlert", title = "Missing metadata", style =  "danger",
+                    content = paste0("Please select condition file"),
+                    append = FALSE)
+        return(NULL)
+      } 
+      form <- getFormula()
+      if(is.null(form)){
+        createAlert(session, "deamessage", "deaAlert", title = "Missing formula", style =  "danger",
+                    content = paste0("Please select condition column"),
+                    append = FALSE)
+        return(NULL)
+      }
+      ref <- isolate(input$reference)
+      if(str_length(ref) == 0)   {
+        createAlert(session, "deamessage", "deaAlert", title = "Missing reference level", style =  "danger",
+                    content = paste0("Please select reference level"),
+                    append = FALSE)
+        return(NULL)
+      } 
+      
+      withProgress(message = 'DESeq2 Analysis',
+                   detail = "Creating input file", value = 0, {
+                     dds <- DESeqDataSetFromMatrix(countData = cts,
+                                                   colData = metadata,
+                                                   design = form)
+                     setProgress(0.2, detail = paste("Performing DEA"))
+                     keep <- rowSums(counts(dds)) >= 10
+                     dds[[cond]] <- relevel(dds[[cond]], ref = ref)
+                     dds <- dds[keep,]
+                     dds <- dds[1:10,]
+                     dds <- DESeq(dds)
+                   }
+      )
+      return(dds)
+    }
+  })  
+  
+  getFormula <- reactive({
+    form <- NULL
+    cond <- input$condition
+    cov <- input$covariates
+    print(cond)
+    if(str_length(cond) > 0 & str_length(cov) == 0) {
+      form <- as.formula(paste0("~ ", cond))
+    } else if(str_length(cov) > 0) {
+      form <- as.formula(paste0("~ ",paste(cov,collapse = "+")," + ", cond))
+    }
+    return(form)
+  })
+  
+  output$formulatext <- renderText({
+    f <- getFormula()
+    if(!is.null(f)) return(as.character(f))
+    return("")
+  })
+  
+  output$metadata.tbl <-  DT::renderDataTable({
+    metadata <- readMetaData()
+    if(is.null(metadata)) {
+      return(NULL)
+    }
+    print(as.data.frame(metadata))
+    metadata  %>% createTable2(show.rownames=F)
+  })
+
+  observeEvent(input$condition, {
+    metadata <- readMetaData()
+    if(!is.null(metadata)) {
+    updateSelectizeInput(session, 'reference', choices =  as.character(unique(metadata %>% pull(input$condition))), server = TRUE)
+    }
+  })
+  
+  observeEvent(input$dea, {
+    updateTabsetPanel(session, inputId="DEA", selected = "DEA")
+    if(!is.null(get.DEA.results())) updateSelectizeInput(session, 'deaSelect', choices =  resultsNames(get.DEA.results()), server = TRUE)
+  })
+  
+  observe({
+    output$dea.results <-  DT::renderDataTable({
+      res <- get.DEA.results()
+      deaSelect <- input$deaSelect
+      if(str_length(deaSelect) == 0) {
+        tbl <-  as.data.frame(results(res))
+      } else {
+        if(input$lfc) {
+          tbl <-  as.data.frame(lfcShrink(res, coef=deaSelect))
+        } else {
+          tbl <-  as.data.frame(results(res, name=deaSelect))
+        }
+      }
+      tbl %>% createTable2(show.rownames=T)
+    })
+  })
+  
+  #print(resultsNames(dds)) # lists the coefficients
+  #res <- results(dds, name=resultsNames(dds)[2])
+  # or to shrink log fold changes association with condition:
+  #setProgress(0.3, detail = paste("shrinkage estimators normal"))
+  #resNormal <- lfcShrink(dds, coef=resultsNames(dds)[2], type = "normal")
+  #setProgress(0.5, detail = paste("shrinkage estimators apeglm"))
+  #resApe <- lfcShrink(dds, coef=2, type="apeglm")
+  #setProgress(0.8, detail = paste("shrinkage estimators ashr"))
+  #resAsh <- lfcShrink(dds, coef=2, type="ashr")
+  #setProgress(1, detail = paste("Completed"))
+  
+  
 }
+
 shinyApp(ui = ui, server = server)

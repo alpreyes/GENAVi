@@ -12,6 +12,8 @@ suppressPackageStartupMessages({
   library(plotly)
   library(shinythemes)
   library(shinyBS)
+  library(apeglm)
+  library(ashr)
 })
 
 options(shiny.maxRequestSize=1024^3) # Max file upload 1GB 
@@ -41,7 +43,35 @@ parse.textarea.input <- function(text){
   return (text)
 }
 
-createTable <- function(df,selected_rows,tableType = "GENAVi"){
+
+createTable2 <- function(df,tableType = "GENAVi", show.rownames = TRUE){
+  DT::datatable(df,
+                extensions = c('Buttons',"FixedHeader"),
+                class = 'cell-border stripe',
+                options = list(dom = 'Blfrtip',
+                               buttons =
+                                 list('colvis', list(
+                                   extend = 'collection',
+                                   buttons = list(list(extend='csv',
+                                                       filename = tableType),
+                                                  list(extend='excel',
+                                                       filename = tableType),
+                                                  list(extend='pdf',
+                                                       title = "",
+                                                       filename= tableType)),
+                                   text = 'Download'
+                                 )),
+                               fixedHeader = TRUE,
+                               pageLength = 20,
+                               scrollX = TRUE,
+                               lengthMenu = list(c(10, 20, -1), c('10', '20', 'All'))
+                ),
+                rownames = show.rownames,
+                filter   = 'top'
+  )
+}
+
+createTable <- function(df,selected_rows=NULL,tableType = "GENAVi", show.rownames = FALSE, hide.first.col = TRUE){
   DT::datatable(df,
                 extensions = c('Buttons',"FixedHeader"),
                 class = 'cell-border stripe',
@@ -70,7 +100,7 @@ createTable <- function(df,selected_rows,tableType = "GENAVi"){
                                scrollX = TRUE,
                                lengthMenu = list(c(10, 20, -1), c('10', '20', 'All'))
                 ),
-                rownames = FALSE,
+                rownames = show.rownames,
                 filter   = 'top'
   )
 }
