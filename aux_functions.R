@@ -12,7 +12,11 @@ suppressPackageStartupMessages({
   library(plotly)
   library(shinythemes)
   library(shinyBS)
+  library(apeglm)
+  library(ashr)
 })
+# options(repos = BiocInstaller::biocinstallRepos())
+
 
 options(shiny.maxRequestSize=1024^3) # Max file upload 1GB 
 
@@ -22,7 +26,7 @@ all_cell_lines <- read_csv("ensembleid.csv", col_names = TRUE) ##read in data go
 # Load gene information data
 load("hg38.rda")
 
-transforms <- c("raw counts", "row normalized", "logCPM", "vst") ##adding "t-score" -> row normalized, ask michelle about normalizing with FTSEC lines, have to add log(CPM+1)
+transforms <- c("raw counts", "row normalized", "logCPM", "vst","rlog") ##adding "t-score" -> row normalized, ask michelle about normalizing with FTSEC lines, have to add log(CPM+1)
 sortby <- c("-no selection-","mean", "standard deviation")
 cell.line.clusters <- c("All genes", "Selected genes") ##do this for cell line cluster heatmaps, changed all to filtered, should "all" be an option?
 
@@ -41,7 +45,35 @@ parse.textarea.input <- function(text){
   return (text)
 }
 
-createTable <- function(df,selected_rows,tableType = "GENAVi"){
+
+createTable2 <- function(df,tableType = "GENAVi", show.rownames = TRUE){
+  DT::datatable(df,
+                extensions = c('Buttons',"FixedHeader"),
+                class = 'cell-border stripe',
+                options = list(dom = 'Blfrtip',
+                               buttons =
+                                 list('colvis', list(
+                                   extend = 'collection',
+                                   buttons = list(list(extend='csv',
+                                                       filename = tableType),
+                                                  list(extend='excel',
+                                                       filename = tableType),
+                                                  list(extend='pdf',
+                                                       title = "",
+                                                       filename= tableType)),
+                                   text = 'Download'
+                                 )),
+                               fixedHeader = TRUE,
+                               pageLength = 20,
+                               scrollX = TRUE,
+                               lengthMenu = list(c(10, 20, -1), c('10', '20', 'All'))
+                ),
+                rownames = show.rownames,
+                filter   = 'top'
+  )
+}
+
+createTable <- function(df,selected_rows=NULL,tableType = "GENAVi", show.rownames = FALSE, hide.first.col = TRUE){
   DT::datatable(df,
                 extensions = c('Buttons',"FixedHeader"),
                 class = 'cell-border stripe',
@@ -70,7 +102,7 @@ createTable <- function(df,selected_rows,tableType = "GENAVi"){
                                scrollX = TRUE,
                                lengthMenu = list(c(10, 20, -1), c('10', '20', 'All'))
                 ),
-                rownames = FALSE,
+                rownames = show.rownames,
                 filter   = 'top'
   )
 }
@@ -142,6 +174,56 @@ text-align: center
 <tr>
 <th class="tg-031e"> <span class="label label-default"> Column 2-n</span></th>
 <th class="tg-031e"> Gene expression raw counts </th>
+</tr>
+<tr>
+</table>
+</div>
+</div>'
+
+help_text2 <-  '<div class="panel panel-default">
+  <div class="panel-heading"> <span style="padding-left:10px"><b> Input file description</b> </span></div>
+<div class="panel-body">
+<style type="text/css">
+.tg {
+border-collapse: collapse;
+border-spacing: 0;
+border: none;
+}
+.tg td {
+font-family: Arial, sans-serif;
+font-size: 14px;
+padding: 10px 5px;
+border-style: solid;
+border-width: 0px;
+overflow: hidden;
+word-break: normal;
+}
+.tg th {
+font-family: Arial, sans-serif;
+font-size: 14px;
+font-weight: normal;
+padding: 10px 5px;
+border-style: solid;
+border-width: 0px;
+overflow: hidden;
+word-break: normal;
+}
+.tg .tg-s6z2 {
+text-align: center
+}
+</style>
+<table class="tg">
+<tr>
+<th class="tg-031e"> <span class="label label-default"> Format</span></th>
+<th class="tg-031e"> comma-separated values (CSV)
+</tr>
+<tr>
+<th class="tg-031e"> <span class="label label-default"> Column 1</span></th>
+<th class="tg-031e"> Sample ID (same from raw counts data)
+</tr>
+<tr>
+<th class="tg-031e"> <span class="label label-default"> Column 2-n</span></th>
+<th class="tg-031e"> Other metadata (condition, covariates) </th>
 </tr>
 <tr>
 </table>
