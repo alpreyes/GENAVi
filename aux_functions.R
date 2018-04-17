@@ -125,7 +125,8 @@ addgeneinfo <- function(data){
     colnames(data)[1] <- "Symbol"
     data <- merge(hg38,data,by = "Symbol")
   } else {
-    return(NULL)
+    # we were not able to identify the genome
+    return(data) 
   }
   return(data)
 }
