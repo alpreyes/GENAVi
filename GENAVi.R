@@ -162,13 +162,16 @@ server <- function(input,output,session)
       # Add gene metadata information
       withProgress(message = 'Adding gene metadata',
                    detail = "This may take a while", value = 0, {
-                     all_cell_lines <- addgeneinfo(all_cell_lines) 
+                     # We will check if metadata was added
+                     res <- getEndGeneInfo(all_cell_lines)
+                     all_cell_lines <- res$data
+                     ngene <- res$ngene
                    }
       )
       
-      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,7:ncol(all_cell_lines)]) > 1,] ##filtering step, actually change the object
-      data <- as.matrix(tbl.tab1[,7:ncol(tbl.tab1)])
-      metadata <- tbl.tab1[,1:6]
+      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,(ngene + 1):ncol(all_cell_lines)]) > 1,] ##filtering step, actually change the object
+      data <- as.matrix(tbl.tab1[,(ngene + 1):ncol(tbl.tab1)])
+      metadata <- tbl.tab1[,1:(ngene)]
       
       withProgress(message = 'Normalizing data',
                    detail = "This may take a while", value = 0, {
@@ -252,7 +255,6 @@ server <- function(input,output,session)
   observeEvent(sel(), {
     closeAlert(session, "geneAlert2")
     
-    print(sel())
     if(!sel()){
       createAlert(session, "genemessage", "geneAlert2", title = "Missing data", style =  "danger",
                   content = paste0("Please select genes in Data expression tab"),
@@ -408,8 +410,14 @@ server <- function(input,output,session)
         return(NULL)
       }
       if(!is.null(readData())) all_cell_lines <- readData()
+      
+      res <- getEndGeneInfo(all_cell_lines)
+      all_cell_lines <- res$data
+      ngene <- res$ngene
+      
+      
       genes <- all_cell_lines %>% pull(1)
-      cts <- as.matrix(all_cell_lines[,-1])
+      cts <- as.matrix(all_cell_lines[,(ngene + 1):ncol(all_cell_lines)])
       rownames(cts) <-  genes
       cond <- isolate(input$condition)
       cov <- isolate(input$covariates)
@@ -454,7 +462,6 @@ server <- function(input,output,session)
     form <- NULL
     cond <- input$condition
     cov <- input$covariates
-    print(cond)
     if(str_length(cond) > 0 & str_length(cov) == 0) {
       form <- as.formula(paste0("~ ", cond))
     } else if(str_length(cov) > 0) {
@@ -474,14 +481,13 @@ server <- function(input,output,session)
     if(is.null(metadata)) {
       return(NULL)
     }
-    print(as.data.frame(metadata))
     metadata  %>% createTable2(show.rownames=F)
   })
-
+  
   observeEvent(input$condition, {
     metadata <- readMetaData()
     if(!is.null(metadata)) {
-    updateSelectizeInput(session, 'reference', choices =  as.character(unique(metadata %>% pull(input$condition))), server = TRUE)
+      updateSelectizeInput(session, 'reference', choices =  as.character(unique(metadata %>% pull(input$condition))), server = TRUE)
     }
   })
   
