@@ -94,7 +94,13 @@ ui <- fluidPage(title = "GENAVi",
                                         tags$hr(),
                                         h3('DEA - Select Results'), 
                                         selectInput("deaSelect", "Select results", NULL, multiple = FALSE), ##need individual selectInputs for each tab
-                                        checkboxInput(inputId="lfc", label = "Perform Log fold change shrinkage", value = FALSE, width = NULL)
+                                        checkboxInput(inputId="lfc", label = "Perform Log fold change shrinkage", value = FALSE, width = NULL),
+                                        tags$hr(),
+                                        h3('Volcano plot'), 
+                                        numericInput("log2FoldChange", "log2FoldChange  cut-off:", 1, min = 0, max = 10, step = 0.1),
+                                        numericInput("padj", "P adjusted cut-off:", 0.01, min = 0, max = 1,step = 0.1),
+                                        actionButton("volcanoplotBt", "Plot volcano plot")
+                                        
                            ),
                            mainPanel(
                              bsAlert("deamessage"),
@@ -107,6 +113,10 @@ ui <- fluidPage(title = "GENAVi",
                                          tabPanel("DEA results",
                                                   tags$hr(),
                                                   DT::dataTableOutput('dea.results') 
+                                         ),
+                                         tabPanel("Volcano plot",
+                                                  tags$hr(),
+                                                  plotlyOutput('volcanoplot') 
                                          )
                              )
                            )
@@ -492,7 +502,7 @@ server <- function(input,output,session)
   })
   
   observeEvent(input$dea, {
-    updateTabsetPanel(session, inputId="DEA", selected = "DEA")
+    updateTabsetPanel(session, inputId="DEA", selected = "DEA results")
     if(!is.null(get.DEA.results())) updateSelectizeInput(session, 'deaSelect', choices =  resultsNames(get.DEA.results()), server = TRUE)
   })
   
@@ -510,6 +520,48 @@ server <- function(input,output,session)
         }
       }
       tbl %>% createTable2(show.rownames=T)
+    })
+  })
+  
+  observeEvent(input$volcanoplotBt, {
+    updateTabsetPanel(session, inputId="DEA", selected = "Volcano plot")
+    output$volcanoplot <- renderPlotly({
+      res <- get.DEA.results()
+      dea <- as.data.frame(results(res))
+      x.cut <- isolate({input$log2FoldChange})
+      y.cut <- isolate({input$padj})
+      
+      dea$group <- "Not Significant"
+      dea[which(dea$padj < y.cut & dea$log2FoldChange < x.cut ),"group"] <- "Downregulated"
+      dea[which(dea$padj < y.cut & dea$log2FoldChange > x.cut ),"group"] <- "Upregulated"
+      p <- plot_ly(data = dea, 
+                   x = dea$log2FoldChange, 
+                   y = -log10(dea$padj), 
+                   text = rownames(dea), 
+                   mode = "markers", 
+                   color = dea$group) %>% 
+        layout(title ="Volcano Plot") %>%
+        layout(shapes=list(list(type='line', 
+                           x0 = x.cut, 
+                           x1 = x.cut, 
+                           y0 = 0, 
+                           y1 = max(-log10(dea$padj),na.rm = T), 
+                           line=list(dash='dot', width=1)),
+                           list(type='line', 
+                           x0 = -x.cut, 
+                           x1 = -x.cut, 
+                           y0 = 0, 
+                           y1 = max(-log10(dea$padj),na.rm = T), 
+                           line =list(dash='dot', width=1)),
+                           list(type ='line', 
+                                x0 = min(dea$log2FoldChange), 
+                                x1 = max(dea$log2FoldChange), 
+                                y0 =  -log10(y.cut), 
+                                y1 =  -log10(y.cut), 
+                                line = list(dash='dot', width=1))
+                           ) 
+        )
+      return(p)
     })
   })
   

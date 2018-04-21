@@ -14,9 +14,10 @@ suppressPackageStartupMessages({
   library(shinyBS)
   library(apeglm)
   library(ashr)
+  library("plotly")
+  
 })
 # options(repos = BiocInstaller::biocinstallRepos())
-
 
 options(shiny.maxRequestSize=1024^3) # Max file upload 1GB 
 
