@@ -87,7 +87,10 @@ ui <- fluidPage(title = "GENAVi",
                                         tags$hr(),
                                         h3('DEA - DESeq2'), 
                                         selectInput("condition", "Select condition column for DEA", NULL, multiple = FALSE), ##need individual selectInputs for each tab
-                                        selectInput("covariates", "Select covariates for DEA", NULL, multiple = FALSE), ##need individual selectInputs for each tab
+                                        selectInput("covariates", 
+                                                    label = "Select covariates for DEA",
+                                                    choices =  NULL, 
+                                                    multiple = FALSE), ##need individual selectInputs for each tab
                                         verbatimTextOutput("formulatext"),
                                         selectInput("reference", "Select reference level for DEA", NULL, multiple = FALSE), ##need individual selectInputs for each tab
                                         actionButton("dea", "Perform DEA"),
@@ -398,7 +401,7 @@ server <- function(input,output,session)
       updateSelectizeInput(session, 'condition', choices =  colnames(metadata)[-1], server = TRUE)
     }
     if(!is.null(metadata)){
-      updateSelectizeInput(session, 'covariates', choices =  colnames(metadata)[-1], server = TRUE)
+      updateSelectizeInput(session, 'covariates', choices =  c(" ",colnames(metadata)[-1]), server = TRUE)
     }
     #if(is.null(getDataType(as.logical(input$tcgaDatabase),input$tcgaDataCategoryFilter))) {
     #  shinyjs::hide("tcgaDataTypeFilter")
@@ -410,50 +413,52 @@ server <- function(input,output,session)
   
   get.DEA.results <- reactive({
     closeAlert(session, "deaAlert")
+    input$dea
+    metadata <- readMetaData()
+    if(is.null(metadata)) {
+      createAlert(session, "deamessage", "deaAlert", title = "Missing metadata", style =  "danger",
+                  content = paste0("Please upload metadata file"),
+                  append = FALSE)
+      return(NULL)
+    }
+    if(!is.null(readData())) all_cell_lines <- readData()
     
-    if(isolate({input$dea})) { # Summarized Experiment
-      metadata <- readMetaData()
-      if(is.null(metadata)) {
-        createAlert(session, "deamessage", "deaAlert", title = "Missing metadata", style =  "danger",
-                    content = paste0("Please upload metadata file"),
-                    append = FALSE)
-        return(NULL)
-      }
-      if(!is.null(readData())) all_cell_lines <- readData()
-      
-      res <- getEndGeneInfo(all_cell_lines)
-      all_cell_lines <- res$data
-      ngene <- res$ngene
-      
-      
-      genes <- all_cell_lines %>% pull(1)
-      cts <- as.matrix(all_cell_lines[,(ngene + 1):ncol(all_cell_lines)])
-      rownames(cts) <-  genes
-      cond <- isolate(input$condition)
-      cov <- isolate(input$covariates)
-      if(is.null(cond))   {
-        createAlert(session, "deamessage", "deaAlert", title = "Missing metadata", style =  "danger",
-                    content = paste0("Please select condition file"),
-                    append = FALSE)
-        return(NULL)
-      } 
-      form <- getFormula()
-      if(is.null(form)){
-        createAlert(session, "deamessage", "deaAlert", title = "Missing formula", style =  "danger",
-                    content = paste0("Please select condition column"),
-                    append = FALSE)
-        return(NULL)
-      }
-      ref <- isolate(input$reference)
-      if(str_length(ref) == 0)   {
-        createAlert(session, "deamessage", "deaAlert", title = "Missing reference level", style =  "danger",
-                    content = paste0("Please select reference level"),
-                    append = FALSE)
-        return(NULL)
-      } 
-      
-      withProgress(message = 'DESeq2 Analysis',
-                   detail = "Creating input file", value = 0, {
+    res <- getEndGeneInfo(all_cell_lines)
+    all_cell_lines <- res$data
+    ngene <- res$ngene
+    
+    genes <- all_cell_lines$Symbol
+    cts <- as.matrix(all_cell_lines[,(ngene + 1):ncol(all_cell_lines)])
+    rownames(cts) <-  genes
+    
+    # Read aux values required for analysis (condition, covariates and reference value)
+    cond <- isolate(input$condition)
+    cov <- isolate(input$covariates)
+    ref <-  isolate(input$reference)
+    
+    if(is.null(cond))   {
+      createAlert(session, "deamessage", "deaAlert", title = "Missing metadata", style =  "danger",
+                  content = paste0("Please select condition file"),
+                  append = FALSE)
+      return(NULL)
+    } 
+    form <- getFormula()
+    if(is.null(form)){
+      createAlert(session, "deamessage", "deaAlert", title = "Missing formula", style =  "danger",
+                  content = paste0("Please select condition column"),
+                  append = FALSE)
+      return(NULL)
+    }
+    if(str_length(ref) == 0)   {
+      createAlert(session, "deamessage", "deaAlert", title = "Missing reference level", style =  "danger",
+                  content = paste0("Please select reference level"),
+                  append = FALSE)
+      return(NULL)
+    } 
+    
+    withProgress(message = 'DESeq2 Analysis',
+                 detail = "Creating input file", value = 0, {
+                   dds <-  tryCatch({
                      dds <- DESeqDataSetFromMatrix(countData = cts,
                                                    colData = metadata,
                                                    design = form)
@@ -462,17 +467,25 @@ server <- function(input,output,session)
                      dds[[cond]] <- relevel(dds[[cond]], ref = ref)
                      dds <- dds[keep,]
                      dds <- DESeq(dds)
-                   }
-      )
-      return(dds)
-    }
+                     return(dds)
+                   }, error = function(e){
+                     createAlert(session, "deamessage", "deaAlert", 
+                                 title = "Error in DEA", style =  "danger",
+                                 content = paste0(e),
+                                 append = FALSE)
+                     
+                     return(NULL)
+                   })
+                 }
+    )
+    return(dds)
   })  
   
   getFormula <- reactive({
     form <- NULL
     cond <- input$condition
     cov <- input$covariates
-    if(str_length(cond) > 0 & str_length(cov) == 0) {
+    if(str_length(cond) > 0 & (str_length(cov) == 0 | str_length(cov) == 1 & cov == " " )) {
       form <- as.formula(paste0("~ ", cond))
     } else if(str_length(cov) > 0) {
       form <- as.formula(paste0("~ ",paste(cov,collapse = "+")," + ", cond))
@@ -504,19 +517,17 @@ server <- function(input,output,session)
   observeEvent(input$dea, {
     updateTabsetPanel(session, inputId="DEA", selected = "DEA results")
     if(!is.null(get.DEA.results())) updateSelectizeInput(session, 'deaSelect', choices =  resultsNames(get.DEA.results()), server = TRUE)
-  })
-  
-  observe({
     output$dea.results <-  DT::renderDataTable({
       res <- get.DEA.results()
+      if(is.null(res)) return(NULL)
       deaSelect <- input$deaSelect
       if(str_length(deaSelect) == 0) {
         tbl <-  as.data.frame(results(res))
       } else {
         if(input$lfc) {
-          tbl <-  as.data.frame(lfcShrink(res, coef=deaSelect))
+          tbl <-  as.data.frame(lfcShrink(res, coef = deaSelect))
         } else {
-          tbl <-  as.data.frame(results(res, name=deaSelect))
+          tbl <-  as.data.frame(results(res, name = deaSelect))
         }
       }
       tbl %>% createTable2(show.rownames=T)
@@ -542,24 +553,24 @@ server <- function(input,output,session)
                    color = dea$group) %>% 
         layout(title ="Volcano Plot") %>%
         layout(shapes=list(list(type='line', 
-                           x0 = x.cut, 
-                           x1 = x.cut, 
-                           y0 = 0, 
-                           y1 = max(-log10(dea$padj),na.rm = T), 
-                           line=list(dash='dot', width=1)),
+                                x0 = x.cut, 
+                                x1 = x.cut, 
+                                y0 = 0, 
+                                y1 = max(-log10(dea$padj),na.rm = T), 
+                                line=list(dash='dot', width=1)),
                            list(type='line', 
-                           x0 = -x.cut, 
-                           x1 = -x.cut, 
-                           y0 = 0, 
-                           y1 = max(-log10(dea$padj),na.rm = T), 
-                           line =list(dash='dot', width=1)),
+                                x0 = -x.cut, 
+                                x1 = -x.cut, 
+                                y0 = 0, 
+                                y1 = max(-log10(dea$padj),na.rm = T), 
+                                line =list(dash='dot', width=1)),
                            list(type ='line', 
                                 x0 = min(dea$log2FoldChange), 
                                 x1 = max(dea$log2FoldChange), 
                                 y0 =  -log10(y.cut), 
                                 y1 =  -log10(y.cut), 
                                 line = list(dash='dot', width=1))
-                           ) 
+        ) 
         )
       return(p)
     })
