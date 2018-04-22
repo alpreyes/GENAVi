@@ -206,7 +206,6 @@ server <- function(input,output,session)
     } else {
       ret <- get(load("genavi.rda"))
     }
-    save(ret,file = "genavi.rda")
     return(ret)
   })
   getTab1 <- reactive({
