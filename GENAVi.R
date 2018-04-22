@@ -542,7 +542,7 @@ server <- function(input,output,session)
       y.cut <- isolate({input$padj})
       
       dea$group <- "Not Significant"
-      dea[which(dea$padj < y.cut & dea$log2FoldChange < x.cut ),"group"] <- "Downregulated"
+      dea[which(dea$padj < y.cut & dea$log2FoldChange < -x.cut ),"group"] <- "Downregulated"
       dea[which(dea$padj < y.cut & dea$log2FoldChange > x.cut ),"group"] <- "Upregulated"
       p <- plot_ly(data = dea, 
                    x = dea$log2FoldChange, 
