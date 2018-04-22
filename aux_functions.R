@@ -25,11 +25,20 @@ options(shiny.maxRequestSize=1024^3) # Max file upload 1GB
 all_cell_lines <- read_csv("ensembleid.csv", col_names = TRUE) ##read in data going to view
 
 # Load gene information data
-load("hg38.rda")
+load("hg38.rda") # human
+load("GRCm38.rda") # mouse
 
-transforms <- c("raw counts", "row normalized", "logCPM", "vst","rlog") ##adding "t-score" -> row normalized, ask michelle about normalizing with FTSEC lines, have to add log(CPM+1)
-sortby <- c("-no selection-","mean", "standard deviation")
-cell.line.clusters <- c("All genes", "Selected genes") ##do this for cell line cluster heatmaps, changed all to filtered, should "all" be an option?
+transforms <- c("raw counts", 
+                "row normalized", 
+                "logCPM", 
+                "vst",
+                "rlog") ##adding "t-score" -> row normalized, ask michelle about normalizing with FTSEC lines, have to add log(CPM+1)
+
+sortby <- c("-no selection-",
+            "mean", 
+            "standard deviation")
+cell.line.clusters <- c("All genes", 
+                        "Selected genes") ##do this for cell line cluster heatmaps, changed all to filtered, should "all" be an option?
 
 # This will be used to parse the text areas input
 # possibilities of separation , ; \n
@@ -140,6 +149,14 @@ addgeneinfo <- function(data){
   } else if(any(id %in% hg38$Symbol)) {
     colnames(data)[1] <- "Symbol"
     data <- merge(hg38,data,by = "Symbol")
+  } else  if(all(grepl("ENSMUSG",id))) { # Mouse
+    colnames(data)[1] <- "EnsemblID"
+    aux <- strsplit(data$EnsemblID,"\\.")
+    data$EnsemblID <- as.character(unlist(lapply(aux,function(x) x[1])))
+    data <- merge(GRCm38,data,by = "EnsemblID")
+  } else if(any(id %in% GRCm38$Symbol)) {
+    colnames(data)[1] <- "Symbol"
+    data <- merge(GRCm38,data,by = "Symbol")
   } else {
     # we were not able to identify the genome
     return(data) 
