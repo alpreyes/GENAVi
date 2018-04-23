@@ -69,6 +69,60 @@ ui <- fluidPage(title = "GENAVi",
                                                 )
                                        )
                            )
+                  ),
+                  tabPanel("Differential Expression Analysis", 
+                           icon = icon("flask"),
+                           sidebarPanel(id="sidebar",
+                                        h3('Metata upload'), 
+                                        # Input: Select a file ----
+                                        downloadButton('downloadData', 'Download example metadata file'),
+                                        fileInput("metadata", "Choose CSV File",
+                                                  multiple = TRUE,
+                                                  accept = c("text/csv",
+                                                             "text/comma-separated-values,text/plain",
+                                                             ".csv")),
+                                        tags$div(
+                                          HTML(paste(help_text2))
+                                        ),
+                                        tags$hr(),
+                                        h3('DEA - DESeq2'), 
+                                        selectInput("condition", "Select condition column for DEA", NULL, multiple = FALSE), ##need individual selectInputs for each tab
+                                        selectInput("covariates", 
+                                                    label = "Select covariates for DEA",
+                                                    choices =  NULL, 
+                                                    multiple = FALSE), ##need individual selectInputs for each tab
+                                        verbatimTextOutput("formulatext"),
+                                        selectInput("reference", "Select reference level for DEA", NULL, multiple = FALSE), ##need individual selectInputs for each tab
+                                        actionButton("dea", "Perform DEA"),
+                                        tags$hr(),
+                                        h3('DEA - Select Results'), 
+                                        selectInput("deaSelect", "Select results", NULL, multiple = FALSE), ##need individual selectInputs for each tab
+                                        checkboxInput(inputId="lfc", label = "Perform Log fold change shrinkage", value = FALSE, width = NULL),
+                                        tags$hr(),
+                                        h3('Volcano plot'), 
+                                        numericInput("log2FoldChange", "log2FoldChange  cut-off:", 1, min = 0, max = 10, step = 0.1),
+                                        numericInput("padj", "P adjusted cut-off:", 0.01, min = 0, max = 1,step = 0.1),
+                                        actionButton("volcanoplotBt", "Plot volcano plot")
+                                        
+                           ),
+                           mainPanel(
+                             bsAlert("deamessage"),
+                             tabsetPanel(type = "pills",
+                                         id = "DEA",
+                                         tabPanel("Metadata",
+                                                  tags$hr(),
+                                                  DT::dataTableOutput('metadata.tbl')
+                                         ), 
+                                         tabPanel("DEA results",
+                                                  tags$hr(),
+                                                  DT::dataTableOutput('dea.results') 
+                                         ),
+                                         tabPanel("Volcano plot",
+                                                  tags$hr(),
+                                                  plotlyOutput('volcanoplot') 
+                                         )
+                             )
+                           )
                   )
                 )
 )
@@ -98,37 +152,60 @@ server <- function(input,output,session)
     }
     ret
   })
+  
+  
+  readMetaData <- reactive({
+    ret <- NULL
+    inFile <- input$metadata
+    if (!is.null(inFile))  {
+      withProgress(message = 'Reading the data',
+                   detail = "This may take a while", value = 0, {
+                     ret <-  read_csv(inFile$datapath)
+                     setProgress(1, detail = paste("Completed"))
+                   }
+      )
+    }
+    ret
+  })
   ### reactive fct that calcs the transforms and saves them so it doesnt take too long each time
   getNormalizedData <- reactive({
-    if (!is.null(readData())) all_cell_lines <- readData()
-    
-    # Add gene metadata information
-    withProgress(message = 'Adding gene metadata',
-                 detail = "This may take a while", value = 0, {
-                   all_cell_lines <- addgeneinfo(all_cell_lines) 
-                 }
-    )
-    
-    tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,7:ncol(all_cell_lines)]) > 1,] ##filtering step, actually change the object
-    data <- as.matrix(tbl.tab1[,7:ncol(tbl.tab1)])
-    metadata <- tbl.tab1[,1:6]
-    
-    withProgress(message = 'Normalizing data',
-                 detail = "This may take a while", value = 0, {
-                   # normalization: rlog takes a lot of time (hours for a big matrix)
-                   raw      <- cbind(metadata, data) ##might might have to take out blind option???
-                   #rlog     <- cbind(metadata, rlog(data))
-                   vst      <- cbind(metadata, vst(data))
-                   setProgress(0.2, detail = paste("vst completed"))
-                   rownorm  <- cbind(metadata, rownorm(data))
-                   setProgress(0.5, detail = paste("rownorm completed"))
-                   cpm      <- cbind(metadata, cpm(data))
-                   setProgress(0.7, detail = paste("cpm completed"))
-                   ret      <- list(vst,rownorm,raw,cpm)
-                   names(ret) <- c("vst","rownorm","raw","cpm")
-                   setProgress(1, detail = paste("Completed"))
-                 }
-    )
+    if (!is.null(readData())) {
+      all_cell_lines <- readData()
+      
+      # Add gene metadata information
+      withProgress(message = 'Adding gene metadata',
+                   detail = "This may take a while", value = 0, {
+                     # We will check if metadata was added
+                     res <- getEndGeneInfo(all_cell_lines)
+                     all_cell_lines <- res$data
+                     ngene <- res$ngene
+                   }
+      )
+      
+      tbl.tab1 <- all_cell_lines[rowSums(all_cell_lines[,(ngene + 1):ncol(all_cell_lines)]) > 1,] ##filtering step, actually change the object
+      data <- as.matrix(tbl.tab1[,(ngene + 1):ncol(tbl.tab1)])
+      metadata <- tbl.tab1[,1:(ngene)]
+      
+      withProgress(message = 'Normalizing data',
+                   detail = "This may take a while", value = 0, {
+                     # normalization: rlog takes a lot of time (hours for a big matrix)
+                     raw      <- cbind(metadata, data) ##might might have to take out blind option???
+                     setProgress(0.1, detail = paste("Starting VST"))
+                     vst      <- cbind(metadata, vst(data))
+                     setProgress(0.2, detail = paste("VST completed, starting rownorm"))
+                     rownorm  <- cbind(metadata, rownorm(data))
+                     setProgress(0.5, detail = paste("rownorm completed, starting CPM"))
+                     cpm      <- cbind(metadata, cpm(data))
+                     setProgress(0.7, detail = paste("CPM completed, starting rlog"))
+                     rlog     <- cbind(metadata, rlog(data))
+                     ret      <- list(vst,rownorm,raw,cpm,rlog)
+                     names(ret) <- c("vst","rownorm","raw","cpm","rlog")
+                     setProgress(1, detail = paste("Completed"))
+                   }
+      )
+    } else {
+      ret <- get(load("genavi.rda"))
+    }
     return(ret)
   })
   getTab1 <- reactive({
@@ -190,7 +267,6 @@ server <- function(input,output,session)
   observeEvent(sel(), {
     closeAlert(session, "geneAlert2")
     
-    print(sel())
     if(!sel()){
       createAlert(session, "genemessage", "geneAlert2", title = "Missing data", style =  "danger",
                   content = paste0("Please select genes in Data expression tab"),
@@ -301,5 +377,216 @@ server <- function(input,output,session)
     heatmap_clus
   })
   
+  #------------------------------------------
+  # DEA - differential expression analysis
+  #------------------------------------------
+  output$downloadData <- downloadHandler(
+    filename = function() {
+      file  <-   paste0("Genavi-metadata.csv")
+    },
+    content = function(con) {
+      if(!is.null(readData())) all_cell_lines <- readData()
+      data <- all_cell_lines
+      file  <-  paste0("Genavi-metadata.csv")
+      samples <- colnames(data)[-1]
+      metadata <- data.frame(samples,groups = "Control")
+      write_csv(metadata, con)
+    }
+  )
+  
+  observe({
+    metadata <- readMetaData()
+    if(!is.null(metadata)){
+      updateSelectizeInput(session, 'condition', choices =  colnames(metadata)[-1], server = TRUE)
+    }
+    if(!is.null(metadata)){
+      updateSelectizeInput(session, 'covariates', choices =  c(" ",colnames(metadata)[-1]), server = TRUE)
+    }
+    #if(is.null(getDataType(as.logical(input$tcgaDatabase),input$tcgaDataCategoryFilter))) {
+    #  shinyjs::hide("tcgaDataTypeFilter")
+    #} else {
+    #  shinyjs::show("tcgaDataTypeFilter")
+    #}
+  })
+  
+  
+  get.DEA.results <- reactive({
+    closeAlert(session, "deaAlert")
+    input$dea
+    metadata <- readMetaData()
+    if(is.null(metadata)) {
+      createAlert(session, "deamessage", "deaAlert", title = "Missing metadata", style =  "danger",
+                  content = paste0("Please upload metadata file"),
+                  append = FALSE)
+      return(NULL)
+    }
+    if(!is.null(readData())) all_cell_lines <- readData()
+    
+    res <- getEndGeneInfo(all_cell_lines)
+    all_cell_lines <- res$data
+    ngene <- res$ngene
+    
+    genes <- all_cell_lines$Symbol
+    cts <- as.matrix(all_cell_lines[,(ngene + 1):ncol(all_cell_lines)])
+    rownames(cts) <-  genes
+    
+    # Read aux values required for analysis (condition, covariates and reference value)
+    cond <- isolate(input$condition)
+    cov <- isolate(input$covariates)
+    ref <-  isolate(input$reference)
+    
+    if(is.null(cond))   {
+      createAlert(session, "deamessage", "deaAlert", title = "Missing metadata", style =  "danger",
+                  content = paste0("Please select condition file"),
+                  append = FALSE)
+      return(NULL)
+    } 
+    form <- getFormula()
+    if(is.null(form)){
+      createAlert(session, "deamessage", "deaAlert", title = "Missing formula", style =  "danger",
+                  content = paste0("Please select condition column"),
+                  append = FALSE)
+      return(NULL)
+    }
+    if(str_length(ref) == 0)   {
+      createAlert(session, "deamessage", "deaAlert", title = "Missing reference level", style =  "danger",
+                  content = paste0("Please select reference level"),
+                  append = FALSE)
+      return(NULL)
+    } 
+    
+    withProgress(message = 'DESeq2 Analysis',
+                 detail = "Creating input file", value = 0, {
+                   dds <-  tryCatch({
+                     dds <- DESeqDataSetFromMatrix(countData = cts,
+                                                   colData = metadata,
+                                                   design = form)
+                     setProgress(0.2, detail = paste("Performing DEA"))
+                     keep <- rowSums(counts(dds)) >= 10
+                     dds[[cond]] <- relevel(dds[[cond]], ref = ref)
+                     dds <- dds[keep,]
+                     dds <- DESeq(dds)
+                     return(dds)
+                   }, error = function(e){
+                     createAlert(session, "deamessage", "deaAlert", 
+                                 title = "Error in DEA", style =  "danger",
+                                 content = paste0(e),
+                                 append = FALSE)
+                     
+                     return(NULL)
+                   })
+                 }
+    )
+    return(dds)
+  })  
+  
+  getFormula <- reactive({
+    form <- NULL
+    cond <- input$condition
+    cov <- input$covariates
+    if(str_length(cond) > 0 & (str_length(cov) == 0 | str_length(cov) == 1 & cov == " " )) {
+      form <- as.formula(paste0("~ ", cond))
+    } else if(str_length(cov) > 0) {
+      form <- as.formula(paste0("~ ",paste(cov,collapse = "+")," + ", cond))
+    }
+    return(form)
+  })
+  
+  output$formulatext <- renderText({
+    f <- getFormula()
+    if(!is.null(f)) return(as.character(f))
+    return("")
+  })
+  
+  output$metadata.tbl <-  DT::renderDataTable({
+    metadata <- readMetaData()
+    if(is.null(metadata)) {
+      return(NULL)
+    }
+    metadata  %>% createTable2(show.rownames=F)
+  })
+  
+  observeEvent(input$condition, {
+    metadata <- readMetaData()
+    if(!is.null(metadata)) {
+      updateSelectizeInput(session, 'reference', choices =  as.character(unique(metadata %>% pull(input$condition))), server = TRUE)
+    }
+  })
+  
+  observeEvent(input$dea, {
+    updateTabsetPanel(session, inputId="DEA", selected = "DEA results")
+    if(!is.null(get.DEA.results())) updateSelectizeInput(session, 'deaSelect', choices =  resultsNames(get.DEA.results()), server = TRUE)
+    output$dea.results <-  DT::renderDataTable({
+      res <- get.DEA.results()
+      if(is.null(res)) return(NULL)
+      deaSelect <- input$deaSelect
+      if(str_length(deaSelect) == 0) {
+        tbl <-  as.data.frame(results(res))
+      } else {
+        if(input$lfc) {
+          tbl <-  as.data.frame(lfcShrink(res, coef = deaSelect))
+        } else {
+          tbl <-  as.data.frame(results(res, name = deaSelect))
+        }
+      }
+      tbl %>% createTable2(show.rownames=T)
+    })
+  })
+  
+  observeEvent(input$volcanoplotBt, {
+    updateTabsetPanel(session, inputId="DEA", selected = "Volcano plot")
+    output$volcanoplot <- renderPlotly({
+      res <- get.DEA.results()
+      dea <- as.data.frame(results(res))
+      x.cut <- isolate({input$log2FoldChange})
+      y.cut <- isolate({input$padj})
+      
+      dea$group <- "Not Significant"
+      dea[which(dea$padj < y.cut & dea$log2FoldChange < -x.cut ),"group"] <- "Downregulated"
+      dea[which(dea$padj < y.cut & dea$log2FoldChange > x.cut ),"group"] <- "Upregulated"
+      p <- plot_ly(data = dea, 
+                   x = dea$log2FoldChange, 
+                   y = -log10(dea$padj), 
+                   text = rownames(dea), 
+                   mode = "markers", 
+                   color = dea$group) %>% 
+        layout(title ="Volcano Plot") %>%
+        layout(shapes=list(list(type='line', 
+                                x0 = x.cut, 
+                                x1 = x.cut, 
+                                y0 = 0, 
+                                y1 = max(-log10(dea$padj),na.rm = T), 
+                                line=list(dash='dot', width=1)),
+                           list(type='line', 
+                                x0 = -x.cut, 
+                                x1 = -x.cut, 
+                                y0 = 0, 
+                                y1 = max(-log10(dea$padj),na.rm = T), 
+                                line =list(dash='dot', width=1)),
+                           list(type ='line', 
+                                x0 = min(dea$log2FoldChange), 
+                                x1 = max(dea$log2FoldChange), 
+                                y0 =  -log10(y.cut), 
+                                y1 =  -log10(y.cut), 
+                                line = list(dash='dot', width=1))
+        ) 
+        )
+      return(p)
+    })
+  })
+  
+  #print(resultsNames(dds)) # lists the coefficients
+  #res <- results(dds, name=resultsNames(dds)[2])
+  # or to shrink log fold changes association with condition:
+  #setProgress(0.3, detail = paste("shrinkage estimators normal"))
+  #resNormal <- lfcShrink(dds, coef=resultsNames(dds)[2], type = "normal")
+  #setProgress(0.5, detail = paste("shrinkage estimators apeglm"))
+  #resApe <- lfcShrink(dds, coef=2, type="apeglm")
+  #setProgress(0.8, detail = paste("shrinkage estimators ashr"))
+  #resAsh <- lfcShrink(dds, coef=2, type="ashr")
+  #setProgress(1, detail = paste("Completed"))
+  
+  
 }
+
 shinyApp(ui = ui, server = server)
