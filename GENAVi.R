@@ -321,7 +321,7 @@ server <- function(input,output,session)
     heatmap_expr <- main_heatmap(as.matrix(matrix_expr)) %>%
       add_col_labels(ticktext = colnames(matrix_expr)) %>%
       add_row_labels(ticktext = geneNames) %>% ##trying to add dendro
-      add_col_dendro(hclust(dist(t(as.matrix(matrix_expr))))) ##may have to take out -1 to avoid losing 1st data col
+      add_col_dendro(hclust(dist(t(as.matrix(matrix_expr)))), reorder = TRUE) ##may have to take out -1 to avoid losing 1st data col
     
     if(nrow(matrix_expr) > 1) ##currently still trying to cluster genes selected
     {
@@ -347,7 +347,7 @@ server <- function(input,output,session)
     {
       #dend.clus <- hclust(dist(t(matrix_clus))) ##try not creating it as an object
       
-      heatmap_clus <- main_heatmap(as.matrix(dist(t(matrix_clus)))) %>%
+      heatmap_clus <- main_heatmap(as.matrix(dist(t(matrix_clus[,-1])))) %>%
         add_col_labels(ticktext = colnames(matrix_clus[,-1])) %>%
         add_row_labels(ticktext = colnames(matrix_clus[,-1])) %>%
         add_col_dendro(hclust(dist(t(matrix_clus[,-1]))), reorder = TRUE) %>%
