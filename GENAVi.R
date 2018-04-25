@@ -537,13 +537,40 @@ server <- function(input,output,session)
     updateTabsetPanel(session, inputId="DEA", selected = "Volcano plot")
     output$volcanoplot <- renderPlotly({
       res <- get.DEA.results()
-      dea <- as.data.frame(results(res))
+      
+      if(is.null(res)) return(NULL)
+      deaSelect <- input$deaSelect
+      if(str_length(deaSelect) == 0) {
+        dea <-  as.data.frame(results(res))
+      } else {
+        if(input$lfc) {
+          dea <-  as.data.frame(lfcShrink(res, coef = deaSelect))
+        } else {
+          dea <-  as.data.frame(results(res, name = deaSelect))
+        }
+      }
       x.cut <- isolate({input$log2FoldChange})
       y.cut <- isolate({input$padj})
       
       dea$group <- "Not Significant"
       dea[which(dea$padj < y.cut & dea$log2FoldChange < -x.cut ),"group"] <- "Downregulated"
       dea[which(dea$padj < y.cut & dea$log2FoldChange > x.cut ),"group"] <- "Upregulated"
+      
+      
+      f <- list(
+        family = "Courier New, monospace",
+        size = 18,
+        color = "#7f7f7f"
+      )
+      x <- list(
+        title = "log2FoldChange",
+        titlefont = f
+      )
+      y <- list(
+        title = "-log10(p-value adjusted)",
+        titlefont = f
+      )
+      
       p <- plot_ly(data = dea, 
                    x = dea$log2FoldChange, 
                    y = -log10(dea$padj), 
@@ -551,6 +578,7 @@ server <- function(input,output,session)
                    mode = "markers", 
                    color = dea$group) %>% 
         layout(title ="Volcano Plot") %>%
+        layout(xaxis = x, yaxis = y)  %>%
         layout(shapes=list(list(type='line', 
                                 x0 = x.cut, 
                                 x1 = x.cut, 
