@@ -361,7 +361,7 @@ server <- function(input,output,session)
     ngene <- res$ngene
     print(colnames(tbl.tab2)[(res$ngene+1):ncol(tbl.tab2)])
     
-    matrix_clus <- tbl.tab2[,c(1,(res$ngene+1):ncol(tbl.tab2))] ### trying this out
+    matrix_clus <- tbl.tab2[,c(1,(res$ngene+1):ncol(tbl.tab2))] 
     
     #replace above command with this based on select input
     if(input$select_clus == "-no selection-") return(NULL) ##commenting it out still has filtered hm show automatically
