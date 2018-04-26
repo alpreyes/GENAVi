@@ -299,24 +299,45 @@ server <- function(input,output,session)
     ##may need to put this in heatmap section and in tab2
     if(length(input$tbl.tab1_rows_selected) > 1) return(NULL)
     tbl.tab1 <- getTab1()
+    
+    # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
+    res <- getEndGeneInfo(tbl.tab1)
+    ngene <- res$ngene
+    print(colnames[(res$ngene+1):ncol(tbl.tab1)])
+    
+    
     tbl.tab1 <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected)
-    p <- as.data.frame(t(tbl.tab1[,7:ncol(tbl.tab1)]))
+    p <- as.data.frame(t(tbl.tab1[,(res$ngene+1):ncol(tbl.tab1)]))
     colnames(p) <- "value"
     p$cell_line <- rownames(p)
     barplot <- ggplot(p, aes(x=cell_line, y=value)) + geom_bar(stat = "identity") +  theme_bw()
     ggplotly(barplot)
   })
   
+  #---------------------------------
+  # Heatmap plot tab
+  #---------------------------------
   
-  output$heatmap_expr <- renderIheatmap({ ###### heatmap is under construction too...raw counts doesnt work...need to get saving obj code to work
+  output$heatmap_expr <- renderIheatmap({ 
     
-    #if(is.null(input$tbl.tab1_rows_selected)) {return(NULL)} ##necessary???
+    # we can't do a heatmap with only one gene
     if(length(input$tbl.tab1_rows_selected) < 2) return(NULL)
     
     tbl.tab1 <- getTab1()
-    # Columns 1 to 6: Genename  Geneid Chr   Start   End Strand  
-    geneNames <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% pull("Symbol")
-    matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% select(7:ncol(tbl.tab1)) 
+    
+    
+    if("Symbol" %in% colnames(tbl.tab1)){
+      geneNames <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% pull("Symbol")
+    } else if("Genename" %in% colnames(tbl.tab1))  {
+      geneNames <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% pull("Genename")
+    }
+    
+    # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
+    res <- getEndGeneInfo(tbl.tab1)
+    ngene <- res$ngene
+    print(colnames(tbl.tab1)[(res$ngene+1):ncol(tbl.tab1)])
+
+    matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% select((res$ngene+1):ncol(tbl.tab1)) 
     ##may need to change order of cell lines from default alphabetic to histotype specific???...do that with dendro???
     heatmap_expr <- main_heatmap(as.matrix(matrix_expr)) %>%
       add_col_labels(ticktext = colnames(matrix_expr)) %>%
@@ -334,7 +355,13 @@ server <- function(input,output,session)
   output$heatmap_clus <- renderIheatmap({
     closeAlert(session, "geneAlert")
     tbl.tab2 <- getTab1()
-    matrix_clus <- tbl.tab2[,c(1,7:ncol(tbl.tab2))] ### trying this out
+    
+    # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
+    res <- getEndGeneInfo(tbl.tab2)
+    ngene <- res$ngene
+    print(colnames(tbl.tab2)[(res$ngene+1):ncol(tbl.tab2)])
+    
+    matrix_clus <- tbl.tab2[,c(1,(res$ngene+1):ncol(tbl.tab2))] ### trying this out
     
     #replace above command with this based on select input
     if(input$select_clus == "-no selection-") return(NULL) ##commenting it out still has filtered hm show automatically
@@ -533,6 +560,10 @@ server <- function(input,output,session)
     })
   })
   
+  
+  #---------------------------------
+  # Volcano plot tab
+  #---------------------------------
   observeEvent(input$volcanoplotBt, {
     updateTabsetPanel(session, inputId="DEA", selected = "Volcano plot")
     output$volcanoplot <- renderPlotly({
@@ -602,19 +633,6 @@ server <- function(input,output,session)
       return(p)
     })
   })
-  
-  #print(resultsNames(dds)) # lists the coefficients
-  #res <- results(dds, name=resultsNames(dds)[2])
-  # or to shrink log fold changes association with condition:
-  #setProgress(0.3, detail = paste("shrinkage estimators normal"))
-  #resNormal <- lfcShrink(dds, coef=resultsNames(dds)[2], type = "normal")
-  #setProgress(0.5, detail = paste("shrinkage estimators apeglm"))
-  #resApe <- lfcShrink(dds, coef=2, type="apeglm")
-  #setProgress(0.8, detail = paste("shrinkage estimators ashr"))
-  #resAsh <- lfcShrink(dds, coef=2, type="ashr")
-  #setProgress(1, detail = paste("Completed"))
-  
-  
 }
 
 shinyApp(ui = ui, server = server)
