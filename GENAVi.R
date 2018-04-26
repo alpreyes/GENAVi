@@ -303,14 +303,16 @@ server <- function(input,output,session)
     # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
     res <- getEndGeneInfo(tbl.tab1)
     ngene <- res$ngene
-    print(colnames[(res$ngene+1):ncol(tbl.tab1)])
-    
-    
+
     tbl.tab1 <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected)
     p <- as.data.frame(t(tbl.tab1[,(res$ngene+1):ncol(tbl.tab1)]))
     colnames(p) <- "value"
     p$cell_line <- rownames(p)
-    barplot <- ggplot(p, aes(x=cell_line, y=value)) + geom_bar(stat = "identity") +  theme_bw()
+    barplot <- ggplot(p, aes(x=cell_line, y=value)) + 
+      geom_bar(stat = "identity") +  
+      theme_bw() + 
+      theme(axis.text.x = element_text(angle = 90, hjust = 1))
+      
     ggplotly(barplot)
   })
   
@@ -335,7 +337,6 @@ server <- function(input,output,session)
     # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
     res <- getEndGeneInfo(tbl.tab1)
     ngene <- res$ngene
-    print(colnames(tbl.tab1)[(res$ngene+1):ncol(tbl.tab1)])
 
     matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% select((res$ngene+1):ncol(tbl.tab1)) 
     ##may need to change order of cell lines from default alphabetic to histotype specific???...do that with dendro???
@@ -359,8 +360,7 @@ server <- function(input,output,session)
     # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
     res <- getEndGeneInfo(tbl.tab2)
     ngene <- res$ngene
-    print(colnames(tbl.tab2)[(res$ngene+1):ncol(tbl.tab2)])
-    
+
     matrix_clus <- tbl.tab2[,c(1,(res$ngene+1):ncol(tbl.tab2))] 
     
     #replace above command with this based on select input
