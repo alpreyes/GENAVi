@@ -73,7 +73,7 @@ createTable2 <- function(df,tableType = "GENAVi", show.rownames = TRUE){
                                                        filename= tableType)),
                                    text = 'Download'
                                  )),
-                               fixedHeader = TRUE,
+                               fixedHeader = FALSE,
                                pageLength = 20,
                                scrollX = TRUE,
                                lengthMenu = list(c(10, 20, -1), c('10', '20', 'All'))
@@ -107,7 +107,7 @@ createTable <- function(df,selected_rows=NULL,tableType = "GENAVi", show.rowname
                                                        filename= tableType)),
                                    text = 'Download'
                                  )),
-                               fixedHeader = TRUE,
+                               fixedHeader = FALSE,
                                pageLength = 20,
                                scrollX = TRUE,
                                lengthMenu = list(c(10, 20, -1), c('10', '20', 'All'))
