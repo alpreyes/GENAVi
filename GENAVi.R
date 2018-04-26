@@ -481,6 +481,12 @@ server <- function(input,output,session)
                   append = FALSE)
       return(NULL)
     } 
+    if(nrow(metadata) != ncol(cts))   {
+      createAlert(session, "deamessage", "deaAlert", title = "Metadata error", style =  "danger",
+                  content = paste0("Metadata and data does not have same samples"),
+                  append = FALSE)
+      return(NULL)
+    } 
     
     withProgress(message = 'DESeq2 Analysis',
                  detail = "Creating input file", value = 0, {
