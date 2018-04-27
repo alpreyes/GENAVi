@@ -332,6 +332,8 @@ server <- function(input,output,session)
       geneNames <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% pull("Symbol")
     } else if("Genename" %in% colnames(tbl.tab1))  {
       geneNames <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% pull("Genename")
+    } else {
+      geneNames <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% pull(1)
     }
     
     # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
@@ -453,7 +455,14 @@ server <- function(input,output,session)
     all_cell_lines <- res$data
     ngene <- res$ngene
     
-    genes <- all_cell_lines$Symbol
+    if("Symbol" %in% colnames(all_cell_lines)){
+      genes <- all_cell_lines %>% pull("Symbol")
+    } else if("Genename" %in% colnames(all_cell_lines))  {
+      genes <- all_cell_lines %>% pull("Genename")
+    } else {
+      genes <- all_cell_lines %>% pull(1)
+    }
+    
     cts <- as.matrix(all_cell_lines[,(ngene + 1):ncol(all_cell_lines)])
     rownames(cts) <-  genes
     
