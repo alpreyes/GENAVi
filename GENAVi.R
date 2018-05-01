@@ -299,29 +299,53 @@ server <- function(input,output,session)
     ##may need to put this in heatmap section and in tab2
     if(length(input$tbl.tab1_rows_selected) > 1) return(NULL)
     tbl.tab1 <- getTab1()
+    
+    # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
+    res <- getEndGeneInfo(tbl.tab1)
+    ngene <- res$ngene
+
     tbl.tab1 <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected)
-    p <- as.data.frame(t(tbl.tab1[,7:ncol(tbl.tab1)]))
+    p <- as.data.frame(t(tbl.tab1[,(res$ngene+1):ncol(tbl.tab1)]))
     colnames(p) <- "value"
     p$cell_line <- rownames(p)
-    barplot <- ggplot(p, aes(x=cell_line, y=value)) + geom_bar(stat = "identity") +  theme_bw()
+    barplot <- ggplot(p, aes(x=cell_line, y=value)) + 
+      geom_bar(stat = "identity") +  
+      theme_bw() + 
+      theme(axis.text.x = element_text(angle = 90, hjust = 1))
+      
     ggplotly(barplot)
   })
   
+  #---------------------------------
+  # Heatmap plot tab
+  #---------------------------------
   
-  output$heatmap_expr <- renderIheatmap({ ###### heatmap is under construction too...raw counts doesnt work...need to get saving obj code to work
+  output$heatmap_expr <- renderIheatmap({ 
     
-    #if(is.null(input$tbl.tab1_rows_selected)) {return(NULL)} ##necessary???
+    # we can't do a heatmap with only one gene
     if(length(input$tbl.tab1_rows_selected) < 2) return(NULL)
     
     tbl.tab1 <- getTab1()
-    # Columns 1 to 6: Genename  Geneid Chr   Start   End Strand  
-    geneNames <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% pull("Symbol")
-    matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% select(7:ncol(tbl.tab1)) 
+    
+    
+    if("Symbol" %in% colnames(tbl.tab1)){
+      geneNames <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% pull("Symbol")
+    } else if("Genename" %in% colnames(tbl.tab1))  {
+      geneNames <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% pull("Genename")
+    } else {
+      geneNames <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% pull(1)
+    }
+    
+    # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
+    res <- getEndGeneInfo(tbl.tab1)
+    ngene <- res$ngene
+
+    matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% select((res$ngene+1):ncol(tbl.tab1)) 
     ##may need to change order of cell lines from default alphabetic to histotype specific???...do that with dendro???
     heatmap_expr <- main_heatmap(as.matrix(matrix_expr)) %>%
       add_col_labels(ticktext = colnames(matrix_expr)) %>%
       add_row_labels(ticktext = geneNames) %>% ##trying to add dendro
-      add_col_dendro(hclust(dist(t(as.matrix(matrix_expr))))) ##may have to take out -1 to avoid losing 1st data col
+      add_col_dendro(hclust(dist(t(as.matrix(matrix_expr)))), reorder = TRUE) ##may have to take out -1 to avoid losing 1st data col
     
     if(nrow(matrix_expr) > 1) ##currently still trying to cluster genes selected
     {
@@ -334,7 +358,12 @@ server <- function(input,output,session)
   output$heatmap_clus <- renderIheatmap({
     closeAlert(session, "geneAlert")
     tbl.tab2 <- getTab1()
-    matrix_clus <- tbl.tab2[,c(1,7:ncol(tbl.tab2))] ### trying this out
+    
+    # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
+    res <- getEndGeneInfo(tbl.tab2)
+    ngene <- res$ngene
+
+    matrix_clus <- tbl.tab2[,c(1,(res$ngene+1):ncol(tbl.tab2))] 
     
     #replace above command with this based on select input
     if(input$select_clus == "-no selection-") return(NULL) ##commenting it out still has filtered hm show automatically
@@ -347,7 +376,7 @@ server <- function(input,output,session)
     {
       #dend.clus <- hclust(dist(t(matrix_clus))) ##try not creating it as an object
       
-      heatmap_clus <- main_heatmap(as.matrix(dist(t(matrix_clus)))) %>%
+      heatmap_clus <- main_heatmap(as.matrix(dist(t(matrix_clus[,-1])))) %>%
         add_col_labels(ticktext = colnames(matrix_clus[,-1])) %>%
         add_row_labels(ticktext = colnames(matrix_clus[,-1])) %>%
         add_col_dendro(hclust(dist(t(matrix_clus[,-1]))), reorder = TRUE) %>%
@@ -426,7 +455,14 @@ server <- function(input,output,session)
     all_cell_lines <- res$data
     ngene <- res$ngene
     
-    genes <- all_cell_lines$Symbol
+    if("Symbol" %in% colnames(all_cell_lines)){
+      genes <- all_cell_lines %>% pull("Symbol")
+    } else if("Genename" %in% colnames(all_cell_lines))  {
+      genes <- all_cell_lines %>% pull("Genename")
+    } else {
+      genes <- all_cell_lines %>% pull(1)
+    }
+    
     cts <- as.matrix(all_cell_lines[,(ngene + 1):ncol(all_cell_lines)])
     rownames(cts) <-  genes
     
@@ -451,6 +487,12 @@ server <- function(input,output,session)
     if(str_length(ref) == 0)   {
       createAlert(session, "deamessage", "deaAlert", title = "Missing reference level", style =  "danger",
                   content = paste0("Please select reference level"),
+                  append = FALSE)
+      return(NULL)
+    } 
+    if(nrow(metadata) != ncol(cts))   {
+      createAlert(session, "deamessage", "deaAlert", title = "Metadata error", style =  "danger",
+                  content = paste0("Metadata and data does not have same samples"),
                   append = FALSE)
       return(NULL)
     } 
@@ -533,17 +575,48 @@ server <- function(input,output,session)
     })
   })
   
+  
+  #---------------------------------
+  # Volcano plot tab
+  #---------------------------------
   observeEvent(input$volcanoplotBt, {
     updateTabsetPanel(session, inputId="DEA", selected = "Volcano plot")
     output$volcanoplot <- renderPlotly({
       res <- get.DEA.results()
-      dea <- as.data.frame(results(res))
+      
+      if(is.null(res)) return(NULL)
+      deaSelect <- input$deaSelect
+      if(str_length(deaSelect) == 0) {
+        dea <-  as.data.frame(results(res))
+      } else {
+        if(input$lfc) {
+          dea <-  as.data.frame(lfcShrink(res, coef = deaSelect))
+        } else {
+          dea <-  as.data.frame(results(res, name = deaSelect))
+        }
+      }
       x.cut <- isolate({input$log2FoldChange})
       y.cut <- isolate({input$padj})
       
       dea$group <- "Not Significant"
       dea[which(dea$padj < y.cut & dea$log2FoldChange < -x.cut ),"group"] <- "Downregulated"
       dea[which(dea$padj < y.cut & dea$log2FoldChange > x.cut ),"group"] <- "Upregulated"
+      
+      
+      f <- list(
+        family = "Courier New, monospace",
+        size = 18,
+        color = "#7f7f7f"
+      )
+      x <- list(
+        title = "log2FoldChange",
+        titlefont = f
+      )
+      y <- list(
+        title = "-log10(p-value adjusted)",
+        titlefont = f
+      )
+      
       p <- plot_ly(data = dea, 
                    x = dea$log2FoldChange, 
                    y = -log10(dea$padj), 
@@ -551,6 +624,7 @@ server <- function(input,output,session)
                    mode = "markers", 
                    color = dea$group) %>% 
         layout(title ="Volcano Plot") %>%
+        layout(xaxis = x, yaxis = y)  %>%
         layout(shapes=list(list(type='line', 
                                 x0 = x.cut, 
                                 x1 = x.cut, 
@@ -574,19 +648,6 @@ server <- function(input,output,session)
       return(p)
     })
   })
-  
-  #print(resultsNames(dds)) # lists the coefficients
-  #res <- results(dds, name=resultsNames(dds)[2])
-  # or to shrink log fold changes association with condition:
-  #setProgress(0.3, detail = paste("shrinkage estimators normal"))
-  #resNormal <- lfcShrink(dds, coef=resultsNames(dds)[2], type = "normal")
-  #setProgress(0.5, detail = paste("shrinkage estimators apeglm"))
-  #resApe <- lfcShrink(dds, coef=2, type="apeglm")
-  #setProgress(0.8, detail = paste("shrinkage estimators ashr"))
-  #resAsh <- lfcShrink(dds, coef=2, type="ashr")
-  #setProgress(1, detail = paste("Completed"))
-  
-  
 }
 
 shinyApp(ui = ui, server = server)
