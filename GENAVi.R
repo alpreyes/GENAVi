@@ -376,11 +376,11 @@ server <- function(input,output,session)
     {
       #dend.clus <- hclust(dist(t(matrix_clus))) ##try not creating it as an object
       
-      heatmap_clus <- main_heatmap(as.matrix(dist(t(matrix_clus[,-1])))) %>%
+      heatmap_clus <- main_heatmap(as.matrix(cor(matrix_clus[,-1], method = "pearson"))) %>%
         add_col_labels(ticktext = colnames(matrix_clus[,-1])) %>%
         add_row_labels(ticktext = colnames(matrix_clus[,-1])) %>%
-        add_col_dendro(hclust(dist(t(matrix_clus[,-1]))), reorder = TRUE) %>%
-        add_row_dendro(hclust(dist(t(matrix_clus[,-1]))), reorder = TRUE, side = "right")
+        add_col_dendro(hclust(dist(t(as.matrix(cor(matrix_clus[,-1], method = "pearson"))))), reorder = TRUE) %>%
+        add_row_dendro(hclust(dist(t(as.matrix(cor(matrix_clus[,-1], method = "pearson"))))), reorder = TRUE, side = "right")
     } else { # selected genes
       selected_rows <- input$tbl.tab1_rows_selected
       if(length(selected_rows) < 1) {
@@ -397,11 +397,11 @@ server <- function(input,output,session)
       
       #if(is.null(input$tbl.tab2_rows_selected)) {return(NULL)} ##might need to take this out (but its in tiagos code???)
       #dend.clus <- hclust(dist(t(matrix_clus))) ##try not creating it as an object ##dont need the object?
-      heatmap_clus <- main_heatmap(as.matrix(dist(t(matrix_clus[selected_rows,-1])))) %>% ##partially working,
+      heatmap_clus <- main_heatmap(as.matrix(cor(matrix_clus[selected_rows,-1], method = "pearson"))) %>% ##partially working,
         add_col_labels(ticktext = colnames(matrix_clus[,-1])) %>%
         add_row_labels(ticktext = colnames(matrix_clus[,-1])) %>% ##works when not using add dendro, but calculates dist wrong?
-        add_col_dendro(hclust(dist(t(matrix_clus[selected_rows,-1]))), reorder = TRUE) %>% ##add_dendro not working...save for later, try taking out t(matrix[]), but put back in later if it doesnt work
-        add_row_dendro(hclust(dist(t(matrix_clus[selected_rows,-1]))), reorder = TRUE, side = "right") ##try taking out t(matrix[]), but put back in later if it doesnt work
+        add_col_dendro(hclust(dist(t(as.matrix(cor(matrix_clus[selected_rows,-1], method = "pearson"))))), reorder = TRUE) %>% ##add_dendro not working...save for later, try taking out t(matrix[]), but put back in later if it doesnt work
+        add_row_dendro(hclust(dist(t(as.matrix(cor(matrix_clus[selected_rows,-1], method = "pearson"))))), reorder = TRUE, side = "right") ##try taking out t(matrix[]), but put back in later if it doesnt work
     }
     heatmap_clus
   })
