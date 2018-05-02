@@ -62,7 +62,7 @@ ui <- fluidPage(title = "GENAVi",
                                        tabPanel("Clustering plots",
                                                 icon = icon("object-group"),
                                                 div(id = "cluster_plots",
-                                                    h3('Euclidian Distance Heatmap'), 
+                                                    h3('Correlation Heatmap'), 
                                                     selectInput("select_clus", "Cluster by what genes", cell.line.clusters, multiple = FALSE),
                                                     bsAlert("genemessage2"),
                                                     iheatmaprOutput("heatmap_clus",height = "800px")
