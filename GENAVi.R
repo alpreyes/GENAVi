@@ -195,7 +195,7 @@ server <- function(input,output,session)
                      setProgress(0.2, detail = paste("VST completed, starting rownorm"))
                      rownorm  <- cbind(metadata, rownorm(data))
                      setProgress(0.5, detail = paste("rownorm completed, starting CPM"))
-                     cpm      <- cbind(metadata, cpm(data))
+                     cpm      <- cbind(metadata, cpm(data, log = TRUE)) ##adding log=TRUE option
                      setProgress(0.7, detail = paste("CPM completed, starting rlog"))
                      rlog     <- cbind(metadata, rlog(data))
                      ret      <- list(vst,rownorm,raw,cpm,rlog)
@@ -349,7 +349,7 @@ server <- function(input,output,session)
     
     if(nrow(matrix_expr) > 1) ##currently still trying to cluster genes selected
     {
-      heatmap_expr <- heatmap_expr %>% add_row_dendro(hclust(dist((matrix_expr))), reorder = TRUE, side = "right")
+      heatmap_expr <- heatmap_expr %>% add_row_dendro(hclust(dist((matrix_expr))), reorder = TRUE, side = "right") ##adding t() inside dist() makes heatmap_expr not work...
     } ##taking out t() works but still has to be there...see DESeq2 workflow
     print(heatmap_expr)  ## currently rlog visualization takes too long
   })
