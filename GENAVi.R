@@ -15,7 +15,7 @@ ui <- fluidPage(title = "GENAVi",
                 titlePanel("GENAVi"),
                 useShinyjs(),
                 tabsetPanel( #type = "pills",
-                  tabPanel("Data Expression",  ##changing from tab 1, but still using tab1 in the other parts of code
+                  tabPanel("Gene Expression",  ##changing from tab 1, but still using tab1 in the other parts of code
                            icon = icon("table"),
                            sidebarPanel(id="sidebar",
                                         h3('Table'), 
@@ -40,7 +40,7 @@ ui <- fluidPage(title = "GENAVi",
                              DT::dataTableOutput('tbl.tab1') ##dont think i need to change this to calc/render data tables live
                            )
                   ),
-                  tabPanel("Plots", ##changing from tab 2, but still usibg tab2 in other parts of code
+                  tabPanel("Visualization", ##changing from tab 2, but still usibg tab2 in other parts of code
                            #icon = icon("object-group"),
                            icon = icon("image"),
                            tabsetPanel(type = "pills",
@@ -73,7 +73,7 @@ ui <- fluidPage(title = "GENAVi",
                   tabPanel("Differential Expression Analysis", 
                            icon = icon("flask"),
                            sidebarPanel(id="sidebar",
-                                        h3('Metata upload'), 
+                                        h3('Metadata upload'), 
                                         # Input: Select a file ----
                                         downloadButton('downloadData', 'Download example metadata file'),
                                         fileInput("metadata", "Choose CSV File",
@@ -269,7 +269,7 @@ server <- function(input,output,session)
     
     if(!sel()){
       createAlert(session, "genemessage", "geneAlert2", title = "Missing data", style =  "danger",
-                  content = paste0("Please select genes in Data expression tab"),
+                  content = paste0("Please select genes in Gene Expression tab"),
                   append = FALSE)
       shinyjs::hide(id = "expression_heatmap", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
       shinyjs::hide(id = "expression_plots", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
@@ -286,13 +286,13 @@ server <- function(input,output,session)
     
     if(is.null(input$tbl.tab1_rows_selected)) {
       createAlert(session, "genemessage", "geneAlert2", title = "Missing data", style =  "danger",
-                  content = paste0("Please select genes in Data expression tab"),
+                  content = paste0("Please select genes in Gene Expression tab"),
                   append = FALSE)
       return(NULL) 
     }
     if(length(input$tbl.tab1_rows_selected) == 0) {
       createAlert(session, "genemessage", "geneAlert2", title = "Missing data", style =  "danger",
-                  content = paste0("Please select genes in Data expression tab"),
+                  content = paste0("Please select genes in Gene Expression tab"),
                   append = FALSE)
       return(NULL) 
     }
@@ -342,7 +342,7 @@ server <- function(input,output,session)
 
     matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% select((res$ngene+1):ncol(tbl.tab1)) 
     ##may need to change order of cell lines from default alphabetic to histotype specific???...do that with dendro???
-    heatmap_expr <- main_heatmap(as.matrix(matrix_expr)) %>%
+    heatmap_expr <- main_heatmap(as.matrix(matrix_expr), name = "Expression") %>%
       add_col_labels(ticktext = colnames(matrix_expr)) %>%
       add_row_labels(ticktext = geneNames) %>% ##trying to add dendro
       add_col_dendro(hclust(dist(t(as.matrix(matrix_expr)))), reorder = TRUE) ##may have to take out -1 to avoid losing 1st data col
@@ -376,7 +376,7 @@ server <- function(input,output,session)
     {
       #dend.clus <- hclust(dist(t(matrix_clus))) ##try not creating it as an object
       
-      heatmap_clus <- main_heatmap(as.matrix(cor(matrix_clus[,-1], method = "pearson"))) %>%
+      heatmap_clus <- main_heatmap(as.matrix(cor(matrix_clus[,-1], method = "pearson")), name = "Correlation") %>%
         add_col_labels(ticktext = colnames(matrix_clus[,-1])) %>%
         add_row_labels(ticktext = colnames(matrix_clus[,-1])) %>%
         add_col_dendro(hclust(dist(t(as.matrix(cor(matrix_clus[,-1], method = "pearson"))))), reorder = TRUE) %>%
@@ -385,7 +385,7 @@ server <- function(input,output,session)
       selected_rows <- input$tbl.tab1_rows_selected
       if(length(selected_rows) < 1) {
         createAlert(session, "genemessage2", "geneAlert", title = "Missing data", style =  "danger",
-                    content = paste0("Please select genes in Data expression tab"),
+                    content = paste0("Please select genes in Gene Expression tab"),
                     append = FALSE)
         return(NULL)
       }
@@ -397,7 +397,7 @@ server <- function(input,output,session)
       
       #if(is.null(input$tbl.tab2_rows_selected)) {return(NULL)} ##might need to take this out (but its in tiagos code???)
       #dend.clus <- hclust(dist(t(matrix_clus))) ##try not creating it as an object ##dont need the object?
-      heatmap_clus <- main_heatmap(as.matrix(cor(matrix_clus[selected_rows,-1], method = "pearson"))) %>% ##partially working,
+      heatmap_clus <- main_heatmap(as.matrix(cor(matrix_clus[selected_rows,-1], method = "pearson")), name = "Correlation") %>% ##partially working,
         add_col_labels(ticktext = colnames(matrix_clus[,-1])) %>%
         add_row_labels(ticktext = colnames(matrix_clus[,-1])) %>% ##works when not using add dendro, but calculates dist wrong?
         add_col_dendro(hclust(dist(t(as.matrix(cor(matrix_clus[selected_rows,-1], method = "pearson"))))), reorder = TRUE) %>% ##add_dendro not working...save for later, try taking out t(matrix[]), but put back in later if it doesnt work
