@@ -5,8 +5,6 @@ output:
     toc: true
     toc_depth: 2
     number_sections: true
-    theme: united
-    highlight: tango
 ---
 
 # Introduction
