@@ -312,9 +312,11 @@ server <- function(input,output,session)
     p <- as.data.frame(t(tbl.tab1[,(res$ngene+1):ncol(tbl.tab1)]))
     colnames(p) <- "value"
     p$cell_line <- rownames(p)
+    order <- rownames(p)
     barplot <- ggplot(p, aes(x=cell_line, y=value)) + 
       geom_bar(stat = "identity") +  
       theme_bw() + 
+      scale_x_discrete(limits = order) + 
       theme(axis.text.x = element_text(angle = 90, hjust = 1))
       
     ggplotly(barplot)
