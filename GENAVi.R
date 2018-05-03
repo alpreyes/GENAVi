@@ -355,7 +355,7 @@ server <- function(input,output,session)
     
     if(nrow(matrix_expr) > 1) ##currently still trying to cluster genes selected
     {
-      heatmap_expr <- heatmap_expr %>% add_row_dendro(hclust(dist((matrix_expr))), reorder = TRUE, side = "right") ##adding t() inside dist() makes heatmap_expr not work...
+      heatmap_expr <- heatmap_expr %>% add_row_dendro(hclust(dist(t(as.matrix(matrix_expr)))), reorder = TRUE, side = "right") ##adding t() inside dist() makes heatmap_expr not work in app
     } ##taking out t() works but still has to be there...see DESeq2 workflow
     print(heatmap_expr)  ## currently rlog visualization takes too long
   })
@@ -385,8 +385,8 @@ server <- function(input,output,session)
       heatmap_clus <- main_heatmap(as.matrix(cor(matrix_clus[,-1], method = "pearson")), name = "Correlation", colors = custom_pal_blues) %>%
         add_col_labels(ticktext = colnames(matrix_clus[,-1])) %>%
         add_row_labels(ticktext = colnames(matrix_clus[,-1])) %>%
-        add_col_dendro(hclust(dist(t(as.matrix(cor(matrix_clus[,-1], method = "pearson"))))), reorder = TRUE) %>%
-        add_row_dendro(hclust(dist(t(as.matrix(cor(matrix_clus[,-1], method = "pearson"))))), reorder = TRUE, side = "right")
+        add_col_dendro(hclust(as.dist(1-cor(matrix_clus[,-1], method = "pearson"))), reorder = TRUE) %>%
+        add_row_dendro(hclust(as.dist(1-cor(matrix_clus[,-1], method = "pearson"))), reorder = TRUE, side = "right")
     } else { # selected genes
       selected_rows <- input$tbl.tab1_rows_selected
       if(length(selected_rows) < 1) {
@@ -406,8 +406,8 @@ server <- function(input,output,session)
       heatmap_clus <- main_heatmap(as.matrix(cor(matrix_clus[selected_rows,-1], method = "pearson")), name = "Correlation", colors = custom_pal_blues) %>% ##adding this custom color palette breaks this heatmap...wait no it doesn't?
         add_col_labels(ticktext = colnames(matrix_clus[,-1])) %>%
         add_row_labels(ticktext = colnames(matrix_clus[,-1])) %>% ##works when not using add dendro, but calculates dist wrong?
-        add_col_dendro(hclust(dist(t(as.matrix(cor(matrix_clus[selected_rows,-1], method = "pearson"))))), reorder = TRUE) %>% ##add_dendro not working...save for later, try taking out t(matrix[]), but put back in later if it doesnt work
-        add_row_dendro(hclust(dist(t(as.matrix(cor(matrix_clus[selected_rows,-1], method = "pearson"))))), reorder = TRUE, side = "right") ##try taking out t(matrix[]), but put back in later if it doesnt work
+        add_col_dendro(hclust(as.dist(1-cor(matrix_clus[selected_rows,-1], method = "pearson"))), reorder = TRUE) %>% ##add_dendro not working...save for later, try taking out t(matrix[]), but put back in later if it doesnt work
+        add_row_dendro(hclust(as.dist(1-cor(matrix_clus[selected_rows,-1], method = "pearson"))), reorder = TRUE, side = "right") ##try taking out t(matrix[]), but put back in later if it doesnt work
     }
     heatmap_clus
   })
