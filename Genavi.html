@@ -296,33 +296,19 @@ $(document).ready(function () {
 
 </div>
 
-<div id="TOC">
-<ul>
-<li><a href="#introduction"><span class="toc-section-number">1</span> Introduction</a></li>
-<li><a href="#uploading-user-dataquerying-displayed-data"><span class="toc-section-number">2</span> Uploading User Data/Querying Displayed Data</a><ul>
-<li><a href="#functions"><span class="toc-section-number">2.1</span> Functions</a></li>
-<li><a href="#format-of-input-gene-list"><span class="toc-section-number">2.2</span> Format of input gene list</a></li>
-<li><a href="#format-of-input-count-matrix"><span class="toc-section-number">2.3</span> Format of input count matrix</a></li>
-</ul></li>
-<li><a href="#transformation-and-normalization-of-gene-expression-data-tab-1"><span class="toc-section-number">3</span> Transformation and Normalization of Gene Expression Data (Tab 1)</a><ul>
-<li><a href="#background"><span class="toc-section-number">3.1</span> Background</a></li>
-<li><a href="#raw-counts"><span class="toc-section-number">3.2</span> raw counts</a></li>
-<li><a href="#row-normalized"><span class="toc-section-number">3.3</span> Row normalized</a></li>
-<li><a href="#log-counts-per-million-logcpm"><span class="toc-section-number">3.4</span> Log-counts-per-million: logCPM</a></li>
-<li><a href="#variance-stabilizing-transformation--vst"><span class="toc-section-number">3.5</span> Variance stabilizing transformation- vst</a></li>
-<li><a href="#regularized-logarithm-transformation--rlog-add-warning-about-number-of-samples-because-compute-time"><span class="toc-section-number">3.6</span> Regularized-logarithm transformation- rlog (add warning about number of samples because compute time)</a></li>
-</ul></li>
-<li><a href="#visualization-tab-2"><span class="toc-section-number">4</span> Visualization (tab 2)</a><ul>
-<li><a href="#barplot"><span class="toc-section-number">4.1</span> Barplot</a></li>
-<li><a href="#expression-heatmap"><span class="toc-section-number">4.2</span> Expression heatmap</a></li>
-<li><a href="#correlation-heatmap-clustering-heatmap"><span class="toc-section-number">4.3</span> Correlation heatmap (Clustering heatmap)</a></li>
-</ul></li>
-<li><a href="#differential-expression-analysis"><span class="toc-section-number">5</span> Differential Expression Analysis</a></li>
-</ul>
-</div>
 
+<div id="table-of-contents" class="section level1">
+<h1>Table of Contents</h1>
+<ol style="list-style-type: decimal">
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#data">Uploading User Data- gene list and featurecounts matrix (Tab 1)/Querying Displayed Data</a></li>
+<li><a href="#transform">Transformation and Normalization of Gene Expression Data (Tab 1)</a></li>
+<li><a href="#vis">Visualization (Tab 2)</a></li>
+<li><a href="#dea">Differential Expression Analysis</a></li>
+</ol>
+</div>
 <div id="introduction" class="section level1">
-<h1><span class="header-section-number">1</span> Introduction</h1>
+<h1>1. Introduction <a name="intro"></a></h1>
 <p>In order to improve access to normalization, visualization and analysis of RNA-Seq data we have combined a number of R packages using the Shiny Web App format to create GENAVi: Gene Expression Normalization Analysis and Visualization. This application allows users to browse a provided dataset; a panel of 20 cell lines commonly used in breast and ovarian cancer research, or upload their own dataset as a featureCounts matrix (PMID: 24227677). featureCounts uses read counting for summarization of all reads that overlap any exon for each gene, followed by read annotation with RefSeq or Ensembl.</p>
 <p>The application is separated into three tabs:</p>
 <ol style="list-style-type: decimal">
@@ -330,48 +316,47 @@ $(document).ready(function () {
 <li>Visualization: Users can select between plotting a histogram of a single gene (Expression plot), or heatmaps (Cluster plots) plotting the Euclidean distance between samples based on either the selected genes from the data table or all genes (which can be toggled between from the Cluster by what genes menu.</li>
 <li>Differential Expression Analysis: Users can upload a metadata file providing information on sample groups to be compared, run differential analysis based on the DESeq2 package from R, and plot the resulting P values in a customizable volcano plot.</li>
 </ol>
-</div>
-<div id="uploading-user-dataquerying-displayed-data" class="section level1">
-<h1><span class="header-section-number">2</span> Uploading User Data/Querying Displayed Data</h1>
-<div id="functions" class="section level2">
-<h2><span class="header-section-number">2.1</span> Functions</h2>
+<div id="uploading-user-dataquerying-displayed-data" class="section level2">
+<h2>2. Uploading User Data/Querying Displayed Data <a name="data"></a></h2>
+<div id="functions" class="section level3">
+<h3>2.1 Functions</h3>
 <p>On the Data Expression tab of the app users can upload a featureCounts table as a .csv file via the Data upload option. Large matrices can take several minutes to upload and be processed by the normalization functions, and progress of this upload and normalization can be tracked by the blue progress bar on the bottom right of the app. Once uploaded the users’ data is displayed replacing the provided data table. Desired genes can be selected by searching in the search field at the top right of the data table and clicking on individual genes within the displayed table. Additionally, the user can also upload a list of gene symbols as a .txt file. Selected genes are automatically highlighted and moved to the top of the data table. The user can also download a data table containing only the selected genes by clicking the “Download” option in the top left of the data table. The displayed data table can be sorted by any of the columns using the bi-directional arrows next to the column title.</p>
 </div>
-<div id="format-of-input-gene-list" class="section level2">
-<h2><span class="header-section-number">2.2</span> Format of input gene list</h2>
+<div id="format-of-input-gene-list" class="section level3">
+<h3>2.2 Format of input gene list</h3>
 <p>In addition to being able to search for and select individual genes within the displayed data table, the user can select multiple genes by uploading a list of gene symbols or Ensembl ID’s as a .txt file. This text file should be formatted such that each line in the file is a gene symbol or Ensemble ID. Once the input gene list is uploaded, the corresponding genes within the displayed data table are automatically selected and can be used in the visualization tab of the application.</p>
 </div>
-<div id="format-of-input-count-matrix" class="section level2">
-<h2><span class="header-section-number">2.3</span> Format of input count matrix</h2>
+<div id="format-of-input-count-matrix" class="section level3">
+<h3>2.3 Format of input count matrix</h3>
 <p>In addition to being able to query the default data set- a panel of 20 breast and ovarian cancer cell lines, the user can also upload their own gene expression data set in the form of count a matrix produced by the featurecounts function in the subread package. the addgeneinfo() function reads in count matrix in csv format. it checks if the first column is an ENSEMBLE ID or gene name. If the first column of the inputted count matrix is the proper format, addgeneinfo() adds the genes metadata from gencode (by default uses hg38 build)</p>
 </div>
 </div>
-<div id="transformation-and-normalization-of-gene-expression-data-tab-1" class="section level1">
-<h1><span class="header-section-number">3</span> Transformation and Normalization of Gene Expression Data (Tab 1)</h1>
-<div id="background" class="section level2">
-<h2><span class="header-section-number">3.1</span> Background</h2>
+<div id="transformation-and-normalization-of-gene-expression-data-tab-1" class="section level2">
+<h2>3 Transformation and Normalization of Gene Expression Data (Tab 1) <a name="transform"></a></h2>
+<div id="background" class="section level3">
+<h3>3.1 Background</h3>
 <ol style="list-style-type: lower-roman">
 <li>Variability in RNA-seq count data usually increases with the mean, indicating that genes that are more highly expressed can often also have a greater variation; this type of data is called heteroskedastic. Expression data in a raw count format causes cluster analysis such as PCA, hierarchical clustering, or k-means analysis to be driven by genes or features with the highest expression in the form of high raw count values. This is because in its raw count format, these highly expressed genes/features are also the most variable. To improve cluster analysis we need to convert this expression data to a homoskedastic form wherein genes/features have the same variance even for a higher range of the mean. One method to impose homoskedasticity is the log2 transformation (log2(count + pseudocount)). While this method does prevent the most highly expressed genes/features from overpowering cluster analysis it can also give undue weight to the genes/features with the lowest counts depending on the choice of pseudocount. To understand this, consider this example; with the choice of 1 as the pseudocount in the case of log2 transforming a count value of 2 (2 reads mapped to given gene/feature in given sample), the resulting expression value is 1.584. Whereas with the same choice of pseudocount in the case of log2 transforming a count value of 200, the resulting expression value is 7.651. In this comparison, a difference in raw count expression that is two orders of magnitude is compressed to a difference of 6.067 under the log2 transform.</li>
 <li>Another problem that arises with RNA-seq count data is overdispersion- the phenomenon wherein the observed variance within a dataset is greater than the expected variance under a chosen statistical model. Previously, the Poisson distribution has been used to model RNA-seq count data. However, a property of the Poisson distribution is that the mean and variance are equal which prevents the model from accurately modeling RNA-seq count data which is often heteroskedastic. A more appropriate statistical model is the negative binomial model used in the edgeR package as the DESeq2 package. This is an extension of the Poisson distribution that has different parameters allowing for separate modeling of mean and variance. Both edgeR and DESeq2 assume that the expected value of counts for a gene in a given sample can be modeled using this distribution.</li>
 <li>The user can toggle between transformation options by choosing from the “Select Transform” dropdown menu on left of the screen.</li>
 </ol>
 </div>
-<div id="raw-counts" class="section level2">
-<h2><span class="header-section-number">3.2</span> raw counts</h2>
+<div id="raw-counts" class="section level3">
+<h3>3.2 raw counts</h3>
 <ol style="list-style-type: lower-roman">
 <li>The default version of expression data displayed in GENAVi is raw count data. This is the measure of expression produced by featurecounts. These raw count measures are integer values counting the number of reads mapped to a feature in the reference genome to which fastq files were aligned in a specific sample. Raw count data must be normalized to account for differences in sequencing depth between samples so that the user can make meaningful comparisons of gene expression levels across different samples.</li>
 </ol>
 </div>
-<div id="row-normalized" class="section level2">
-<h2><span class="header-section-number">3.3</span> Row normalized</h2>
+<div id="row-normalized" class="section level3">
+<h3>3.3 Row normalized</h3>
 <ol style="list-style-type: lower-roman">
 <li>The “row normalized” transformation option is applied to raw count data similar to a Z-score normalization. For each gene in the displayed dataset, the mean expression and standard deviation across all samples/columns are calculated. The raw count expression values for each gene/feature are then transformed by subtracting the mean and scaling by the standard deviation across all samples. A custom function was implemented to perform row normalization on each gene of the displayed data table.</li>
 <li>When opening GENAVi and/or uploading your own count matrix, the application acquires metadata matching the featurecounts table (default or uploaded) and calculates the row normalized transformation and saves it as an object to avoid calculating it each time the “row normalized” option is selected.</li>
 <li>This row normalization rescales the displayed data so that the gene expression is reported in units of standard deviation away from the mean expression.</li>
 </ol>
 </div>
-<div id="log-counts-per-million-logcpm" class="section level2">
-<h2><span class="header-section-number">3.4</span> Log-counts-per-million: logCPM</h2>
+<div id="log-counts-per-million-logcpm" class="section level3">
+<h3>3.4 Log-counts-per-million: logCPM</h3>
 <ol style="list-style-type: lower-roman">
 <li>The logCPM transformation implemented in GENAVi through the cpm() function comes from the edgeR package.</li>
 <li>This transformation is calculated in two steps. First, counts per million reads are calculated from raw counts by scaling the number of reads overlapping a feature in a specific sample by the total number of reads in that sample (library size). This is performed for every feature in every sample. These CPM values are then log2 transformed with the log=TRUE argument in the cpm() function.</li>
@@ -379,8 +364,8 @@ $(document).ready(function () {
 <li>The logCPM transformation allows the comparison of gene expression across separate samples by accounting for differences in sequencing depth which allows for meaningful comparisons of gene expression across samples by accounting for between-sample variability.</li>
 </ol>
 </div>
-<div id="variance-stabilizing-transformation--vst" class="section level2">
-<h2><span class="header-section-number">3.5</span> Variance stabilizing transformation- vst</h2>
+<div id="variance-stabilizing-transformation--vst" class="section level3">
+<h3>3.5 Variance stabilizing transformation- vst</h3>
 <ol style="list-style-type: lower-roman">
 <li>The variance stabilizing transformation, implemented in the DESeq2 package, attempts to address the issue of overdispersion of RNA-seq count data.</li>
 <li>The VST transformation produces transformed expression measures similar to those produced by the log2 transform when used on genes with high counts.</li>
@@ -390,8 +375,8 @@ $(document).ready(function () {
 <li>When opening GENAVi and/or uploading your own count matrix, the application acquires metadata matching the featurecounts table (default or uploaded) and calculates the vst transform and saves it as an object to avoid calculating it each time the option is selected (implemented in the rlog function from DESeq2)</li>
 </ol>
 </div>
-<div id="regularized-logarithm-transformation--rlog-add-warning-about-number-of-samples-because-compute-time" class="section level2">
-<h2><span class="header-section-number">3.6</span> Regularized-logarithm transformation- rlog (add warning about number of samples because compute time)</h2>
+<div id="regularized-logarithm-transformation--rlog-add-warning-about-number-of-samples-because-compute-time" class="section level3">
+<h3>3.6 Regularized-logarithm transformation- rlog (add warning about number of samples because compute time)</h3>
 <ol style="list-style-type: lower-roman">
 <li>To address this issue, GENAVi uses the regularized logarithm (rlog) transform implemented in DESeq2.</li>
 <li>The rlog transform performs similar to the log2 transform when applied to genes/features with high raw count expression. When rlog is applied to lower count values, the resulting transformed values are more shrunken towards the mean value of a gene’s expression across all samples in data. Rlog transformed values are calculated by converting the raw count data to the log2 scale and then defining a size factor for each sample which accounts for differences in sequencing depth between samples. This approach is referred to as shrinkage.</li>
@@ -402,17 +387,17 @@ $(document).ready(function () {
 </ol>
 </div>
 </div>
-<div id="visualization-tab-2" class="section level1">
-<h1><span class="header-section-number">4</span> Visualization (tab 2)</h1>
-<div id="barplot" class="section level2">
-<h2><span class="header-section-number">4.1</span> Barplot</h2>
+<div id="visualization-tab-2" class="section level2">
+<h2>4. Visualization (tab 2) <a name="vis"></a></h2>
+<div id="barplot" class="section level3">
+<h3>4.1 Barplot <a name="barplot"></a></h3>
 <ol style="list-style-type: lower-roman">
 <li>If the user wants to view the expression of a single gene/feature across all samples, GENAVi displays a simple barplot. The user can search the displayed data set under any transformation for a particular gene of interest and select it to be displayed in the barplot in the Visualization tab.</li>
 <li>If more than one gene is selected from the data table, the simple barplot in the Visualization tab is disabled and an interactive heatmap is displayed instead.</li>
 </ol>
 </div>
-<div id="expression-heatmap" class="section level2">
-<h2><span class="header-section-number">4.2</span> Expression heatmap</h2>
+<div id="expression-heatmap" class="section level3">
+<h3>4.2 Expression heatmap <a name="expheatmap"></a></h3>
 <p>GENAVi uses the R package iheatmapr to generate interactive heatmaps to visualize gene expression information. All capabilities of manipulating these heatmaps that iheatmapr provides are available in GENAVi. The user can toggle over cells in the displayed heat map to see row and column identification information, subset the heatmap to zoom in on cells of interest, and download the heatmap by clicking on the camera icon in the top right corner.</p>
 <ol style="list-style-type: lower-roman">
 <li><p>When more than one gene/feature from the displayed data is selected, an interactive heatmap is displayed in place of the barplot to visualize, cluster, and compare gene/ expression across samples.</p></li>
@@ -425,8 +410,8 @@ $(document).ready(function () {
 </ol></li>
 </ol>
 </div>
-<div id="correlation-heatmap-clustering-heatmap" class="section level2">
-<h2><span class="header-section-number">4.3</span> Correlation heatmap (Clustering heatmap)</h2>
+<div id="correlation-heatmap-clustering-heatmap" class="section level3">
+<h3>4.3 Correlation heatmap (Clustering heatmap) <a name="clusheatmap"></a></h3>
 <ol style="list-style-type: lower-roman">
 <li><p>In addition to viewing the expression matrix of selected genes, the user can also view how the expression of selected genes affects the similarity between samples measured through correlation. By selecting “Clustering plots” subtab, the user can view a heatmap representing the the Pearson correlation matrix calculated from the gene expression matrix. The correlation matrix is calculated using the cor() function with the option method=”pearson” option which produces a matrix containing the pairwise pearson correlations between the columns of the displayed data table. When viewing the euclidian distance heatmap, the user can select to either cluster samples based on the entire expression data set by selecting “All genes” from the dropdown menu in the top left of the tab. The user can also choose “Selected genes” to cluster samples using the gene expression information only from the selected genes/features.</p></li>
 <li>dendrogram/hierarchical clustering of samples</li>
@@ -437,8 +422,9 @@ $(document).ready(function () {
 </ol>
 </div>
 </div>
-<div id="differential-expression-analysis" class="section level1">
-<h1><span class="header-section-number">5</span> Differential Expression Analysis</h1>
+<div id="differential-expression-analysis" class="section level2">
+<h2>5. Differential Expression Analysis <a name="dea"></a></h2>
+</div>
 </div>
 
 
