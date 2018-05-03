@@ -5,6 +5,8 @@ output:
     toc: true
     toc_depth: 2
     number_sections: true
+    theme: spacelab
+    highlight: tango
 ---
 
 # Introduction
