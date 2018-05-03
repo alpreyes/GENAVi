@@ -40,6 +40,8 @@ sortby <- c("-no selection-",
 cell.line.clusters <- c("All genes", 
                         "Selected genes") ##do this for cell line cluster heatmaps, changed all to filtered, should "all" be an option?
 
+custom_pal_blues <- c("#FFFFFF","#DEEBF7","#C6DBEF","#9ECAE1","#6BAED6","#4292C6","#2171B5","#08519C","#08306B") ##try including this here in aux to use in app...
+
 # This will be used to parse the text areas input
 # possibilities of separation , ; \n
 parse.textarea.input <- function(text){

@@ -348,7 +348,7 @@ server <- function(input,output,session)
 
     matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% select((res$ngene+1):ncol(tbl.tab1)) 
     ##may need to change order of cell lines from default alphabetic to histotype specific???...do that with dendro???
-    heatmap_expr <- main_heatmap(as.matrix(matrix_expr), name = "Expression") %>%
+    heatmap_expr <- main_heatmap(as.matrix(matrix_expr), name = "Expression", colors = custom_pal_blues) %>%
       add_col_labels(ticktext = colnames(matrix_expr)) %>%
       add_row_labels(ticktext = geneNames) %>% ##trying to add dendro
       add_col_dendro(hclust(dist(t(as.matrix(matrix_expr)))), reorder = TRUE) ##may have to take out -1 to avoid losing 1st data col
@@ -382,7 +382,7 @@ server <- function(input,output,session)
     {
       #dend.clus <- hclust(dist(t(matrix_clus))) ##try not creating it as an object
       
-      heatmap_clus <- main_heatmap(as.matrix(cor(matrix_clus[,-1], method = "pearson")), name = "Correlation") %>%
+      heatmap_clus <- main_heatmap(as.matrix(cor(matrix_clus[,-1], method = "pearson")), name = "Correlation", colors = custom_pal_blues) %>%
         add_col_labels(ticktext = colnames(matrix_clus[,-1])) %>%
         add_row_labels(ticktext = colnames(matrix_clus[,-1])) %>%
         add_col_dendro(hclust(dist(t(as.matrix(cor(matrix_clus[,-1], method = "pearson"))))), reorder = TRUE) %>%
@@ -403,7 +403,7 @@ server <- function(input,output,session)
       
       #if(is.null(input$tbl.tab2_rows_selected)) {return(NULL)} ##might need to take this out (but its in tiagos code???)
       #dend.clus <- hclust(dist(t(matrix_clus))) ##try not creating it as an object ##dont need the object?
-      heatmap_clus <- main_heatmap(as.matrix(cor(matrix_clus[selected_rows,-1], method = "pearson")), name = "Correlation") %>% ##partially working,
+      heatmap_clus <- main_heatmap(as.matrix(cor(matrix_clus[selected_rows,-1], method = "pearson")), name = "Correlation", colors = custom_pal_blues) %>% ##adding this custom color palette breaks this heatmap...wait no it doesn't?
         add_col_labels(ticktext = colnames(matrix_clus[,-1])) %>%
         add_row_labels(ticktext = colnames(matrix_clus[,-1])) %>% ##works when not using add dendro, but calculates dist wrong?
         add_col_dendro(hclust(dist(t(as.matrix(cor(matrix_clus[selected_rows,-1], method = "pearson"))))), reorder = TRUE) %>% ##add_dendro not working...save for later, try taking out t(matrix[]), but put back in later if it doesnt work
