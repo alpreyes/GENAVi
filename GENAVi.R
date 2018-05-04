@@ -355,7 +355,7 @@ server <- function(input,output,session)
     
     if(nrow(matrix_expr) > 1) ##currently still trying to cluster genes selected
     {
-      heatmap_expr <- heatmap_expr %>% add_row_dendro(hclust(dist((as.matrix(matrix_expr)))), reorder = TRUE, side = "right") ##adding t() inside dist() makes heatmap_expr not work in app
+      heatmap_expr <- heatmap_expr %>% add_row_dendro(hclust(dist((as.matrix(matrix_expr)))), reorder = TRUE, side = "right") ##adding t() inside dist() makes heatmap_expr not work in app..."Error: subscript out of bounds"
     } ##taking out t() works but still has to be there...see DESeq2 workflow
     print(heatmap_expr)  ## currently rlog visualization takes too long
   })
