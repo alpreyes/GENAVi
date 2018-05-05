@@ -149,7 +149,7 @@ server <- function(input,output,session)
     if (!is.null(inFile))  {
       withProgress(message = 'Reading the data',
                    detail = "This may take a while", value = 0, {
-                     ret <-  read_csv(inFile$datapath)
+                     ret <-  read_csv(inFile$datapath, col_types = readr::cols())
                      setProgress(1, detail = paste("Completed"))
                    }
       )
@@ -164,7 +164,7 @@ server <- function(input,output,session)
     if (!is.null(inFile))  {
       withProgress(message = 'Reading the data',
                    detail = "This may take a while", value = 0, {
-                     ret <-  read_csv(inFile$datapath)
+                     ret <-  read_csv(inFile$datapath, col_types = readr::cols())
                      setProgress(1, detail = paste("Completed"))
                    }
       )
@@ -534,9 +534,9 @@ server <- function(input,output,session)
     cov <- input$covariates
     if(is.null(cov)){
       if(str_length(cond) > 0) form <- as.formula(paste0("~ ", cond))
-    } else if(str_length(cond) > 0 & (str_length(cov) == 0 | str_length(cov) == 1 & cov == " " )) {
+    } else if(str_length(cond) > 0 & (length(cov) == 0)) {
       form <- as.formula(paste0("~ ", cond))
-    } else if(str_length(cov) > 0) {
+    } else if(length(cov) > 0) {
       form <- as.formula(paste0("~ ",paste(cov,collapse = "+")," + ", cond))
     }
     return(form)
