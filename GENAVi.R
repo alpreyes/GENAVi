@@ -90,7 +90,7 @@ ui <- fluidPage(title = "GENAVi",
                                         selectInput("covariates", 
                                                     label = "Select covariates for DEA",
                                                     choices =  NULL, 
-                                                    multiple = FALSE), ##need individual selectInputs for each tab
+                                                    multiple = TRUE), ##need individual selectInputs for each tab
                                         verbatimTextOutput("formulatext"),
                                         selectInput("reference", "Select reference level for DEA", NULL, multiple = FALSE), ##need individual selectInputs for each tab
                                         actionButton("dea", "Perform DEA"),
@@ -532,7 +532,9 @@ server <- function(input,output,session)
     form <- NULL
     cond <- input$condition
     cov <- input$covariates
-    if(str_length(cond) > 0 & (str_length(cov) == 0 | str_length(cov) == 1 & cov == " " )) {
+    if(is.null(cov)){
+      if(str_length(cond) > 0) form <- as.formula(paste0("~ ", cond))
+    } else if(str_length(cond) > 0 & (str_length(cov) == 0 | str_length(cov) == 1 & cov == " " )) {
       form <- as.formula(paste0("~ ", cond))
     } else if(str_length(cov) > 0) {
       form <- as.formula(paste0("~ ",paste(cov,collapse = "+")," + ", cond))
