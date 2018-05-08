@@ -246,7 +246,8 @@ server <- function(input,output,session)
     inFile <- input$input_gene_list_tab1
     if (!is.null(inFile)) {
       geneList <- read_lines(inFile$datapath)
-      selected_rows <- unique(c(selected_rows,which(tbl.tab1$Symbol %in% geneList)))
+      idx <- grep("symbol|genename",colnames(tbl.tab1),ignore.case = T)
+      selected_rows <- unique(c(selected_rows,which(tbl.tab1[,idx] %in% geneList)))
     }    
     #  Parse textarea
     #text.samples <- isolate({input$geneList})
