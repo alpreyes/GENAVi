@@ -100,7 +100,7 @@ ui <- fluidPage(title = "GENAVi",
                                         checkboxInput(inputId="lfc", label = "Perform Log fold change shrinkage", value = FALSE, width = NULL),
                                         tags$hr(),
                                         h3('Volcano plot'), 
-                                        numericInput("log2FoldChange", "log2FoldChange  cut-off:", 1, min = 0, max = 10, step = 0.1),
+                                        numericInput("log2FoldChange", "log2FoldChange  cut-off:", value = 0, min = 0, max = 10, step = 0.1),
                                         numericInput("padj", "P adjusted cut-off:", 0.01, min = 0, max = 1,step = 0.1),
                                         actionButton("volcanoplotBt", "Plot volcano plot")
                                         
@@ -307,7 +307,7 @@ server <- function(input,output,session)
     # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
     res <- getEndGeneInfo(tbl.tab1)
     ngene <- res$ngene
-
+    
     tbl.tab1 <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected)
     p <- as.data.frame(t(tbl.tab1[,(res$ngene+1):ncol(tbl.tab1)]))
     colnames(p) <- "value"
@@ -318,7 +318,7 @@ server <- function(input,output,session)
       theme_bw() + 
       scale_x_discrete(limits = order) + 
       theme(axis.text.x = element_text(angle = 90, hjust = 1))
-      
+    
     ggplotly(barplot)
   })
   
@@ -345,7 +345,7 @@ server <- function(input,output,session)
     # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
     res <- getEndGeneInfo(tbl.tab1)
     ngene <- res$ngene
-
+    
     matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% select((res$ngene+1):ncol(tbl.tab1)) 
     ##may need to change order of cell lines from default alphabetic to histotype specific???...do that with dendro???
     heatmap_expr <- main_heatmap(as.matrix(matrix_expr), name = "Expression", colors = custom_pal_blues) %>%
@@ -368,7 +368,7 @@ server <- function(input,output,session)
     # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
     res <- getEndGeneInfo(tbl.tab2)
     ngene <- res$ngene
-
+    
     matrix_clus <- tbl.tab2[,c(1,(res$ngene+1):ncol(tbl.tab2))] 
     
     #replace above command with this based on select input
@@ -570,16 +570,31 @@ server <- function(input,output,session)
       res <- get.DEA.results()
       if(is.null(res)) return(NULL)
       deaSelect <- input$deaSelect
+      lfcThreshold <- input$log2FoldChange
       if(str_length(deaSelect) == 0) {
-        tbl <-  as.data.frame(results(res))
+        if(lfcThreshold > 0){
+          tbl <-  as.data.frame(results(res,
+                                        lfcThreshold=input$log2FoldChange,  
+                                        altHypothesis="greaterAbs"))
+          
+        } else {
+          tbl <-  as.data.frame(results(res))
+        }
       } else {
         if(input$lfc) {
           tbl <-  as.data.frame(lfcShrink(res, coef = deaSelect))
         } else {
-          tbl <-  as.data.frame(results(res, name = deaSelect))
+          if(lfcThreshold > 0){
+            tbl <-  as.data.frame(results(res,
+                                          name = deaSelect,
+                                          lfcThreshold = input$log2FoldChange,  
+                                          altHypothesis = "greaterAbs"))
+          } else {
+            tbl <-  as.data.frame(results(res))
+          }
         }
       }
-      tbl %>% createTable2(show.rownames=T)
+      tbl %>% createTable2(show.rownames = T)
     })
   })
   
