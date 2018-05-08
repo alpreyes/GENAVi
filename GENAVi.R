@@ -571,6 +571,7 @@ server <- function(input,output,session)
       if(is.null(res)) return(NULL)
       deaSelect <- input$deaSelect
       lfcThreshold <- input$log2FoldChange
+     
       if(str_length(deaSelect) == 0) {
         if(lfcThreshold > 0){
           tbl <-  as.data.frame(results(res,
@@ -615,7 +616,15 @@ server <- function(input,output,session)
         if(input$lfc) {
           dea <-  as.data.frame(lfcShrink(res, coef = deaSelect))
         } else {
+          lfcThreshold <- input$log2FoldChange
+          if(lfcThreshold > 0){
+            dea <-  as.data.frame(results(res,
+                                          name = deaSelect,
+                                          lfcThreshold = input$log2FoldChange,  
+                                          altHypothesis = "greaterAbs"))
+          } else {
           dea <-  as.data.frame(results(res, name = deaSelect))
+          }
         }
       }
       x.cut <- isolate({input$log2FoldChange})
