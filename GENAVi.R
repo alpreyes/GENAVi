@@ -584,7 +584,7 @@ server <- function(input,output,session)
         }
       } else {
         if(input$lfc) {
-          tbl <-  as.data.frame(lfcShrink(res, coef = deaSelect)) ### adding apeglm option breaks results
+          tbl <-  as.data.frame(lfcShrink(res, type = "apeglm", coef = deaSelect)) ### adding apeglm option breaks results
         } else {
           if(lfcThreshold > 0){
             tbl <-  as.data.frame(results(res,
@@ -615,7 +615,7 @@ server <- function(input,output,session)
         dea <-  as.data.frame(results(res))
       } else {
         if(input$lfc) {
-          dea <-  as.data.frame(lfcShrink(res, coef = deaSelect)) ### adding apeglm option breaks results
+          dea <-  as.data.frame(lfcShrink(res, coef = deaSelect,type = "apeglm")) ### adding apeglm option breaks results
         } else {
           lfcThreshold <- input$log2FoldChange
           if(lfcThreshold > 0){
