@@ -572,7 +572,7 @@ server <- function(input,output,session)
       if(is.null(res)) return(NULL)
       deaSelect <- input$deaSelect
       lfcThreshold <- input$log2FoldChange
-     
+      
       if(str_length(deaSelect) == 0) {
         if(lfcThreshold > 0){
           tbl <-  as.data.frame(results(res,
@@ -584,7 +584,12 @@ server <- function(input,output,session)
         }
       } else {
         if(input$lfc) {
-          tbl <-  as.data.frame(lfcShrink(res, type = "apeglm", coef = deaSelect)) ### adding apeglm option breaks results
+          withProgress(message = 'Shrink log2 fold changes',
+                       detail = "Shrinking...", value = 0, {
+                         tbl <-  as.data.frame(lfcShrink(res, 
+                                                         type = "apeglm", 
+                                                         coef = deaSelect)) ### adding apeglm option breaks results
+                       })
         } else {
           if(lfcThreshold > 0){
             tbl <-  as.data.frame(results(res,
@@ -615,7 +620,13 @@ server <- function(input,output,session)
         dea <-  as.data.frame(results(res))
       } else {
         if(input$lfc) {
-          dea <-  as.data.frame(lfcShrink(res, coef = deaSelect,type = "apeglm")) ### adding apeglm option breaks results
+          withProgress(message = 'Shrink log2 fold changes',
+                       detail = "Shrinking...", value = 0, {
+                         dea <-  as.data.frame(lfcShrink(res, 
+                                                         coef = deaSelect,
+                                                         type = "apeglm")) ### adding apeglm option breaks results
+                       }
+          )
         } else {
           lfcThreshold <- input$log2FoldChange
           if(lfcThreshold > 0){
@@ -624,7 +635,7 @@ server <- function(input,output,session)
                                           lfcThreshold = input$log2FoldChange,  
                                           altHypothesis = "greaterAbs"))
           } else {
-          dea <-  as.data.frame(results(res, name = deaSelect))
+            dea <-  as.data.frame(results(res, name = deaSelect))
           }
         }
       }
