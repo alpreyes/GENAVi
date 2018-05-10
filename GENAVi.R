@@ -205,9 +205,10 @@ server <- function(input,output,session)
                      ret      <- list(vst,rownorm,raw,cpm,rlog)
                      names(ret) <- c("vst","rownorm","raw","cpm","rlog")
                      setProgress(1, detail = paste("Completed"))
+                     save(ret, file = "genavi.rda") ######## tiago's suggested change to update rda file (correct data table)
                    }
       )
-    } else {
+    } else { ##### not sure if need to remove? leave in -> no change, comment out -> breaks app
       ret <- get(load("genavi.rda"))
     }
     return(ret)
@@ -351,7 +352,7 @@ server <- function(input,output,session)
     ##may need to change order of cell lines from default alphabetic to histotype specific???...do that with dendro???
     heatmap_expr <- main_heatmap(as.matrix(matrix_expr), name = "Expression", colors = custom_pal_blues) %>%
       add_col_labels(ticktext = colnames(matrix_expr)) %>%
-      add_row_labels(ticktext = geneNames) %>% ##trying to add dendro
+      add_row_labels(ticktext = geneNames, font = list(size = 6)) %>% ##trying to add dendro
       add_col_dendro(hclust(dist(t(as.matrix(matrix_expr)))), reorder = TRUE) ##may have to take out -1 to avoid losing 1st data col
     
     if(nrow(matrix_expr) > 1) ##currently still trying to cluster genes selected

@@ -82,10 +82,19 @@ heatmap_cor <- main_heatmap(as.matrix(cor(vst_all_cols_DEA_genes[,-c(1:8)], meth
 
 write.table(pairwise_DEA_genelist, "pairwise_DEA_genelist.txt", row.names = FALSE) ##had to manipulate file to input into GENAVi
 
-test_filter <- all_cell_lines_ordered[rowSums(all_cell_lines_ordered[,-c(1:7)]),-c(1:7)] ### not same as ensembleid.csv, still diff num of rows
+test_filter <- all_cell_lines_ordered[rowSums(all_cell_lines_ordered[,-c(1:7)]) > 1,-c(1:7)] ### not same as ensembleid.csv, still diff num of rows
 test_filter <- na.omit(test_filter) ### still diff num of rows
 
-test_filter
+View(test_filter)
+
+rm(test_filter)
+
+test_filter <- all_cell_lines_ordered[rowSums(all_cell_lines_ordered[,-c(1:7)]) >1,]
+test_filter <- na.omit(test_filter)
+
+
+
+
 
 
 
