@@ -5,8 +5,8 @@ account: junkdnalab
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 264409
-bundleId: 1367539
+bundleId: 1367580
 url: https://junkdnalab.shinyapps.io/GENAVi/
-when: 1525992113.90185
+when: 1525993361.46836
 asMultiple: FALSE
 asStatic: FALSE

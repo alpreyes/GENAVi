@@ -16,7 +16,7 @@ output:
 
 # 1. Introduction <a name="intro"></a>
 
-In order to improve access to normalization, visualization and analysis of RNA-Seq data we have combined a number of R packages using the Shiny Web App format to create GENAVi: Gene Expression Normalization Analysis and Visualization. This application allows users to browse a provided dataset; a panel of 20 cell lines commonly used in breast and ovarian cancer research, or upload their own dataset as a featureCounts matrix (PMID: 24227677). featureCounts uses read counting for summarization of all reads that overlap any exon for each gene, followed by read annotation with RefSeq or Ensembl.
+In order to improve access to normalization, visualization and analysis of RNA-Seq data we have combined a number of R packages using the Shiny Web App format to create GENAVi: Gene Expression Normalization Analysis and Visualization. This application allows users to browse a provided dataset; a panel of 20 cell lines commonly used in breast and ovarian cancer research, or upload their own dataset as a featureCounts matrix (PMID: 24227677). featureCounts uses read counting for summarization of all reads that overlap any exon for each gene, followed by read annotation with RefSeq or Ensembl. GENAVi applies a filtering step to both the provided data set as well as a user-uploaded featureCounts matrix that removes all genes/features with zero reads mapped in every sample. This is done to increase the speed of the transformation calculations and visualization as well as reduce noise in differential expression analysis. This filtered version of the data table is used for all functions within GENAVi.  
 
 The application is separated into three tabs:
 
@@ -37,8 +37,7 @@ In addition to being able to search for and select individual genes within the d
 
 ### 2.3 Format of input count matrix
 
-In addition to being able to query the default data set- a panel of 20 breast and ovarian cancer cell lines, the user can also upload their own gene expression data set in the form of count a matrix produced by the featurecounts function in the subread package.
-the addgeneinfo() function reads in count matrix in csv format. it checks if the first column is an ENSEMBLE ID or gene name. If the first column of the inputted count matrix is the proper format, addgeneinfo() adds the genes metadata from gencode (by default uses hg38 build)
+In addition to being able to query the default data set- a panel of 20 breast and ovarian cancer cell lines, the user can also upload their own gene expression data set in the form of count a matrix produced by the featurecounts function in the subread package. The addgeneinfo() function reads in count matrix in csv format. it checks if the first column is an ENSEMBLE ID or gene name. If the first column of the inputted count matrix is the proper format, addgeneinfo() adds the genes metadata from gencode (by default uses hg38 build). As stated earlier, GENAVi filters out genes/features with zero reads mapped across all samples. This is applied to both the default data table and the user-uploaded featureCounts matrix. This filtering step increases the speed of calculation for each transformation method described in the next section. 
 
 ## 3 Transformation and Normalization of Gene Expression Data (Tab 1) <a name="transform"></a>
 
