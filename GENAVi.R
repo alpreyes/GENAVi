@@ -352,7 +352,7 @@ server <- function(input,output,session)
     ##may need to change order of cell lines from default alphabetic to histotype specific???...do that with dendro???
     heatmap_expr <- main_heatmap(as.matrix(matrix_expr), name = "Expression", colors = custom_pal_blues) %>%
       add_col_labels(ticktext = colnames(matrix_expr)) %>%
-      add_row_labels(ticktext = geneNames, font = list(size = 6)) %>% ##trying to add dendro
+      add_row_labels(ticktext = geneNames, font = list(size = 7)) %>% ##trying to add dendro
       add_col_dendro(hclust(dist(t(as.matrix(matrix_expr)))), reorder = TRUE) ##may have to take out -1 to avoid losing 1st data col
     
     if(nrow(matrix_expr) > 1) ##currently still trying to cluster genes selected
