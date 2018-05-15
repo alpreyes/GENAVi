@@ -1,3 +1,27 @@
+list.of.packages <- c("shiny",
+                      "tidyr",
+                      "DESeq2",
+                      "iheatmapr",
+                      "edgeR",
+                      "ggplot2",
+                      "readr",
+                      "shinythemes",
+                      "shinyBS",
+                      "shinyjs",
+                      "apeglm",
+                      "DT",
+                      "ashr",
+                      "plotly")
+
+#checking missing packages from list
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+
+#install missing ones
+if(length(new.packages)) {
+  install.packages(new.packages, dependencies = TRUE,quiet = TRUE)
+  source("https://bioconductor.org/biocLite.R")
+  biocLite(new.packages, dependencies = TRUE,quiet = TRUE)
+}
 suppressPackageStartupMessages({
   library(shiny)
   library(tidyr) 
