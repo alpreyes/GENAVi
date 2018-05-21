@@ -3,8 +3,8 @@
 ##### may not need all_cell_lines_ordered.csv in github/ local repo
 
 all_cell_lines_ordered <- read_csv("all_cell_lines_ordered.csv", col_types = readr::cols(), col_names = TRUE)
-raw_counts_all_cols <- read_csv("raw_counts.csv", col_types = readr::cols(), col_names = TRUE)
-vst_all_cols <- read_csv("vst.csv", col_types = readr::cols(), col_names = TRUE)
+raw_counts_all_cols <- read_csv("test/raw_counts.csv", col_types = readr::cols(), col_names = TRUE)
+vst_all_cols <- read_csv("test/vst.csv", col_types = readr::cols(), col_names = TRUE)
 
 pairwise_DEA_genelist <- read.table("P_10_6_genelist_each_pairwise.txt", header = FALSE, stringsAsFactors = FALSE)
 test_unique <- unique(pairwise_DEA_genelist[,1])
