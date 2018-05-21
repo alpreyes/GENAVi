@@ -10,7 +10,7 @@ In addition to being able to query and analyze the dataset we provided, users ca
 GENAVi is hosted on the junkdnalab rshiny server which can be accessed in any browser with internet connection through this link: https://junkdnalab.shinyapps.io/GENAVi/
 
 Additionally, GENAVi can be run on a users local machine or server by entering the command: shiny::runGitHub("alpreyes/GENAVi") in an RStudio window. 
-With this method, all necessary R packages will be automatically installed, all source code used to build GENAVi will be downloaded directly from the GitHub repository, and the application will be hosted run locally.
+With this method, all necessary R packages will be automatically installed, all source code used to build GENAVi will be downloaded directly from the GitHub repository, and the application will be hosted and run locally.
 
 Lastly, the user can also run GENAVi on a local machine or server via a docker image through this link: https://hub.docker.com/r/cedarscompbio/genavi/
 
