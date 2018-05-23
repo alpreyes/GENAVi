@@ -74,7 +74,6 @@ server <- function(input,output,session)
                      ret      <- list(vst,rownorm,raw,cpm,rlog)
                      names(ret) <- c("vst","rownorm","raw","cpm","rlog")
                      setProgress(1, detail = paste("Completed"))
-                     save(ret, file = "genavi.rda") ######## tiago's suggested change to update rda file (correct data table)
                    }
       )
     } else { ##### not sure if need to remove? leave in -> no change, comment out -> breaks app
