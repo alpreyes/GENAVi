@@ -435,13 +435,15 @@ server <- function(input,output,session)
   
   observeEvent(input$dea, {
     updateTabsetPanel(session, inputId="DEA", selected = "DEA results")
-    if(!is.null(get.DEA.results())) updateSelectizeInput(session, 'deaSelect', choices =  resultsNames(get.DEA.results()), server = TRUE)
+    if(!is.null(get.DEA.results())) updateSelectizeInput(session, 'deaSelect', 
+                                                         choices =  resultsNames(get.DEA.results())[-1],
+                                                         selected = resultsNames(get.DEA.results())[-1][1], 
+                                                         server = TRUE)
     output$dea.results <-  DT::renderDataTable({
       res <- get.DEA.results()
       if(is.null(res)) return(NULL)
       deaSelect <- input$deaSelect
       lfcThreshold <- input$log2FoldChange
-      
       if(str_length(deaSelect) == 0) {
         if(lfcThreshold > 0){
           tbl <-  as.data.frame(results(res,
@@ -449,7 +451,7 @@ server <- function(input,output,session)
                                         altHypothesis="greaterAbs"))
           
         } else {
-          tbl <-  as.data.frame(results(res))
+          tbl <-  as.data.frame(results(res,name = deaSelect))
         }
       } else {
         if(input$lfc) {
@@ -469,7 +471,7 @@ server <- function(input,output,session)
                                           lfcThreshold = input$log2FoldChange,  
                                           altHypothesis = "greaterAbs"))
           } else {
-            tbl <-  as.data.frame(results(res))
+            tbl <-  as.data.frame(results(res,name = deaSelect))
           }
         }
       }
