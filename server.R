@@ -12,6 +12,8 @@ server <- function(input,output,session)
     )
   })
   
+  
+  
   readData <- reactive({
     ret <- NULL
     inFile <- input$rawcounts
@@ -40,6 +42,8 @@ server <- function(input,output,session)
     }
     ret
   })
+  
+  
   ### reactive fct that calcs the transforms and saves them so it doesnt take too long each time
   getNormalizedData <- reactive({
     if (!is.null(readData())) {
@@ -70,20 +74,35 @@ server <- function(input,output,session)
                      setProgress(0.5, detail = paste("rownorm completed, starting CPM"))
                      cpm      <- cbind(metadata, cpm(data, log = TRUE)) ##adding log=TRUE option
                      setProgress(0.7, detail = paste("CPM completed, starting rlog"))
-                     rlog     <- cbind(metadata, rlog(data))
-                     ret      <- list(vst,rownorm,raw,cpm,rlog)
-                     names(ret) <- c("vst","rownorm","raw","cpm","rlog")
+                     if(ncol(data) < 30){
+                       rlog     <- cbind(metadata, rlog(data))
+                       ret      <- list(vst,rownorm,raw,cpm,rlog)
+                       names(ret) <- c("vst","rownorm","raw","cpm","rlog")
+                     } else {
+                       ret      <- list(vst,rownorm,raw,cpm)
+                       names(ret) <- c("vst","rownorm","raw","cpm")
+                     }
                      setProgress(1, detail = paste("Completed"))
                    }
       )
     } else { ##### not sure if need to remove? leave in -> no change, comment out -> breaks app
       ret <- get(load("genavi.rda"))
     }
+    if(length(names(ret)) == 5){
+    transforms <-  c("raw counts",  "row normalized",  "logCPM",  "vst",  "rlog")
+    } else {
+      transforms <-  c("raw counts",  "row normalized",  "logCPM",  "vst")
+    }
+    updateSelectizeInput(session, 'select_tab1', 
+                         selected = "raw counts",
+                         choices =  transforms,
+                         server = TRUE)
     return(ret)
   })
   getTab1 <- reactive({
     data <- getNormalizedData()
     select <- input$select_tab1
+    tbl.tab1 <- NULL
     if(select == "raw counts") tbl.tab1 <- data$raw #table.counts #DT::datatable(table.counts)
     if(select == "rlog")  tbl.tab1 <- data$rlog ##include warning in vignette, dependent on number of columns
     if(select == "vst")  tbl.tab1 <- data$vst
@@ -94,7 +113,7 @@ server <- function(input,output,session)
   
   output$tbl.tab1 <-  DT::renderDataTable({
     tbl.tab1 <- getTab1()
-    
+    if(is.null(tbl.tab1)) return(NULL)
     ######### sorting by mean and sd ##################### ....fucks up the select sorting thing...
     #if(input$select_sort_tab1 == "-no selection-") {return(tbl.tab1)}
     #if(input$select_sort_tab1 == "mean")
@@ -299,6 +318,7 @@ server <- function(input,output,session)
     }
   )
   
+  
   observe({
     metadata <- readMetaData()
     if(!is.null(metadata)){
@@ -456,14 +476,14 @@ server <- function(input,output,session)
       } else {
         if(input$lfc) {
           tbl <-  as.data.frame(lfcShrink(res, coef = deaSelect)) ### adding apeglm option breaks results, remove to make sure
-
+          
           withProgress(message = 'Shrink log2 fold changes',
                        detail = "Shrinking...", value = 0, {
                          tbl <-  as.data.frame(lfcShrink(res, 
                                                          type = "apeglm", 
                                                          coef = deaSelect)) ### adding apeglm option breaks results
                        })
-
+          
         } else {
           if(lfcThreshold > 0){
             tbl <-  as.data.frame(results(res,
@@ -494,9 +514,9 @@ server <- function(input,output,session)
         dea <-  as.data.frame(results(res))
       } else {
         if(input$lfc) {
-
+          
           #dea <-  as.data.frame(lfcShrink(res, coef = deaSelect)) ### comment out this line to merge with tiagos changes, adding in apeglm for lfcshrink, doesn't break the app
-
+          
           withProgress(message = 'Shrink log2 fold changes',
                        detail = "Shrinking...", value = 0, {
                          dea <-  as.data.frame(lfcShrink(res, 
@@ -504,7 +524,7 @@ server <- function(input,output,session)
                                                          type = "apeglm")) ### adding apeglm option breaks results
                        }
           )
-
+          
         } else {
           lfcThreshold <- input$log2FoldChange
           if(lfcThreshold > 0){
