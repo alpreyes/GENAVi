@@ -395,6 +395,21 @@ server <- function(input,output,session)
     
     withProgress(message = 'DESeq2 Analysis',
                  detail = "Creating input file", value = 0, {
+                   
+                  
+                   if(!all(metadata %>% pull(1) %in% colnames(cts)))   {
+                     createAlert(session, "deamessage", "deaAlert", title = "Metadata error", style =  "danger",
+                                 content = paste0("First column of the metadata file must have the mapping to the samples with the exact names"),
+                                 append = FALSE)
+                     return(NULL)
+                   } 
+                   metadata <- metadata[match(colnames(cts), metadata %>% pull(1)),]
+                   if(!all(metadata %>% pull(1) == colnames(cts)))   {
+                     createAlert(session, "deamessage", "deaAlert", title = "Metadata error", style =  "danger",
+                                 content = paste0("First column of the metadata file must have the mapping to the samples with the exact names"),
+                                 append = FALSE)
+                     return(NULL)
+                   } 
                    dds <-  tryCatch({
                      dds <- DESeqDataSetFromMatrix(countData = cts,
                                                    colData = metadata,
@@ -495,7 +510,8 @@ server <- function(input,output,session)
           }
         }
       }
-      tbl %>% createTable2(show.rownames = T)
+      tbl <- cbind("Gene" = rownames(tbl), tbl)
+      tbl %>% createTable2(show.rownames = F)
     })
   })
   
