@@ -306,15 +306,11 @@ server <- function(input,output,session)
   #------------------------------------------
   output$downloadData <- downloadHandler(
     filename = function() {
-      file  <-   paste0("Genavi-metadata.csv")
+      "Genavi-metadata.csv"
     },
-    content = function(con) {
-      if(!is.null(readData())) all_cell_lines <- readData()
-      data <- all_cell_lines
-      file  <-  paste0("Genavi-metadata.csv")
-      samples <- colnames(data)[-1]
-      metadata <- data.frame(samples,groups = "Control")
-      write_csv(metadata, con)
+    content = function(file) {
+      metadata <- readr::read_csv("test/Cell_Line_Grouping_test_input.csv")
+      write_csv(metadata, file)
     }
   )
   
