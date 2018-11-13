@@ -309,7 +309,7 @@ server <- function(input,output,session)
       "Genavi-metadata.csv"
     },
     content = function(file) {
-      metadata <- readr::read_csv("test/Cell_Line_Grouping_test_input.csv")
+      metadata <- readr::read_csv("test/Cell_Line_RNA_seq_2017_and_2018_FAIL_SAMPLES_REMOVED_metadata.csv")
       write_csv(metadata, file)
     }
   )

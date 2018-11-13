@@ -1,12 +1,12 @@
 name: GENAVi
-title:
+title: GENAVi
 username:
 account: junkdnalab
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 264409
-bundleId: 1393835
+bundleId: 1698858
 url: https://junkdnalab.shinyapps.io/GENAVi/
-when: 1527295658.83291
+when: 1542133638.51086
 asMultiple: FALSE
 asStatic: FALSE

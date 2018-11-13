@@ -46,7 +46,7 @@ suppressPackageStartupMessages({
 options(shiny.maxRequestSize=1024^3) # Max file upload 1GB 
 
 # default input file
-all_cell_lines <- read_csv("all_cell_lines_ordered.csv", col_types = readr::cols(), col_names = TRUE) ##read in data going to view, try changing to all_cell_lines_ordered.csv to see if it breaks everything...no changes...change this and GENAVi.R code to change rda file
+all_cell_lines <- read_csv("Cell_Line_RNA_seq_2017_and_2018_FAIL_SAMPLES_REMOVED_featurecounts_matrix.csv", col_types = readr::cols(), col_names = TRUE) ##read in data going to view, try changing to all_cell_lines_ordered.csv to see if it breaks everything...no changes...change this and GENAVi.R code to change rda file
 
 # Load gene information data
 load("hg38.rda") # human
