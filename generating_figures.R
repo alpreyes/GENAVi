@@ -99,7 +99,22 @@ test_filter <- na.omit(test_filter)
 #     remake figs w/ new counts matrix --> new DE gene list
 #
 #----------------------------------------------------------------------------
+library(tidyverse)
+library(DESeq2)
+new_fig_matrix_vst <- read_table2("./draft_figures/updated_count_matrix_top_DE_genes.txt")
 
+heatmap_expr <- main_heatmap(as.matrix(new_fig_matrix_vst[,-c(1:8)]), name = "Expression", colors = custom_pal_blues) %>%
+  add_col_labels(ticktext = colnames(new_fig_matrix_vst[,-c(1:8)])) %>%
+  add_row_labels(ticktext = new_fig_matrix_vst$Genename, font = list(size = 9)) %>%
+  add_col_dendro(hclust(dist((as.matrix(new_fig_matrix_vst[,-c(1:8)])))), reorder = TRUE) %>%
+  add_row_dendro(hclust(dist((as.matrix(new_fig_matrix_vst[,-c(1:8)])))), reorder = TRUE, side = "right") ### messes up right side
 
+heatmap_expr
 
+heatmap_cor <- main_heatmap(as.matrix(cor(new_fig_matrix_vst[,-c(1:8)], method = "pearson")), name = "Correlation", colors = custom_pal_blues) %>%
+  add_col_labels(ticktext = colnames(new_fig_matrix_vst[,-c(1:8)])) %>%
+  add_row_labels(ticktext = colnames(new_fig_matrix_vst[,-c(1:8)])) %>%
+  add_col_dendro(hclust(as.dist(1-cor(new_fig_matrix_vst[,-c(1:8)], method = "pearson"))), reorder = TRUE) %>%
+  add_row_dendro(hclust(as.dist(1-cor(new_fig_matrix_vst[,-c(1:8)], method = "pearson"))), reorder = TRUE, side = "right")
 
+heatmap_cor
