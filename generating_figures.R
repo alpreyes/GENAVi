@@ -146,4 +146,4 @@ hmc_arc <- main_heatmap(as.matrix(cor(comment_table, method = "pearson")), name 
   add_row_dendro(hclust(as.dist(1-cor(comment_table, method = "pearson"))), reorder = TRUE, side = "right")
 
 
-hmc_arc
+hmc_arc ### gene-to-gene correaltion heatmap ACROSS SAMPLES
