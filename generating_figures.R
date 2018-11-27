@@ -118,3 +118,32 @@ heatmap_cor <- main_heatmap(as.matrix(cor(new_fig_matrix_vst[,-c(1:8)], method =
   add_row_dendro(hclust(as.dist(1-cor(new_fig_matrix_vst[,-c(1:8)], method = "pearson"))), reorder = TRUE, side = "right")
 
 heatmap_cor
+
+
+#----------------------------------------------------------------------------
+#
+#                         address reviwer 2 comment 4
+#
+#----------------------------------------------------------------------------
+comment_table <- new_fig_matrix_vst[,c(2,9:30)] 
+# row.names(comment_table)
+# row.names(comment_table) <- comment_table$Genename[1:18]
+# row.names(comment_table)
+View(comment_table)
+comment_table <- comment_table[,-1]
+View(comment_table)
+row.names(comment_table) 
+row.names(comment_table) <- new_fig_matrix_vst$Genename
+row.names(comment_table)
+View(comment_table)
+comment_table <- t(comment_table)
+View(comment_table)
+
+hmc_arc <- main_heatmap(as.matrix(cor(comment_table, method = "pearson")), name = "Correlation", colors = custom_pal_blues) %>% # heatmap cor address reviewer comments
+  add_col_labels(ticktext = colnames(comment_table)) %>%
+  add_row_labels(ticktext = colnames(comment_table)) %>%
+  add_col_dendro(hclust(as.dist(1-cor(comment_table, method = "pearson"))), reorder = TRUE) %>%
+  add_row_dendro(hclust(as.dist(1-cor(comment_table, method = "pearson"))), reorder = TRUE, side = "right")
+
+
+hmc_arc
