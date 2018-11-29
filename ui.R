@@ -64,7 +64,11 @@ ui <- fluidPage(title = "GENAVi",
                                                 icon = icon("object-group"),
                                                 div(id = "cluster_plots",
                                                     h3('Correlation Heatmap'), 
-                                                    selectInput("select_clus", "Cluster by what genes", cell.line.clusters, multiple = FALSE),
+                                                    selectInput("select_clus_type", 
+                                                                label = "Cluster correlation", 
+                                                                choices = c("Sample","Genes"), 
+                                                                multiple = FALSE),
+                                                    selectInput("select_clus", "Cluster by what genes", c("All genes", "Selected genes"), multiple = FALSE),
                                                     bsAlert("genemessage2"),
                                                     iheatmaprOutput("heatmap_clus",height = "800px")
                                                 )

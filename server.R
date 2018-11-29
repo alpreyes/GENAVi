@@ -304,21 +304,13 @@ server <- function(input,output,session)
     
     #replace above command with this based on select input
     if(input$select_clus == "-no selection-") return(NULL) ##commenting it out still has filtered hm show automatically
-    #if(is.null(input$tbl.tab2_rows_selected)) {return(NULL)} ##necessary???
-    
     ##BT549 disapears from list of cell lines???
     ##how to make this heatmap show by default/automatically
     ##doesn't work with raw counts
-    if(input$select_clus == "All genes")
-    {
-      #dend.clus <- hclust(dist(t(matrix_clus))) ##try not creating it as an object
-      
-      heatmap_clus <- main_heatmap(as.matrix(cor(matrix_clus[,-1], method = "pearson")), name = "Correlation", colors = custom_pal_blues) %>%
-        add_col_labels(ticktext = colnames(matrix_clus[,-1])) %>%
-        add_row_labels(ticktext = colnames(matrix_clus[,-1])) %>%
-        add_col_dendro(hclust(as.dist(1-cor(matrix_clus[,-1], method = "pearson"))), reorder = TRUE) %>%
-        add_row_dendro(hclust(as.dist(1-cor(matrix_clus[,-1], method = "pearson"))), reorder = TRUE, side = "right")
-    } else { # selected genes
+    if(input$select_clus == "All genes") {
+      data <- matrix_clus[,-1]
+    } else { 
+      # get selected genes
       selected_rows <- input$tbl.tab1_rows_selected
       if(length(selected_rows) < 1) {
         createAlert(session, "genemessage2", "geneAlert", title = "Missing data", style =  "danger",
@@ -330,16 +322,35 @@ server <- function(input,output,session)
       if (!is.null(inFile)) {
         geneList <- read_lines(inFile$datapath)
         selected_rows <- unique(c(selected_rows,which(matrix_clus[,1] %in% geneList)))
-      }    
-      
-      #if(is.null(input$tbl.tab2_rows_selected)) {return(NULL)} ##might need to take this out (but its in tiagos code???)
-      #dend.clus <- hclust(dist(t(matrix_clus))) ##try not creating it as an object ##dont need the object?
-      heatmap_clus <- main_heatmap(as.matrix(cor(matrix_clus[selected_rows,-1], method = "pearson")), name = "Correlation", colors = custom_pal_blues) %>% ##adding this custom color palette breaks this heatmap...wait no it doesn't?
-        add_col_labels(ticktext = colnames(matrix_clus[,-1])) %>%
-        add_row_labels(ticktext = colnames(matrix_clus[,-1])) %>% ##works when not using add dendro, but calculates dist wrong?
-        add_col_dendro(hclust(as.dist(1-cor(matrix_clus[selected_rows,-1], method = "pearson"))), reorder = TRUE) %>% ##add_dendro not working...save for later, try taking out t(matrix[]), but put back in later if it doesnt work
-        add_row_dendro(hclust(as.dist(1-cor(matrix_clus[selected_rows,-1], method = "pearson"))), reorder = TRUE, side = "right") ##try taking out t(matrix[]), but put back in later if it doesnt work
+      }
+      data <- matrix_clus[selected_rows,-1]
     }
+    
+    # The deafult is to cluster by sample, but we will cluster by gene if selected
+    if(input$select_clus_type == "Genes") {
+      selected_rows <- input$tbl.tab1_rows_selected
+      if(length(selected_rows) < 1) {
+        createAlert(session, "genemessage2", "geneAlert", title = "Missing data", style =  "danger",
+                    content = paste0("Please select genes in Gene Expression tab"),
+                    append = FALSE)
+        return(NULL)
+      }
+      inFile <- input$input_gene_list_tab1
+      if (!is.null(inFile)) {
+        geneList <- read_lines(inFile$datapath)
+        selected_rows <- unique(c(selected_rows,which(matrix_clus[,1] %in% geneList)))
+      }
+      data <- matrix_clus[selected_rows,-1]
+      rownames(data) <- matrix_clus[selected_rows,1]
+      data <- t(data)
+    }
+    
+    heatmap_clus <- main_heatmap(as.matrix(cor(data, method = "pearson")), name = "Correlation", colors = custom_pal_blues) %>% ##adding this custom color palette breaks this heatmap...wait no it doesn't?
+      add_col_labels(ticktext = colnames(data)) %>%
+      add_row_labels(ticktext = colnames(data)) %>% ##works when not using add dendro, but calculates dist wrong?
+      add_col_dendro(hclust(as.dist(1-cor(data, method = "pearson"))), reorder = TRUE) %>% ##add_dendro not working...save for later, try taking out t(matrix[]), but put back in later if it doesnt work
+      add_row_dendro(hclust(as.dist(1-cor(data, method = "pearson"))), reorder = TRUE, side = "right") ##try taking out t(matrix[]), but put back in later if it doesnt work
+    
     heatmap_clus
   })
   
@@ -356,7 +367,11 @@ server <- function(input,output,session)
     }
   )
   
-  
+  observeEvent(input$select_clus_type,{
+    if(input$select_clus_type == "Sample") choices <- c("All genes", "Selected genes")
+    if(input$select_clus_type == "Genes") choices <- c("Selected genes")
+    updateSelectizeInput(session, 'select_clus', choices = choices, server = TRUE)
+  })  
   observe({
     metadata <- readMetaData()
     if(!is.null(metadata)){
