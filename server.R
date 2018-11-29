@@ -24,10 +24,51 @@ server <- function(input,output,session)
                      setProgress(1, detail = paste("Completed"))
                    }
       )
-    }
+      if(!is.data.frame(ret)){
+        withProgress(message = 'Reading the data',
+                     detail = "This may take a while", value = 0, {
+                       ret <-  read_csv2(inFile$datapath, col_types = readr::cols())
+                       setProgress(1, detail = paste("Completed"))
+                     }
+        )
+      }
+    }  
+    # Check if the input data has the required format
+    ret <- checkDataInput(ret)
     ret
   })
   
+  checkDataInput <- function(data){
+    closeAlert(session, "tab1Alert")
+    if(is.null(data)) return(NULL)
+    res <- getEndGeneInfo(data)
+    
+    if(res$data == "gene-error"){
+      createAlert(session, 
+                  "tab1message", 
+                  "tab1Alert", 
+                  title = "Input error", 
+                  style =  "danger",
+                  content = paste0("Data uploaded is not the one expected. We were not able to identify the gene column or map it to hg38 or mm10."),
+                  append = FALSE)
+    }
+    
+    data <- tryCatch({
+      colSums(res$data[,(res$ngene + 1):ncol(res$data)])
+      return(data)
+    }, error = function(e){
+      createAlert(session, 
+                  "tab1message", 
+                  "tab1Alert", 
+                  title = "Input error", 
+                  style =  "danger",
+                  content = paste0("Data uploaded is not the one expected. Please check the Input file description."),
+                  append = FALSE)
+      
+      return(NULL)
+    })
+    return(data)
+  }
   
   readMetaData <- reactive({
     ret <- NULL
@@ -85,11 +126,12 @@ server <- function(input,output,session)
                      setProgress(1, detail = paste("Completed"))
                    }
       )
+      #save(ret,file = "genavi.rda")
     } else { ##### not sure if need to remove? leave in -> no change, comment out -> breaks app
       ret <- get(load("genavi.rda"))
     }
     if(length(names(ret)) == 5){
-    transforms <-  c("raw counts",  "row normalized",  "logCPM",  "vst",  "rlog")
+      transforms <-  c("raw counts",  "row normalized",  "logCPM",  "vst",  "rlog")
     } else {
       transforms <-  c("raw counts",  "row normalized",  "logCPM",  "vst")
     }
@@ -392,7 +434,7 @@ server <- function(input,output,session)
     withProgress(message = 'DESeq2 Analysis',
                  detail = "Creating input file", value = 0, {
                    
-                  
+                   
                    if(!all(metadata %>% pull(1) %in% colnames(cts)))   {
                      createAlert(session, "deamessage", "deaAlert", title = "Metadata error", style =  "danger",
                                  content = paste0("First column of the metadata file must have the mapping to the samples with the exact names"),
