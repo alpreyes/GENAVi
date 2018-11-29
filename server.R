@@ -109,7 +109,7 @@ server <- function(input,output,session)
                      # normalization: rlog takes a lot of time (hours for a big matrix)
                      raw      <- cbind(metadata, data) ##might might have to take out blind option???
                      setProgress(0.1, detail = paste("Starting VST"))
-                     vst      <- cbind(metadata, vst(data))
+                     vst      <- cbind(metadata, tryCatch(vst(data),error = function(e){varianceStabilizingTransformation(data)}))
                      setProgress(0.2, detail = paste("VST completed, starting rownorm"))
                      rownorm  <- cbind(metadata, rownorm(data))
                      setProgress(0.5, detail = paste("rownorm completed, starting CPM"))
