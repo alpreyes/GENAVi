@@ -55,9 +55,9 @@ load("GRCm38.rda") # mouse
 
 transforms <- c("raw counts", 
                 "row normalized", 
-                "logCPM", 
-                "vst",
-                "rlog") ##adding "t-score" -> row normalized, ask michelle about normalizing with FTSEC lines, have to add log(CPM+1)
+                "logCPM - log Counts per Million", 
+                "vst - Variance Stabilizing Transformation",
+                "rlog - regularized logarithm") ##adding "t-score" -> row normalized, ask michelle about normalizing with FTSEC lines, have to add log(CPM+1)
 
 sortby <- c("-no selection-",
             "mean", 

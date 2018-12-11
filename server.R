@@ -131,9 +131,9 @@ server <- function(input,output,session)
       ret <- get(load("genavi.rda"))
     }
     if(length(names(ret)) == 5){
-      transforms <-  c("raw counts",  "row normalized",  "logCPM",  "vst",  "rlog")
+      transforms <-  c("raw counts",  "row normalized",  "logCPM - log Counts per Million",  "vst - Variance Stabilizing Transformation",  "rlog - regularized logarithm")
     } else {
-      transforms <-  c("raw counts",  "row normalized",  "logCPM",  "vst")
+      transforms <-  c("raw counts",  "row normalized",  "logCPM - log Counts per Million",  "vst - Variance Stabilizing Transformation")
     }
     updateSelectizeInput(session, 'select_tab1', 
                          selected = "raw counts",
@@ -146,10 +146,10 @@ server <- function(input,output,session)
     select <- input$select_tab1
     tbl.tab1 <- NULL
     if(select == "raw counts") tbl.tab1 <- data$raw #table.counts #DT::datatable(table.counts)
-    if(select == "rlog")  tbl.tab1 <- data$rlog ##include warning in vignette, dependent on number of columns
-    if(select == "vst")  tbl.tab1 <- data$vst
+    if(select == "rlog - regularized logarithm")  tbl.tab1 <- data$rlog ##include warning in vignette, dependent on number of columns
+    if(select == "vst - Variance Stabilizing Transformation")  tbl.tab1 <- data$vst
     if(select == "row normalized")  tbl.tab1 <- data$rownorm
-    if(select == "logCPM")  tbl.tab1 <- data$cpm
+    if(select == "logCPM - log Counts per Million")  tbl.tab1 <- data$cpm
     tbl.tab1
   })
   
