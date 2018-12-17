@@ -346,12 +346,24 @@ server <- function(input,output,session)
       data <- t(data)
     }
     
-    heatmap_clus <- main_heatmap(as.matrix(cor(data, method = "pearson")), name = "Correlation", colors = custom_pal_blues) %>% ##adding this custom color palette breaks this heatmap...wait no it doesn't?
+    heatmap_clus <-  tryCatch({
+     main_heatmap(as.matrix(cor(data, method = "pearson")), name = "Correlation", colors = custom_pal_blues) %>% ##adding this custom color palette breaks this heatmap...wait no it doesn't?
       add_col_labels(ticktext = colnames(data)) %>%
       add_row_labels(ticktext = colnames(data)) %>% ##works when not using add dendro, but calculates dist wrong?
-      add_col_dendro(hclust(as.dist(1-cor(data, method = "pearson"))), reorder = TRUE) %>% ##add_dendro not working...save for later, try taking out t(matrix[]), but put back in later if it doesnt work
-      add_row_dendro(hclust(as.dist(1-cor(data, method = "pearson"))), reorder = TRUE, side = "right") ##try taking out t(matrix[]), but put back in later if it doesnt work
-    
+      add_col_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE) %>% ##add_dendro not working...save for later, try taking out t(matrix[]), but put back in later if it doesnt work
+      add_row_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE, side = "right") ##try taking out t(matrix[]), but put back in later if it doesnt work
+    }, warning = function(w){
+      createAlert(session, "genemessage2", "geneAlert", title = "Error: Clustering not possible", style =  "danger",
+                  content = paste0(w),
+                  append = TRUE)
+      return(NULL)
+    }, error = function(e){
+      createAlert(session, "genemessage2", "geneAlert", title = "Error: Clustering not possible", style =  "danger",
+                  content = paste0(e),
+                  append = TRUE)
+      return(NULL)
+    })
+    if(is.null(heatmap_clus)) return(NULL)
     heatmap_clus
   })
   
