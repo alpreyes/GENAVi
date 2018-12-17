@@ -49,7 +49,7 @@ server <- function(input,output,session)
                   "tab1Alert", 
                   title = "Input error", 
                   style =  "danger",
-                  content = paste0("Data uploaded is not the one expected. We were not able to identify the gene column or map it to hg38 or mm10."),
+                  content = paste0("Data uploaded does not have the expected format. We were not able to identify the gene column or map it to hg38 or mm10."),
                   append = FALSE)
     }
     
@@ -62,7 +62,7 @@ server <- function(input,output,session)
                   "tab1Alert", 
                   title = "Input error", 
                   style =  "danger",
-                  content = paste0("Data uploaded is not the one expected. Please check the Input file description."),
+                  content = paste0("Data uploaded does not have the expected format. Please check the input file description."),
                   append = FALSE)
       
       return(NULL)

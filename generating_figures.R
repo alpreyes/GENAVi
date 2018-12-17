@@ -147,3 +147,53 @@ hmc_arc <- main_heatmap(as.matrix(cor(comment_table, method = "pearson")), name 
 
 
 hmc_arc ### gene-to-gene correaltion heatmap ACROSS SAMPLES
+
+
+
+
+
+
+#---------------------------------------------------------------------------------------------
+#
+#     make norm gene expr dis for each cell line (new table) and highlight BRCA 1 and 2
+#
+#---------------------------------------------------------------------------------------------
+library(DESeq2)
+library(tidyverse)
+library(ggplot2)
+library(DT)
+library(apeglm)
+library(readr)
+library(edgeR)
+
+data <- read_csv("Cell_Line_RNA_seq_2017_and_2018_FAIL_SAMPLES_REMOVED_featurecounts_matrix.csv")
+
+data_vst <- cbind(data[,1:7], vst(as.matrix(data[,8:29])))
+
+hist(data_vst$IOSE11)
+
+ggplot(data_vst, aes(x = IOSE11)) + 
+  geom_histogram() +
+  geom_vline(aes(xintercept = data_vst$IOSE11[46251]), color="red", linetype="dashed", size = 1) +
+  geom_vline(aes(xintercept = data_vst$IOSE11[36671]), color="blue",linetype="dashed", size = 1)
+
+# macl_vst <- rowMeans(data_vst[,8:29]) ### means across cell lines vst
+# ggplot(as.data.frame(macl_vst), aes(x=macl_vst)) + geom_histogram()
+# rm(macl_vst)
+
+data_vst$macl <- rowMeans(data_vst[,8:29])
+
+ggplot(data_vst, aes(x=macl)) +
+  geom_histogram() +
+  geom_vline(aes(xintercept = data_vst$macl[46251]), color="red",  linetype="dashed", size = 1) +
+  geom_vline(aes(xintercept = data_vst$macl[36671]), color="blue", linetype="dashed", size = 1)
+
+ggplot(data_vst, aes(x=macl)) +
+  geom_violin()
+
+table_brca_vst <- data_vst[c(36671,46251),c(1,2,8:29)]
+write.csv(table_brca_vst, file = "/Users/reyesa1/Downloads/table_brca_vst.csv")
+
+
+
+range(data_vst$macl)
