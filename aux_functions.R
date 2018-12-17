@@ -154,11 +154,11 @@ rownorm <- function(counts.filtered)
 getEndGeneInfo <- function(data){
   numeric.cols <-   sum(sapply(colnames(data), function(x) {class(data[[x]]) %in% c("integer","numeric")}))
   if(ncol(data) - numeric.cols > 2) { # we have metadata
-    idx <- sum(ifelse(grepl("Start",colnames(data),ignore.case = T),class(data[[grep("Start",colnames(data),ignore.case = T)]]) == "integer",0),
-               ifelse(grepl("End",colnames(data),ignore.case = T),class(data[[grep("End",colnames(data),ignore.case = T)]]) == "integer",0),
-               ifelse(grepl("Chr",colnames(data),ignore.case = T),class(data[[grep("Chr",colnames(data),ignore.case = T)]]) == "integer",0),
-               ifelse(grepl("Strand",colnames(data),ignore.case = T),class(data[[grep("Strand",colnames(data),ignore.case = T)]]) == "integer",0),
-               ifelse(grepl("Length",colnames(data),ignore.case = T),class(data[[grep("Length",colnames(data),ignore.case = T)]]) == "integer",0))
+    idx <- sum(ifelse(grepl("Start",colnames(data),ignore.case = T),class(data[[grep("Start",colnames(data),ignore.case = T)]])  %in% c("numeric","interger"),0),
+               ifelse(grepl("End",colnames(data),ignore.case = T),class(data[[grep("End",colnames(data),ignore.case = T)]]) %in% c("numeric","interger"),0),
+               ifelse(grepl("Chr",colnames(data),ignore.case = T),class(data[[grep("Chr",colnames(data),ignore.case = T)]]) %in% c("numeric","interger"),0),
+               ifelse(grepl("Strand",colnames(data),ignore.case = T),class(data[[grep("Strand",colnames(data),ignore.case = T)]])  %in% c("numeric","interger"),0),
+               ifelse(grepl("Length",colnames(data),ignore.case = T),class(data[[grep("Length",colnames(data),ignore.case = T)]])  %in% c("numeric","interger"),0))
     ngene <- ncol(data) - numeric.cols + idx
   } else {
     nsamples <- ncol(data) - 1 

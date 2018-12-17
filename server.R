@@ -41,9 +41,10 @@ server <- function(input,output,session)
   checkDataInput <- function(data){
     closeAlert(session, "tab1Alert")
     if(is.null(data)) return(NULL)
+    if("status" %in% colnames(data)) data$status <- NULL
     res <- getEndGeneInfo(data)
     
-    if(res$data == "gene-error"){
+    if(all(res$data == "gene-error")){
       createAlert(session, 
                   "tab1message", 
                   "tab1Alert", 
