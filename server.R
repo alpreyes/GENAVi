@@ -18,8 +18,6 @@ server <- function(input,output,session)
     },
     content = function(fname) {
       fs <- c()
-      tmpdir <- tempdir()
-      setwd(tempdir())
       data <- get.DEA.results()
       validate(
         need(!is.null(data), "Please, perform DEA analysis before exporting")
@@ -29,7 +27,7 @@ server <- function(input,output,session)
         fs <- c(fs, path)
         readr::write_csv( as.data.frame(results(data,name = i)), path)
       }
-      zip(zipfile=fname, files=fs)
+      zip(zipfile=fname, files=fs, flags = "-j")
     },
     contentType = "application/zip"
   )  
@@ -40,15 +38,13 @@ server <- function(input,output,session)
     },
     content = function(fname) {
       fs <- c()
-      tmpdir <- tempdir()
-      setwd(tempdir())
       data <- getNormalizedData()
       for (i in names(data)){
         path <- paste0(i,".csv")
         fs <- c(fs, path)
         readr::write_csv(data[[i]], path)
       }
-      zip(zipfile=fname, files=fs)
+      zip(zipfile=fname, files=fs, flags = "-j")
     },
     contentType = "application/zip"
   )  
