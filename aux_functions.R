@@ -103,7 +103,7 @@ createTable2 <- function(df,tableType = "GENAVi", show.rownames = TRUE){
                                fixedHeader = FALSE,
                                pageLength = 20,
                                scrollX = TRUE,
-                               lengthMenu = list(c(10, 20, -1), c('10', '20', 'All'))
+                               lengthMenu = list(c(10, 20, 50,100), c('10', '20', '50','100'))
                 ),
                 rownames = show.rownames,
                 filter   = 'top'
@@ -137,7 +137,7 @@ createTable <- function(df,selected_rows=NULL,tableType = "GENAVi", show.rowname
                                fixedHeader = FALSE,
                                pageLength = 20,
                                scrollX = TRUE,
-                               lengthMenu = list(c(10, 20, -1), c('10', '20', 'All'))
+                               lengthMenu = list(c(10, 20, 50,100), c('10', '20', '50','100'))
                 ),
                 rownames = show.rownames,
                 filter   = 'top'
