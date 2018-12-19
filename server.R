@@ -25,7 +25,7 @@ server <- function(input,output,session)
       for (i in resultsNames(data)){
         path <- paste0(i,".csv")
         fs <- c(fs, path)
-        readr::write_csv( as.data.frame(results(data,name = i)), path)
+        write.csv(as.data.frame(results(data,name = i)), path)
       }
       zip(zipfile=fname, files=fs, flags = "-j")
     },
@@ -42,7 +42,7 @@ server <- function(input,output,session)
       for (i in names(data)){
         path <- paste0(i,".csv")
         fs <- c(fs, path)
-        readr::write_csv(data[[i]], path)
+        write.csv(data[[i]], path)
       }
       zip(zipfile=fname, files=fs, flags = "-j")
     },
