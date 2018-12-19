@@ -11,9 +11,47 @@ server <- function(input,output,session)
       filter   = 'top'
     )
   })
-  
-  
-  
+
+  output$downloadDEAFiles <- downloadHandler(
+    filename = function() {
+      paste("GENAVi_DEA_results_files", "zip", sep=".")
+    },
+    content = function(fname) {
+      fs <- c()
+      tmpdir <- tempdir()
+      setwd(tempdir())
+      data <- get.DEA.results()
+      validate(
+        need(!is.null(data), "Please, perform DEA analysis before exporting")
+      )
+      for (i in resultsNames(data)){
+        path <- paste0(i,".csv")
+        fs <- c(fs, path)
+        readr::write_csv( as.data.frame(results(data,name = i)), path)
+      }
+      zip(zipfile=fname, files=fs)
+    },
+    contentType = "application/zip"
+  )  
+    
+  output$downloadNormalizedData <- downloadHandler(
+    filename = function() {
+      paste("GENAVi_normalized_files", "zip", sep=".")
+    },
+    content = function(fname) {
+      fs <- c()
+      tmpdir <- tempdir()
+      setwd(tempdir())
+      data <- getNormalizedData()
+      for (i in names(data)){
+        path <- paste0(i,".csv")
+        fs <- c(fs, path)
+        readr::write_csv(data[[i]], path)
+      }
+      zip(zipfile=fname, files=fs)
+    },
+    contentType = "application/zip"
+  )  
   readData <- reactive({
     ret <- NULL
     inFile <- input$rawcounts

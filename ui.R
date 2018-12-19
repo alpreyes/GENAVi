@@ -24,6 +24,7 @@ ui <- fluidPage(title = "GENAVi",
                                         #textAreaInput(inputId = "geneList",label = "Gene list filter: separate gene names by , or ; or newline",value =  "", width = "100%"),
                                         #actionButton("but_sortSelectedFirst_tab1", "Selected Rows First"), ##do this to put selected rows at top of data table, trying it out
                                         #selectInput("select_sort_tab1", "Sort Table By", sortby, multiple = FALSE),
+                                        downloadButton("downloadNormalizedData", "Download normalized files"),
                                         tags$hr(),
                                         h3('Data upload'), 
                                         # Input: Select a file ----
@@ -103,6 +104,7 @@ ui <- fluidPage(title = "GENAVi",
                                         h3('DEA - Select Results'), 
                                         selectInput("deaSelect", "Select results", NULL, multiple = FALSE), ##need individual selectInputs for each tab
                                         checkboxInput(inputId="lfc", label = "Perform Log fold change shrinkage", value = FALSE, width = NULL),
+                                        downloadButton("downloadDEAFiles", "Download DEA Results"),
                                         tags$hr(),
                                         h3('Volcano plot'), 
                                         numericInput("log2FoldChange", "log2FoldChange  cut-off:", value = 0, min = 0, max = 10, step = 0.1),
