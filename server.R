@@ -368,14 +368,30 @@ server <- function(input,output,session)
     # the contribution to the total variance for each component
     percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
     
-    d <- data.frame(PC1=pca$x[,1], PC2=pca$x[,2], name=colnames(m))
+    d <- data.frame(PC1=pca$x[,1], PC2=pca$x[,2], PC3=pca$x[,3], name=colnames(m))
     percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
-    p <- plot_ly(d, x = ~PC1 , y = ~PC2, text = colnames(m)) 
+    if(input$pca_dimensions == "2D") {
+      p <- plot_ly(d, x = ~PC1 , y = ~PC2, text = colnames(m)) 
+      p <- layout(p, title = "Principal Component Analysis (PCA)", 
+                  xaxis = list(title = paste0("PC1: ",round(percentVar[1] * 100),"% variance")), 
+                  yaxis = list(title = paste0("PC2: ",round(percentVar[2] * 100),"% variance")) 
+      )
+      
+    } else {
+      p <- plot_ly(d, x = ~PC1 , y = ~PC2, z = ~PC3, text = ~paste(name), type = "scatter3d") %>%
+        add_markers()
+      p <- layout(p, 
+                  scene = list(
+                    title = "Principal Component Analysis (PCA)", 
+                    xaxis = list(title = paste0("PC1: ",round(percentVar[1] * 100),"% variance")), 
+                    yaxis = list(title = paste0("PC2: ",round(percentVar[2] * 100),"% variance")),
+                    zaxis = list(title = paste0("PC3: ",round(percentVar[3] * 100),"% variance")) 
+                  )
+      )
+      
+    }
     
-    p <- layout(p, title = "Principal Component Analysis (PCA)", 
-                xaxis = list(title = paste0("PC1: ",round(percentVar[1] * 100),"% variance")), 
-                yaxis = list(title = paste0("PC2: ",round(percentVar[2] * 100),"% variance")) 
-    )
+    p
   })
   
   output$heatmap_expr <- renderIheatmap({ 

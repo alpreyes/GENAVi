@@ -90,6 +90,10 @@ ui <- fluidPage(title = "GENAVi",
                                                                    label = "PCA", 
                                                                    choices = c("Most variant Genes", "All genes", "Selected genes"), 
                                                                    multiple = FALSE),
+                                                       selectInput("pca_dimensions", 
+                                                                   label = "Number of dimensions", 
+                                                                   choices = c("2D", "3D"), 
+                                                                   multiple = FALSE),
                                                        plotlyOutput("pca_plot")
                                                    )
                                        )
