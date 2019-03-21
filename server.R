@@ -210,7 +210,7 @@ server <- function(input,output,session)
     tab <- getTab1()
     if(gene.selection() == "Most Var"){
       m <- as.matrix(tab[,grep("Genename|Geneid|Chr|Start|End|Strand|Length", colnames(tab),ignore.case = T,invert = T)])
-      selected_rows <- sort(rowVars(m,na.rm = T), decreasing = T,index.return=TRUE)$ix[1:100]
+      selected_rows <- sort(rowVars(m,na.rm = T), decreasing = T,index.return=TRUE)$ix[1:1000]
       status <- factor("Unselected",levels = c("Unselected","Selected"))
       tab <- cbind(status,tab)
       tab$status[selected_rows] <- 'Selected'
@@ -355,13 +355,13 @@ server <- function(input,output,session)
     
     matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% select((res$ngene+1):ncol(tbl.tab1)) %>% as.matrix
     name <- "Expression"
-    if(input$select_z_score == "Row z-score"){
+    if(input$select_z_score == "Rows z-score"){
       name <- "Expression (Rows z-score)"
       aux <-  colnames(matrix_expr)
       matrix_expr = t(apply(matrix_expr, 1, scale))
       colnames(matrix_expr) <- aux
     }
-    if(input$select_z_score == "Column z-score"){
+    if(input$select_z_score == "Columns z-score"){
       name <- "Expression (Column z-score)"
       matrix_expr <- scale(matrix_expr)
     }

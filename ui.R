@@ -62,8 +62,8 @@ ui <- fluidPage(title = "GENAVi",
                                                   div(id = "expression_heatmap",
                                                       h3('Expression Heatmap'),
                                                       selectInput("select_z_score", 
-                                                                  label = "Plot data as z-score", 
-                                                                  choices = c("No","Row z-score", "Column z-score"), 
+                                                                  label = "Standardized scores?", 
+                                                                  choices = c("No","Rows z-score", "Columns z-score"), 
                                                                   multiple = FALSE),
                                                       iheatmaprOutput("heatmap_expr",height = "auto")
                                                   )
