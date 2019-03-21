@@ -81,6 +81,17 @@ ui <- fluidPage(title = "GENAVi",
                                                     bsAlert("genemessage2"),
                                                     iheatmaprOutput("heatmap_clus",height = "800px")
                                                 )
+                                       ), tabPanel("PCA plots",
+                                                   icon = icon("object-group"),
+                                                   div(id = "pca_plots",
+                                                       bsAlert("genemessage3"),
+                                                       h3('PCA plot'),
+                                                       selectInput("select_pca_type", 
+                                                                   label = "PCA", 
+                                                                   choices = c("Most variant Genes", "All genes", "Selected genes"), 
+                                                                   multiple = FALSE),
+                                                       plotlyOutput("pca_plot")
+                                                   )
                                        )
                            )
                   ),

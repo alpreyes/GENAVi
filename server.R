@@ -203,9 +203,11 @@ server <- function(input,output,session)
   })
   
   
+  
+  
   # Function to add which genes were selected by the user
   getTab1.selected <- reactive({
-   
+    
     # get original table
     tab <- getTab1()
     if(gene.selection() == "Most Var"){
@@ -332,6 +334,49 @@ server <- function(input,output,session)
   #---------------------------------
   # Heatmap plot tab
   #---------------------------------
+  # calculate the variance for each gene
+  output$pca_plot <- renderPlotly({ 
+    closeAlert(session, "pcaAlert")
+    tbl.tab1 <- getTab1()
+    
+    # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
+    res <- getEndGeneInfo(tbl.tab1)
+    ngene <- res$ngene
+    
+    m <- tbl.tab1 %>% select((res$ngene+1):ncol(tbl.tab1)) %>% as.matrix  
+    
+    select <- 1:ncol(m)
+    if(input$select_pca_type == "Most variant Genes"){
+      ntop <- 500
+      rv <- rowVars(m)
+      
+      # select the ntop genes by variance
+      select <- order(rv, decreasing=TRUE)[seq_len(min(ntop, length(rv)))]
+    } else   if(input$select_pca_type == "Selected genes"){
+      select <- input$tbl.tab1_rows_selected
+      if(length(select) < 1) {
+        createAlert(session, "genemessage3", "pcaAlert", title = "Missing data", style =  "danger",
+                    content = paste0("Please select genes in Gene Expression tab"),
+                    append = FALSE)
+        return(NULL)
+      }
+    }
+    
+    # perform a PCA on the data in assay(x) for the selected genes
+    pca <- prcomp(t(m[select,]))
+    
+    # the contribution to the total variance for each component
+    percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
+    
+    d <- data.frame(PC1=pca$x[,1], PC2=pca$x[,2], name=colnames(m))
+    percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
+    p <- plot_ly(d, x = ~PC1 , y = ~PC2, text = colnames(m)) 
+    
+    p <- layout(p, title = "Principal Component Analysis (PCA)", 
+                xaxis = list(title = paste0("PC1: ",round(percentVar[1] * 100),"% variance")), 
+                yaxis = list(title = paste0("PC2: ",round(percentVar[2] * 100),"% variance")) 
+    )
+  })
   
   output$heatmap_expr <- renderIheatmap({ 
     
