@@ -215,7 +215,6 @@ server <- function(input,output,session)
       tab <- cbind(status,tab)
       tab$status[selected_rows] <- 'Selected'
     } else if (gene.selection() == "Unselect") {
-      message("Unselecting all")
       status <- factor("Unselected",levels = c("Unselected","Selected"))
       tab <- cbind(status,tab)
       selected_rows <- NULL
