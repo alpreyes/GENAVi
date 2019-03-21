@@ -20,11 +20,15 @@ ui <- fluidPage(title = "GENAVi",
                            sidebarPanel(id="sidebar",
                                         h3('Table'), 
                                         selectInput("select_tab1", "Select Transform", transforms, multiple = FALSE), ##need individual selectInputs for each tab
-                                        fileInput("input_gene_list_tab1", "Input Gene Symbol List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"), ##how to increase max upload size
-                                        #textAreaInput(inputId = "geneList",label = "Gene list filter: separate gene names by , or ; or newline",value =  "", width = "100%"),
-                                        #actionButton("but_sortSelectedFirst_tab1", "Selected Rows First"), ##do this to put selected rows at top of data table, trying it out
-                                        #selectInput("select_sort_tab1", "Sort Table By", sortby, multiple = FALSE),
                                         downloadButton("downloadNormalizedData", "Download normalized files"),
+                                        tags$hr(),
+                                        h3('Gene selection'), 
+                                        fileInput("input_gene_list_tab1", "Input Gene Symbol List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"), ##how to increase max upload size
+                                        textAreaInput(inputId = "input_gene_list_area",label = "Gene list filter: separate gene names by , or ; or newline",value =  "", width = "100%"),
+                                        actionButton("input_gene_list_but", "Select Rows",width = "100%"), ##do this to put selected rows at top of data table, trying it out
+                                        actionButton("select_most_variable", "Select most variable genes",width = "100%"), ##do this to put selected rows at top of data table, trying it out
+                                        actionButton("unselect_all", "Unselected all genes",width = "100%"), ##do this to put selected rows at top of data table, trying it out
+                                        #selectInput("select_sort_tab1", "Sort Table By", sortby, multiple = FALSE),
                                         tags$hr(),
                                         h3('Data upload'), 
                                         # Input: Select a file ----
@@ -57,6 +61,10 @@ ui <- fluidPage(title = "GENAVi",
                                                 hidden(
                                                   div(id = "expression_heatmap",
                                                       h3('Expression Heatmap'),
+                                                      selectInput("select_z_score", 
+                                                                  label = "Plot data as z-score", 
+                                                                  choices = c("No","Row z-score", "Column z-score"), 
+                                                                  multiple = FALSE),
                                                       iheatmaprOutput("heatmap_expr",height = "auto")
                                                   )
                                                 )

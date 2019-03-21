@@ -11,7 +11,7 @@ server <- function(input,output,session)
       filter   = 'top'
     )
   })
-
+  
   output$downloadDEAFiles <- downloadHandler(
     filename = function() {
       paste("GENAVi_DEA_results_files", "zip", sep=".")
@@ -31,7 +31,7 @@ server <- function(input,output,session)
     },
     contentType = "application/zip"
   )  
-    
+  
   output$downloadNormalizedData <- downloadHandler(
     filename = function() {
       paste("GENAVi_normalized_files", "zip", sep=".")
@@ -188,8 +188,70 @@ server <- function(input,output,session)
     tbl.tab1
   })
   
+  gene.selection <- reactiveVal(0)      
+  observeEvent(input$select_most_variable, {
+    gene.selection("Most Var")             # rv$value <- newValue
+  })
+  observeEvent(input$unselect_all, {
+    gene.selection("Unselect")             # rv$value <- newValue
+  })
+  
+  observeEvent(input$input_gene_list_but, {
+    aux <- gene.selection()
+    if(is.character(aux)) aux <- 0
+    gene.selection( aux + 1)             # rv$value <- newValue
+  })
+  
+  
+  # Function to add which genes were selected by the user
+  getTab1.selected <- reactive({
+   
+    # get original table
+    tab <- getTab1()
+    if(gene.selection() == "Most Var"){
+      m <- as.matrix(tab[,grep("Genename|Geneid|Chr|Start|End|Strand|Length", colnames(tab),ignore.case = T,invert = T)])
+      selected_rows <- sort(rowVars(m,na.rm = T), decreasing = T,index.return=TRUE)$ix[1:100]
+      status <- factor("Unselected",levels = c("Unselected","Selected"))
+      tab <- cbind(status,tab)
+      tab$status[selected_rows] <- 'Selected'
+    } else if (gene.selection() == "Unselect") {
+      message("Unselecting all")
+      status <- factor("Unselected",levels = c("Unselected","Selected"))
+      tab <- cbind(status,tab)
+      selected_rows <- NULL
+    } else {
+      # which ones are already selected
+      selected_rows <- input$tbl.tab1_rows_selected
+      
+      # which column has our gene symbol ?
+      idx <- grep("symbol|genename",colnames(tab),ignore.case = T)
+      
+      # Read genes to filter from a file 
+      inFile <- input$input_gene_list_tab1
+      if (!is.null(inFile)) {
+        geneList <- read_lines(inFile$datapath)
+        selected_rows <- unique(c(selected_rows,which(tab[,idx] %in% geneList)))
+      }    
+      
+      # Read genes to filter from a textarea 
+      geneList <- isolate({input$input_gene_list_area})
+      if(!is.null(geneList)){
+        geneList <- parse.textarea.input(geneList)
+        selected_rows <- unique(c(selected_rows,which(tab[,idx] %in% geneList)))
+      }
+      
+      # Update the rows selected
+      status <- factor("Unselected",levels = c("Unselected","Selected"))
+      tab <- cbind(status,tab)
+      tab$status[selected_rows] <- 'Selected'
+    }
+    return(list("tab" = tab,"selected_rows" = selected_rows))
+    
+  })
+  
   output$tbl.tab1 <-  DT::renderDataTable({
-    tbl.tab1 <- getTab1()
+    tbl.tab1 <- getTab1.selected()$tab
+    selected_rows <- getTab1.selected()$selected_rows
     if(is.null(tbl.tab1)) return(NULL)
     ######### sorting by mean and sd ##################### ....fucks up the select sorting thing...
     #if(input$select_sort_tab1 == "-no selection-") {return(tbl.tab1)}
@@ -205,26 +267,6 @@ server <- function(input,output,session)
     ######## this section sorts the table so that selected rows are first #######
     ####### ordering rows like this makes the selection wonky in the figures, other rows than what you select are being displayed
     ####### try taking this out to see how tables are rendered...or not rendered???
-    selected_rows <- input$tbl.tab1_rows_selected
-    
-    
-    inFile <- input$input_gene_list_tab1
-    if (!is.null(inFile)) {
-      geneList <- read_lines(inFile$datapath)
-      idx <- grep("symbol|genename",colnames(tbl.tab1),ignore.case = T)
-      selected_rows <- unique(c(selected_rows,which(tbl.tab1[,idx] %in% geneList)))
-    }    
-    #  Parse textarea
-    #text.samples <- isolate({input$geneList})
-    #if(!is.null(text.samples)){
-    #  geneList <- parse.textarea.input(text.samples)
-    #  selected_rows <- unique(c(selected_rows,which(tbl.tab1[,1] %in% geneList)))
-    #}
-    
-    status <- factor("Unselected",levels = c("Unselected","Selected"))
-    tbl.tab1 <- cbind(status,tbl.tab1)
-    tbl.tab1$status[selected_rows] <- 'Selected'
-    
     tbl.tab1 %>% createTable(selected_rows,tableType = isolate({input$select_tab1}))
     
     ## try adding the genes list to match() here, see if it breaks the app
@@ -312,9 +354,21 @@ server <- function(input,output,session)
     res <- getEndGeneInfo(tbl.tab1)
     ngene <- res$ngene
     
-    matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% select((res$ngene+1):ncol(tbl.tab1)) 
+    matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% select((res$ngene+1):ncol(tbl.tab1)) %>% as.matrix
+    name <- "Expression"
+    if(input$select_z_score == "Row z-score"){
+      name <- "Expression (Rows z-score)"
+      aux <-  colnames(matrix_expr)
+      matrix_expr = t(apply(matrix_expr, 1, scale))
+      colnames(matrix_expr) <- aux
+    }
+    if(input$select_z_score == "Column z-score"){
+      name <- "Expression (Column z-score)"
+      matrix_expr <- scale(matrix_expr)
+    }
+    
     ##may need to change order of cell lines from default alphabetic to histotype specific???...do that with dendro???
-    heatmap_expr <- main_heatmap(as.matrix(matrix_expr), name = "Expression", colors = custom_pal_blues) %>%
+    heatmap_expr <- main_heatmap(matrix_expr, name = name, colors = custom_pal_blues) %>%
       add_col_labels(ticktext = colnames(matrix_expr)) %>%
       add_row_labels(ticktext = geneNames, font = list(size = 7)) %>% ##trying to add dendro
       add_col_dendro(hclust(dist(t(as.matrix(matrix_expr)))), reorder = TRUE) ##may have to take out -1 to avoid losing 1st data col
@@ -381,11 +435,11 @@ server <- function(input,output,session)
     }
     
     heatmap_clus <-  tryCatch({
-     main_heatmap(as.matrix(cor(data, method = "pearson")), name = "Correlation", colors = custom_pal_blues) %>% ##adding this custom color palette breaks this heatmap...wait no it doesn't?
-      add_col_labels(ticktext = colnames(data)) %>%
-      add_row_labels(ticktext = colnames(data)) %>% ##works when not using add dendro, but calculates dist wrong?
-      add_col_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE) %>% ##add_dendro not working...save for later, try taking out t(matrix[]), but put back in later if it doesnt work
-      add_row_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE, side = "right") ##try taking out t(matrix[]), but put back in later if it doesnt work
+      main_heatmap(as.matrix(cor(data, method = "pearson")), name = "Correlation", colors = custom_pal_blues) %>% ##adding this custom color palette breaks this heatmap...wait no it doesn't?
+        add_col_labels(ticktext = colnames(data)) %>%
+        add_row_labels(ticktext = colnames(data)) %>% ##works when not using add dendro, but calculates dist wrong?
+        add_col_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE) %>% ##add_dendro not working...save for later, try taking out t(matrix[]), but put back in later if it doesnt work
+        add_row_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE, side = "right") ##try taking out t(matrix[]), but put back in later if it doesnt work
     }, warning = function(w){
       createAlert(session, "genemessage2", "geneAlert", title = "Error: Clustering not possible", style =  "danger",
                   content = paste0(w),
