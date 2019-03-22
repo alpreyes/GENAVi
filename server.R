@@ -754,12 +754,13 @@ server <- function(input,output,session)
         )
       }
     }
-    geneList <- d$log2FoldChange 
+    if(is.null(ret)) return(NULL)
+    geneList <- ret$log2FoldChange 
     
     
-    eg = bitr( as.character(d$X), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
+    eg = bitr(as.character(ret[,1,drop = T]), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
     ## feature 2: named vector
-    gene.id <- eg$ENTREZID[match(d$X,eg$SYMBOL)]
+    gene.id <- eg$ENTREZID[match(ret[,1,drop=T],eg$SYMBOL)]
     geneList <- geneList[!is.na(gene.id)]
     names(geneList) <- na.omit(gene.id)
     
@@ -776,9 +777,11 @@ server <- function(input,output,session)
   })
   
   # Perform selected analysis
-  readDEA <- reactive({
-    dea.genes <- readDEA()$dea.genes
-    geneList <-  readDEA()$geneList
+  enrichement.analysis <- reactive({
+    data <- readDEA()
+    if(is.null(data)) return(NULL)
+    dea.genes <- data$dea.genes
+    geneList <- data$geneList
     
     
     if(input$deaanalysisselect == "WikiPathways analysis"){
@@ -840,7 +843,10 @@ server <- function(input,output,session)
     return(results)
   })  
   output$tbl.analysis <-  DT::renderDataTable({
-    tbl <- readDEA()
+    input$enrichementbt
+    tbl <- enrichement.analysis()
+    if(is.null(tbl)) return(NULL)
+    print(tbl)
     tbl %>% createTable2(show.rownames = F)
   })
   

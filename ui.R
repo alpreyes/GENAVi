@@ -190,7 +190,12 @@ ui <- fluidPage(title = "GENAVi",
                                                       "C6: oncogenic signatures" = "C6",
                                                       "C7: immunologic signatures" = "C7"), 
                                                     multiple = FALSE),
-                                        actionLink("Helpeful information", "https://guangchuangyu.github.io/pathway-analysis-workshop/")
+                                        actionButton("enrichementbt", "Perform analysis"),
+                                        tags$hr(),
+                                        h3('Help material'), 
+                                        shiny::actionButton(inputId='ab1', label="Learn More", 
+                                                            icon = icon("th"), 
+                                                            onclick ="window.open('https://guangchuangyu.github.io/pathway-analysis-workshop/', '_blank')")
                            ),    mainPanel(
                              bsAlert("deamessage"),
                              DT::dataTableOutput('tbl.analysis') 
