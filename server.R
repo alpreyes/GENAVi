@@ -757,99 +757,133 @@ server <- function(input,output,session)
     if(is.null(ret)) return(NULL)
     geneList <- ret$log2FoldChange 
     
-    
     eg = bitr(as.character(ret[,1,drop = T]), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
     ## feature 2: named vector
     gene.id <- eg$ENTREZID[match(ret[,1,drop=T],eg$SYMBOL)]
     geneList <- geneList[!is.na(gene.id)]
     names(geneList) <- na.omit(gene.id)
     
-    
-    
     ## feature 3: decreasing order
     geneList <- sort(geneList, decreasing = TRUE)
     
     # DEA genes are those with logFC > 2
     dea.genes <- names(geneList)[abs(geneList) > 2]
-    
+    message("==================================")
     return(list("dea.genes" = dea.genes,
                 "geneList" = geneList))
   })
   
   # Perform selected analysis
-  enrichement.analysis <- reactive({
-    data <- readDEA()
-    if(is.null(data)) return(NULL)
-    dea.genes <- data$dea.genes
-    geneList <- data$geneList
+  observeEvent(input$enrichementbt,  {
+    
+    enrichement.analysis <- reactive({
+      data <- readDEA()
+      if(is.null(data)) return(NULL)
+      dea.genes <- data$dea.genes
+      geneList <- data$geneList
+      
+      withProgress(message = 'Performing analysis',
+                   detail = "It might take a wile", value = 0, {
+                     
+                     if(isolate({input$deaanalysisselect})== "WikiPathways analysis"){
+                       message("o WikiPathways analysis")
+                       # WikiPathways analysis
+                       wpgmtfile <- system.file("extdata/wikipathways-20180810-gmt-Homo_sapiens.gmt", package="clusterProfiler")
+                       wp2gene <- read.gmt(wpgmtfile)
+                       wp2gene <- wp2gene %>% tidyr::separate(ont, c("name","version","wpid","org"), "%")
+                       wpid2gene <- wp2gene %>% dplyr::select(wpid, gene) #TERM2GENE
+                       wpid2name <- wp2gene %>% dplyr::select(wpid, name) #TERM2NAME
+                       
+                       if(isolate({input$deaanalysistype}) == "ORA"){
+                         results <- enricher(dea.genes, TERM2GENE = wpid2gene, TERM2NAME = wpid2name,pvalueCutoff = 1)
+                       } else {
+                         results <- GSEA(geneList, TERM2GENE = wpid2gene, TERM2NAME = wpid2name, verbose=FALSE,pvalueCutoff = 1)
+                       }
+                     } else if(isolate({input$deaanalysisselect}) == "MSigDb analysis"){
+                       message("o MSigDb analysis")
+                       # MSigDb analysis
+                       m_df <- msigdbr(species = "Homo sapiens")
+                       m_t2g <- msigdbr(species = "Homo sapiens", category = input$msigdbtype) %>% 
+                         dplyr::select(gs_name, entrez_gene)
+                       if(isolate({input$deaanalysistype}) == "ORA"){
+                         results <- enricher(dea.genes, TERM2GENE=m_t2g)
+                       } else {
+                         results <- GSEA(geneList, TERM2GENE = m_t2g)
+                       }
+                     } else if(isolate({input$deaanalysisselect}) == "Gene Ontology Analysis"){
+                       message("o Gene Ontology Analysis")
+                       if(isolate({input$deaanalysistype}) == "ORA"){
+                         # Gene Ontology Analysis
+                         results <- enrichGO(gene          = dea.genes,
+                                             universe      = names(geneList),
+                                             OrgDb         = org.Hs.eg.db,
+                                             ont           = "CC",
+                                             pAdjustMethod = "BH",
+                                             pvalueCutoff  = 0.01,
+                                             qvalueCutoff  = 0.05,
+                                             readable      = TRUE)
+                         
+                       } else {
+                         results <- gseGO(geneList     = geneList,
+                                          OrgDb        = org.Hs.eg.db,
+                                          ont          = "CC",
+                                          nPerm        = 1000,
+                                          minGSSize    = 100,
+                                          maxGSSize    = 500,
+                                          pvalueCutoff = 0.05,
+                                          verbose      = FALSE)
+                       }
+                       
+                     } else if(isolate({input$deaanalysisselect}) == "KEGG Analysis"){
+                       message("o KEGG Analysis")
+                       if(isolate({input$deaanalysistype}) == "ORA"){
+                         results <- enrichKEGG(dea.genes, organism = "hsa")
+                       } else {
+                         results <- gseKEGG(geneList, organism = "hsa", nPerm = 10000)
+                       }
+                     }
+                   })
+      save(results,file = paste0(isolate({input$deaanalysistype}),isolate({input$deaanalysisselect}),".rda"))
+      return(results)
+    })  
+    output$tbl.analysis <-  DT::renderDataTable({
+      input$enrichementbt
+      tbl <- enrichement.analysis()
+      print(tbl)
+      if(is.null(tbl)) return(NULL)
+      print(tbl)
+      tbl %>% summary %>% createTable2(show.rownames = F)
+    })
     
     
-    if(input$deaanalysisselect == "WikiPathways analysis"){
-      # WikiPathways analysis
-      wpgmtfile <- system.file("extdata/wikipathways-20180810-gmt-Homo_sapiens.gmt", package="clusterProfiler")
-      wp2gene <- read.gmt(wpgmtfile)
-      wp2gene <- wp2gene %>% tidyr::separate(ont, c("name","version","wpid","org"), "%")
-      wpid2gene <- wp2gene %>% dplyr::select(wpid, dea.genes) #TERM2GENE
-      wpid2name <- wp2gene %>% dplyr::select(wpid, name) #TERM2NAME
+    output$plotenrichment <- renderPlot({
+      closeAlert(session, "messageanalysisAlert")
+      results <- enrichement.analysis()
+      if(is.null(results)) return(NULL)
+      p <- NULL
       
-      if(input$deaanalysistype == "ORA"){
-        results <- enricher(dea.genes, TERM2GENE = wpid2gene, TERM2NAME = wpid2name,pvalueCutoff = 0.5)
-        
-      } else {
-        results <- GSEA(geneList, TERM2GENE = wpid2gene, TERM2NAME = wpid2name, verbose=FALSE)
-      }
-    } else if(input$deaanalysisselect == "MSigDb analysis"){
-      # MSigDb analysis
-      m_df <- msigdbr(species = "Homo sapiens")
-      m_t2g <- msigdbr(species = "Homo sapiens", category = input$msigdbtype) %>% 
-        dplyr::select(gs_name, entrez_gene)
-      if(input$deaanalysistype == "ORA"){
-        results <- enricher(dea.genes, TERM2GENE=m_t2g)
-      } else {
-        results <- GSEA(geneList, TERM2GENE = m_t2g)
-      }
-    } else if(input$deaanalysisselect == "Gene Ontology Analysis"){
-      
-      if(input$deaanalysistype == "ORA"){
-        # Gene Ontology Analysis
-        results <- enrichGO(gene          = dea.genes,
-                            universe      = names(geneList),
-                            OrgDb         = org.Hs.eg.db,
-                            ont           = "CC",
-                            pAdjustMethod = "BH",
-                            pvalueCutoff  = 0.01,
-                            qvalueCutoff  = 0.05,
-                            readable      = TRUE)
-        
-      } else {
-        results <- gseGO(geneList     = geneList,
-                         OrgDb        = org.Hs.eg.db,
-                         ont          = "CC",
-                         nPerm        = 1000,
-                         minGSSize    = 100,
-                         maxGSSize    = 500,
-                         pvalueCutoff = 0.05,
-                         verbose      = FALSE)
+      if(nrow(summary(results)) == 0){
+        createAlert(session, 
+                    "messageanalysis", 
+                    "messageanalysisAlert", 
+                    title = "No enriched terms found", 
+                    style =  "danger",
+                    content = paste0("No results for: P-value cut-off = ", results@pvalueCutoff),
+                    append = FALSE)
       }
       
-    } else if(input$deaanalysisselect == "KEGG Analysis"){
-      
-      if(input$deaanalysistype == "ORA"){
-        results <- enrichKEGG(dea.genes, organism = "hsa")
-      } else {
-        results <- gseKEGG(geneList, organism="hsa", nPerm=10000)
+      if(isolate({input$deaanalysisselect}) == "Gene Ontology Analysis") {
+        p <- dotplot(results, showCategory = 10)
+      } else if(isolate({input$deaanalysisselect}) == "KEGG Analysis") {
+        if(input$deaanalysistype != "ORA") {
+          p <- gseaplot(results, geneSetID = 1, title = gk$Description[1])
+        } 
+      } else if(isolate({input$deaanalysisselect})== "WikiPathways analysis") {
+        p <- dotplot(results, showCategory = 10)
       }
-    }
-    return(results)
-  })  
-  output$tbl.analysis <-  DT::renderDataTable({
-    input$enrichementbt
-    tbl <- enrichement.analysis()
-    if(is.null(tbl)) return(NULL)
-    print(tbl)
-    tbl %>% createTable2(show.rownames = F)
+      p
+    })
   })
-  
   #---------------------------------
   # Volcano plot tab
   #---------------------------------

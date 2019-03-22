@@ -197,8 +197,9 @@ ui <- fluidPage(title = "GENAVi",
                                                             icon = icon("th"), 
                                                             onclick ="window.open('https://guangchuangyu.github.io/pathway-analysis-workshop/', '_blank')")
                            ),    mainPanel(
-                             bsAlert("deamessage"),
-                             DT::dataTableOutput('tbl.analysis') 
+                             bsAlert("messageanalysis"),
+                             plotOutput("plotenrichment", height = 300),
+                             DT::dataTableOutput('tbl.analysis')
                            )
                   ),
                   tabPanel("Vignette", 
