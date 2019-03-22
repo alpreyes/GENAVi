@@ -774,6 +774,15 @@ server <- function(input,output,session)
   })
   
   # Perform selected analysis
+  # 
+  observeEvent(input$deaanalysisselect,{
+    if(input$deaanalysisselect ==  "MSigDb analysis") {
+      shinyjs::show(id = "msigdbtype", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+    } else {
+      shinyjs::hide(id = "msigdbtype", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+    }    
+  })
+  
   observeEvent(input$enrichementbt,  {
     
     enrichement.analysis <- reactive({
@@ -849,9 +858,7 @@ server <- function(input,output,session)
     output$tbl.analysis <-  DT::renderDataTable({
       input$enrichementbt
       tbl <- enrichement.analysis()
-      print(tbl)
       if(is.null(tbl)) return(NULL)
-      print(tbl)
       tbl %>% summary %>% createTable2(show.rownames = F)
     })
     
@@ -863,23 +870,30 @@ server <- function(input,output,session)
       p <- NULL
       
       if(nrow(summary(results)) == 0){
+        if("pvalueCutoff"  %in% slotNames(results)){
+          aux <- results@pvalueCutoff
+        } else {
+          aux <- results@params$pvalueCutoff
+        }
         createAlert(session, 
                     "messageanalysis", 
                     "messageanalysisAlert", 
                     title = "No enriched terms found", 
                     style =  "danger",
-                    content = paste0("No results for: P-value cut-off = ", results@pvalueCutoff),
+                    content = paste0("No results for: P-value cut-off = ", aux),
                     append = FALSE)
+        return(NULL)
       }
       
       if(isolate({input$deaanalysisselect}) == "Gene Ontology Analysis") {
         p <- dotplot(results, showCategory = 10)
       } else if(isolate({input$deaanalysisselect}) == "KEGG Analysis") {
         if(input$deaanalysistype != "ORA") {
-          p <- gseaplot(results, geneSetID = 1, title = gk$Description[1])
+          p <- gseaplot(results, geneSetID = 1, title = results$Description[1])
         } 
-      } else if(isolate({input$deaanalysisselect})== "WikiPathways analysis") {
+      } else if(isolate({input$deaanalysisselect}) == "WikiPathways analysis") {
         p <- dotplot(results, showCategory = 10)
+      } else if(isolate({input$deaanalysisselect}) == "MSigDb analysis") {
       }
       p
     })
