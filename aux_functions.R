@@ -7,10 +7,16 @@ list.of.packages <- c("shiny",
                       "readr",
                       "shinythemes",
                       "shinyBS",
+                      "magrittr",
                       "shinyjs",
+                      "msigdbr",
+                      "DOSE",
+                      "org.Hs.eg.db",
                       "apeglm",
+                      "clusterProfiler",
                       "DT",
                       "ashr",
+                      "enrichplot",
                       "plotly")
 
 #checking missing packages from list
@@ -39,7 +45,12 @@ suppressPackageStartupMessages({
   library(apeglm)
   library(ashr)
   library("plotly")
-  
+  library(DOSE)
+  library(clusterProfiler)
+  library(org.Hs.eg.db)
+  library(enrichplot)
+  library(magrittr)
+  library(msigdbr)
 })
 # options(repos = BiocInstaller::biocinstallRepos())
 

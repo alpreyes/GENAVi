@@ -729,6 +729,120 @@ server <- function(input,output,session)
     })
   })
   
+  #
+  # Pathway analysis tab
+  #  source: https://guangchuangyu.github.io/pathway-analysis-workshop/
+  #  
+  
+  # Return list of DEA genes sorted and the names of the most significant ones  
+  readDEA <- reactive({
+    ret <- NULL
+    inFile <- input$deafile
+    if (!is.null(inFile))  {
+      withProgress(message = 'Reading the data',
+                   detail = "This may take a while", value = 0, {
+                     ret <-  read_csv(inFile$datapath, col_types = readr::cols())
+                     setProgress(1, detail = paste("Completed"))
+                   }
+      )
+      if(!is.data.frame(ret)){
+        withProgress(message = 'Reading the data',
+                     detail = "This may take a while", value = 0, {
+                       ret <-  read_csv2(inFile$datapath, col_types = readr::cols())
+                       setProgress(1, detail = paste("Completed"))
+                     }
+        )
+      }
+    }
+    geneList <- d$log2FoldChange 
+    
+    
+    eg = bitr( as.character(d$X), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
+    ## feature 2: named vector
+    gene.id <- eg$ENTREZID[match(d$X,eg$SYMBOL)]
+    geneList <- geneList[!is.na(gene.id)]
+    names(geneList) <- na.omit(gene.id)
+    
+    
+    
+    ## feature 3: decreasing order
+    geneList <- sort(geneList, decreasing = TRUE)
+    
+    # DEA genes are those with logFC > 2
+    dea.genes <- names(geneList)[abs(geneList) > 2]
+    
+    return(list("dea.genes" = dea.genes,
+                "geneList" = geneList))
+  })
+  
+  # Perform selected analysis
+  readDEA <- reactive({
+    dea.genes <- readDEA()$dea.genes
+    geneList <-  readDEA()$geneList
+    
+    
+    if(input$deaanalysisselect == "WikiPathways analysis"){
+      # WikiPathways analysis
+      wpgmtfile <- system.file("extdata/wikipathways-20180810-gmt-Homo_sapiens.gmt", package="clusterProfiler")
+      wp2gene <- read.gmt(wpgmtfile)
+      wp2gene <- wp2gene %>% tidyr::separate(ont, c("name","version","wpid","org"), "%")
+      wpid2gene <- wp2gene %>% dplyr::select(wpid, dea.genes) #TERM2GENE
+      wpid2name <- wp2gene %>% dplyr::select(wpid, name) #TERM2NAME
+      
+      if(input$deaanalysistype == "ORA"){
+        results <- enricher(dea.genes, TERM2GENE = wpid2gene, TERM2NAME = wpid2name,pvalueCutoff = 0.5)
+        
+      } else {
+        results <- GSEA(geneList, TERM2GENE = wpid2gene, TERM2NAME = wpid2name, verbose=FALSE)
+      }
+    } else if(input$deaanalysisselect == "MSigDb analysis"){
+      # MSigDb analysis
+      m_df <- msigdbr(species = "Homo sapiens")
+      m_t2g <- msigdbr(species = "Homo sapiens", category = input$msigdbtype) %>% 
+        dplyr::select(gs_name, entrez_gene)
+      if(input$deaanalysistype == "ORA"){
+        results <- enricher(dea.genes, TERM2GENE=m_t2g)
+      } else {
+        results <- GSEA(geneList, TERM2GENE = m_t2g)
+      }
+    } else if(input$deaanalysisselect == "Gene Ontology Analysis"){
+      
+      if(input$deaanalysistype == "ORA"){
+        # Gene Ontology Analysis
+        results <- enrichGO(gene          = dea.genes,
+                            universe      = names(geneList),
+                            OrgDb         = org.Hs.eg.db,
+                            ont           = "CC",
+                            pAdjustMethod = "BH",
+                            pvalueCutoff  = 0.01,
+                            qvalueCutoff  = 0.05,
+                            readable      = TRUE)
+        
+      } else {
+        results <- gseGO(geneList     = geneList,
+                         OrgDb        = org.Hs.eg.db,
+                         ont          = "CC",
+                         nPerm        = 1000,
+                         minGSSize    = 100,
+                         maxGSSize    = 500,
+                         pvalueCutoff = 0.05,
+                         verbose      = FALSE)
+      }
+      
+    } else if(input$deaanalysisselect == "KEGG Analysis"){
+      
+      if(input$deaanalysistype == "ORA"){
+        results <- enrichKEGG(dea.genes, organism = "hsa")
+      } else {
+        results <- gseKEGG(geneList, organism="hsa", nPerm=10000)
+      }
+    }
+    return(results)
+  })  
+  output$tbl.analysis <-  DT::renderDataTable({
+    tbl <- readDEA()
+    tbl %>% createTable2(show.rownames = F)
+  })
   
   #---------------------------------
   # Volcano plot tab
