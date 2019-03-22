@@ -781,7 +781,15 @@ server <- function(input,output,session)
     } else {
       shinyjs::hide(id = "msigdbtype", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
     }    
+    
+    if(input$deaanalysisselect ==  "Gene Ontology Analysis") {
+      shinyjs::show(id = "gotype", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+    } else {
+      shinyjs::hide(id = "gotype", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+    }  
   })
+  
+  
   
   observeEvent(input$enrichementbt,  {
     
@@ -818,8 +826,13 @@ server <- function(input,output,session)
                      } else if(isolate({input$deaanalysisselect}) == "MSigDb analysis"){
                        message("o MSigDb analysis")
                        # MSigDb analysis
+                       if(input$msigdbtype != "All"){
                        m_t2g <- msigdbr(species = "Homo sapiens", category = input$msigdbtype) %>% 
                          dplyr::select(gs_name, entrez_gene)
+                       } else {
+                         m_t2g <- msigdbr(species = "Homo sapiens") %>% 
+                           dplyr::select(gs_name, entrez_gene)
+                       }
                        if(isolate({input$deaanalysistype}) == "ORA"){
                          results <- enricher(dea.genes, 
                                              TERM2GENE = m_t2g,
@@ -836,7 +849,7 @@ server <- function(input,output,session)
                          results <- enrichGO(gene          = dea.genes,
                                              universe      = names(geneList),
                                              OrgDb         = org.Hs.eg.db,
-                                             ont           = "CC",
+                                             ont           = input$gotype,
                                              pAdjustMethod = "BH",
                                              pvalueCutoff  = input$enrichmentfdr,
                                              qvalueCutoff  = 0.05,
@@ -845,7 +858,7 @@ server <- function(input,output,session)
                        } else {
                          results <- gseGO(geneList     = geneList,
                                           OrgDb        = org.Hs.eg.db,
-                                          ont          = "CC",
+                                          ont          = input$gotype,
                                           nPerm        = 1000,
                                           minGSSize    = 100,
                                           maxGSSize    = 500,
