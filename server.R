@@ -804,20 +804,30 @@ server <- function(input,output,session)
                        wpid2name <- wp2gene %>% dplyr::select(wpid, name) #TERM2NAME
                        
                        if(isolate({input$deaanalysistype}) == "ORA"){
-                         results <- enricher(dea.genes, TERM2GENE = wpid2gene, TERM2NAME = wpid2name,pvalueCutoff = 1)
+                         results <- enricher(dea.genes, 
+                                             TERM2GENE = wpid2gene, 
+                                             TERM2NAME = wpid2name,
+                                             pvalueCutoff = input$enrichmentfdr)
                        } else {
-                         results <- GSEA(geneList, TERM2GENE = wpid2gene, TERM2NAME = wpid2name, verbose=FALSE,pvalueCutoff = 1)
+                         results <- GSEA(geneList, 
+                                         TERM2GENE = wpid2gene, 
+                                         TERM2NAME = wpid2name, 
+                                         verbose = FALSE,
+                                         pvalueCutoff = input$enrichmentfdr)
                        }
                      } else if(isolate({input$deaanalysisselect}) == "MSigDb analysis"){
                        message("o MSigDb analysis")
                        # MSigDb analysis
-                       m_df <- msigdbr(species = "Homo sapiens")
                        m_t2g <- msigdbr(species = "Homo sapiens", category = input$msigdbtype) %>% 
                          dplyr::select(gs_name, entrez_gene)
                        if(isolate({input$deaanalysistype}) == "ORA"){
-                         results <- enricher(dea.genes, TERM2GENE=m_t2g)
+                         results <- enricher(dea.genes, 
+                                             TERM2GENE = m_t2g,
+                                             input$enrichmentfdr)
                        } else {
-                         results <- GSEA(geneList, TERM2GENE = m_t2g)
+                         results <- GSEA(geneList, 
+                                         TERM2GENE = m_t2g,
+                                         input$enrichmentfdr)
                        }
                      } else if(isolate({input$deaanalysisselect}) == "Gene Ontology Analysis"){
                        message("o Gene Ontology Analysis")
@@ -828,7 +838,7 @@ server <- function(input,output,session)
                                              OrgDb         = org.Hs.eg.db,
                                              ont           = "CC",
                                              pAdjustMethod = "BH",
-                                             pvalueCutoff  = 0.01,
+                                             pvalueCutoff  = input$enrichmentfdr,
                                              qvalueCutoff  = 0.05,
                                              readable      = TRUE)
                          
@@ -839,7 +849,7 @@ server <- function(input,output,session)
                                           nPerm        = 1000,
                                           minGSSize    = 100,
                                           maxGSSize    = 500,
-                                          pvalueCutoff = 0.05,
+                                          pvalueCutoff = input$enrichmentfdr,
                                           verbose      = FALSE)
                        }
                        
@@ -894,6 +904,7 @@ server <- function(input,output,session)
       } else if(isolate({input$deaanalysisselect}) == "WikiPathways analysis") {
         p <- dotplot(results, showCategory = 10)
       } else if(isolate({input$deaanalysisselect}) == "MSigDb analysis") {
+        p <- dotplot(results, showCategory = 10)
       }
       p
     })
