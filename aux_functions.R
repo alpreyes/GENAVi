@@ -50,6 +50,7 @@ suppressPackageStartupMessages({
   library(org.Hs.eg.db)
   library(enrichplot)
   library(magrittr)
+  library(GSEABase)
   library(msigdbr)
 })
 # options(repos = BiocInstaller::biocinstallRepos())
