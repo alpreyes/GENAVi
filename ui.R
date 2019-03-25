@@ -206,6 +206,16 @@ ui <- fluidPage(title = "GENAVi",
                                                      step = 0.05),
                                         actionButton("enrichementbt", "Perform analysis"),
                                         tags$hr(),
+                                        h3('Plot options'), 
+                                        selectInput("ea_plottype", 
+                                                    "Plot type", 
+                                                    c("Dot plot",
+                                                      "Ridgeline",
+                                                      "Running score and preranked list",
+                                                      "Ranked list of genes"), 
+                                                    multiple = FALSE),
+                                        selectInput("gsea_gene_sets", "Plot gene sets", NULL, multiple = TRUE),
+                                        tags$hr(),
                                         h3('Export figure'), 
                                         textInput("enrichementPlot.filename", label = "Filename", value = "enrichement_plot.pdf"),
                                         bsTooltip("enrichementPlot.filename", "Filename (pdf, png, svg)", "left"),
@@ -220,10 +230,15 @@ ui <- fluidPage(title = "GENAVi",
                                         shiny::actionButton(inputId='ab1', label="MSigDB Collections", 
                                                             icon = icon("th"), 
                                                             onclick ="window.open('http://software.broadinstitute.org/gsea/msigdb/collection_details.jsp', '_blank')")
-                           ),    mainPanel(
+                           ),    
+                           mainPanel(
                              bsAlert("messageanalysis"),
-                             plotOutput("plotenrichment", height = 300),
-                             DT::dataTableOutput('tbl.analysis')
+                             tabsetPanel(type = "pills",
+                                         tabPanel("Plots",
+                                                  plotOutput("plotenrichment", height = "1000")),
+                                         tabPanel("Table",
+                                                  DT::dataTableOutput('tbl.analysis'))
+                             )
                            )
                   ),
                   tabPanel("Vignette", 

@@ -790,7 +790,7 @@ server <- function(input,output,session)
   })
   
   
-
+  
   observeEvent(input$enrichementbt,  {
     
     enrichement.analysis <- reactive({
@@ -827,8 +827,8 @@ server <- function(input,output,session)
                        message("o MSigDb analysis")
                        # MSigDb analysis
                        if(input$msigdbtype != "All"){
-                       m_t2g <- msigdbr(species = "Homo sapiens", category = input$msigdbtype) %>% 
-                         dplyr::select(gs_name, entrez_gene)
+                         m_t2g <- msigdbr(species = "Homo sapiens", category = input$msigdbtype) %>% 
+                           dplyr::select(gs_name, entrez_gene)
                        } else {
                          m_t2g <- msigdbr(species = "Homo sapiens") %>% 
                            dplyr::select(gs_name, entrez_gene)
@@ -888,9 +888,14 @@ server <- function(input,output,session)
       tbl <- enrichement.analysis()
       if(is.null(tbl)) return(NULL)
       tbl %>% summary %>% createTable2(show.rownames = F)
+      
     })
     
-    
+    updateSelectizeInput(session, 'gsea_gene_sets', 
+                         selected = enrichement.analysis()$Description[1],
+                         choices =  enrichement.analysis()$Description,
+                         server = TRUE)
+
     getEnrichementPlot <- reactive({
       results <- enrichement.analysis()
       if(is.null(results)) return(NULL)
@@ -913,9 +918,9 @@ server <- function(input,output,session)
       }
       
       if(isolate({input$deaanalysisselect}) == "Gene Ontology Analysis") {
-        p <- dotplot(results, showCategory = 10)
+        p <- dotplot(results, showCategory = 10) 
       } else if(isolate({input$deaanalysisselect}) == "KEGG Analysis") {
-        if(input$deaanalysistype != "ORA") {
+        if(isolate({input$deaanalysistype}) != "ORA") {
           p <- gseaplot(results, geneSetID = 1, title = results$Description[1])
         } 
       } else if(isolate({input$deaanalysisselect}) == "WikiPathways analysis") {
@@ -923,6 +928,35 @@ server <- function(input,output,session)
       } else if(isolate({input$deaanalysisselect}) == "MSigDb analysis") {
         p <- dotplot(results, showCategory = 10)
       }
+      
+      if(isolate({input$deaanalysistype}) != "ORA" & input$ea_plottype == "Ridgeline") {
+        p <- ridgeplot(results)
+      }
+      
+      if(isolate({input$deaanalysistype}) != "ORA" & input$ea_plottype ==  "Running score and preranked list") {
+        p <- gseaplot2(results, geneSetID = match(input$gsea_gene_sets, results$Description))
+      }
+      if(isolate({input$deaanalysistype}) != "ORA" & input$ea_plottype ==  "Ranked list of genes") {
+        p <- gsearank(results,  which(input$gsea_gene_sets ==  results$Description), 
+                      title = results[ match(input$gsea_gene_sets, results$Description), "Description"])
+        
+        pp <- lapply( match(input$gsea_gene_sets, results$Description), function(i) {
+          anno <- results[i, c("NES",  "p.adjust")]
+          lab <- paste0(names(anno), "=",  round(anno, 3), collapse="\n")
+          
+          es <- results[i, "enrichmentScore"]
+          x <- ifelse(es < 0, 0, length(geneList) * .8)
+          gsearank(results, i, results[i, 2]) + xlab(NULL) +ylab(NULL) +
+            annotate("text", x,  es * .5, label = lab, 
+                     hjust=0, vjust=0, size = 4) + xlim(0, 12500)
+        })
+        p <- plot_grid(plotlist=pp, ncol=1)
+      }
+      
+      if(isolate({input$deaanalysistype}) != "ORA" & input$ea_plottype == "Dot plot") {
+        p <- p + facet_grid(.~ifelse(NES < 0, 'suppressed', 'activated'))
+      }
+      
       p
     })
     
@@ -979,6 +1013,15 @@ server <- function(input,output,session)
     }
   )
   
+  
+  observeEvent(input$ea_plottype, {
+    if(input$ea_plottype %in% c("Running score and preranked list", "Ranked list of genes")){
+      shinyjs::show(id = "gsea_gene_sets", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+    } else {
+      shinyjs::hide(id = "gsea_gene_sets", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+    }
+  })
+
   #---------------------------------
   # Volcano plot tab
   #---------------------------------
