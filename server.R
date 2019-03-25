@@ -790,7 +790,7 @@ server <- function(input,output,session)
   })
   
   
-  
+
   observeEvent(input$enrichementbt,  {
     
     enrichement.analysis <- reactive({
@@ -800,7 +800,7 @@ server <- function(input,output,session)
       geneList <- data$geneList
       
       withProgress(message = 'Performing analysis',
-                   detail = "It might take a wile", value = 0, {
+                   detail = "It might take a while...", value = 0, {
                      
                      if(isolate({input$deaanalysisselect})== "WikiPathways analysis"){
                        message("o WikiPathways analysis")
@@ -836,11 +836,11 @@ server <- function(input,output,session)
                        if(isolate({input$deaanalysistype}) == "ORA"){
                          results <- enricher(dea.genes, 
                                              TERM2GENE = m_t2g,
-                                             input$enrichmentfdr)
+                                             pvalueCutoff =  input$enrichmentfdr)
                        } else {
                          results <- GSEA(geneList, 
                                          TERM2GENE = m_t2g,
-                                         input$enrichmentfdr)
+                                         pvalueCutoff =  input$enrichmentfdr)
                        }
                      } else if(isolate({input$deaanalysisselect}) == "Gene Ontology Analysis"){
                        message("o Gene Ontology Analysis")
@@ -869,9 +869,14 @@ server <- function(input,output,session)
                      } else if(isolate({input$deaanalysisselect}) == "KEGG Analysis"){
                        message("o KEGG Analysis")
                        if(isolate({input$deaanalysistype}) == "ORA"){
-                         results <- enrichKEGG(dea.genes, organism = "hsa")
+                         results <- enrichKEGG(dea.genes, 
+                                               pvalueCutoff = input$enrichmentfdr,
+                                               organism = "hsa")
                        } else {
-                         results <- gseKEGG(geneList, organism = "hsa", nPerm = 10000)
+                         results <- gseKEGG(geneList, 
+                                            pvalueCutoff = input$enrichmentfdr,
+                                            organism = "hsa", 
+                                            nPerm = 10000)
                        }
                      }
                    })
@@ -886,8 +891,7 @@ server <- function(input,output,session)
     })
     
     
-    output$plotenrichment <- renderPlot({
-      closeAlert(session, "messageanalysisAlert")
+    getEnrichementPlot <- reactive({
       results <- enrichement.analysis()
       if(is.null(results)) return(NULL)
       p <- NULL
@@ -920,6 +924,43 @@ server <- function(input,output,session)
         p <- dotplot(results, showCategory = 10)
       }
       p
+    })
+    
+    
+    # Save figure 
+    output$saveenrichementpicture <- downloadHandler(
+      filename = function(){input$enrichementPlot.filename},
+      content = function(file) {
+        if(tools::file_ext(input$enrichementPlot.filename) == "png") {
+          device <- function(..., width, height) {
+            grDevices::png(..., 
+                           width = 10, 
+                           height = 10,
+                           res = 300, 
+                           units = "in")
+          }
+        } else if(tools::file_ext(input$enrichementPlot.filename) == "pdf") {
+          device <- "pdf"
+        } else if(tools::file_ext(input$enrichementPlot.filename) == "svg") {
+          device <- function(..., width, height) {
+            grDevices::svg(..., width = 10, height = 10)
+          } 
+        } else {
+          createAlert(session, 
+                      "messageanalysis", 
+                      "messageanalysisAlert", 
+                      title = "Extension not recognized (svg, pdf and png allowed)", 
+                      style =  "danger",
+                      content = paste0("No results for: P-value cut-off = ", aux),
+                      append = FALSE)
+        }
+        p <- getEnrichementPlot()
+        ggsave(file, plot = p , device = device)
+      })
+    
+    output$plotenrichment <- renderPlot({
+      closeAlert(session, "messageanalysisAlert")
+      getEnrichementPlot()
     })
   })
   #---------------------------------
