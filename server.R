@@ -755,22 +755,29 @@ server <- function(input,output,session)
       }
     }
     if(is.null(ret)) return(NULL)
-    geneList <- ret$log2FoldChange 
+    GRCh38.p12 <- readRDS("GRCh38.p12.rds")
+    ret$entrezgene <- GRCh38.p12$entrezgene[match(ret$SYMBOL,GRCh38.p12$external_gene_name)]
+    ret <- ret[!is.na(ret$entrezgene),]
+    ret <- ret[!duplicated(ret$entrezgene),]
     
-    eg = bitr(as.character(ret[,1,drop = T]), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
-    ## feature 2: named vector
-    gene.id <- eg$ENTREZID[match(ret[,1,drop=T],eg$SYMBOL)]
-    geneList <- geneList[!is.na(gene.id)]
-    names(geneList) <- na.omit(gene.id)
+    # For ORA
+    ret.ora <- ret[abs(ret$log2FoldChange) > isolate({input$ea_subsetlc}) & ret$pvalue > isolate({input$ea_subsetfdr}),]
+    dea.genes <- ret.ora$entrezgene
+
+    # For GSEA
+    if(isolate({input$earankingmethod}) == "log Fold Change") {
+      geneList.metric <- ret$log2FoldChange
+    } else if(isolate({input$earankingmethod}) ==  "-log10(P-value) * sig(log2FC)") {
+      geneList.metric <- -log10(ret$pvalue) * sign(ret$log2FoldChange)
+    } else {
+      geneList.metric <- -log10(ret$pvalue) * ret$log2FoldChange
+    }
+    names(geneList.metric) <- ret$entrezgene
+    geneList.metric <- sort(geneList.metric, decreasing = TRUE)
     
-    ## feature 3: decreasing order
-    geneList <- sort(geneList, decreasing = TRUE)
-    
-    # DEA genes are those with logFC > 2
-    dea.genes <- names(geneList)[abs(geneList) > 2]
     message("==================================")
     return(list("dea.genes" = dea.genes,
-                "geneList" = geneList))
+                "geneList" = geneList.metric))
   })
   
   # Perform selected analysis
