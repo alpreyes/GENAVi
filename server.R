@@ -761,9 +761,14 @@ server <- function(input,output,session)
     ret <- ret[!duplicated(ret$entrezgene),]
     
     # For ORA
-    ret.ora <- ret[abs(ret$log2FoldChange) > isolate({input$ea_subsetlc}) & ret$pvalue > isolate({input$ea_subsetfdr}),]
+    ret.ora <- ret[abs(ret$log2FoldChange) > isolate({input$ea_subsetlc}) & ret$pvalue < isolate({input$ea_subsetfdr}),]
+    if(isolate({input$ea_subsettype}) == "Upregulated"){
+      ret.ora <- ret.ora[ret.ora$log2FoldChange > 0,]
+    } else {
+      ret.ora <- ret.ora[ret.ora$log2FoldChange < 0 ,]
+    }
     dea.genes <- ret.ora$entrezgene
-
+    message("ORA: Using ", length(dea.genes), " genes")
     # For GSEA
     if(isolate({input$earankingmethod}) == "log Fold Change") {
       geneList.metric <- ret$log2FoldChange
@@ -943,7 +948,7 @@ server <- function(input,output,session)
                     "messageanalysisAlert", 
                     title = "No enriched terms found", 
                     style =  "danger",
-                    content = paste0("No results for: P-value cut-off = ", aux),
+                    content = paste0("No results for enrichment analysis P-value cut-off = ", aux),
                     append = FALSE)
         return(NULL)
       }
