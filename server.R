@@ -25,8 +25,7 @@ server <- function(input,output,session)
       for (i in resultsNames(data)){
         path <- paste0(i,".csv")
         fs <- c(fs, path)
-        df <- cbind("SYMBOL" = rownames(results(data,name = i)),as.data.frame(results(data,name = i)))
-        readr::write_csv(df, path)
+        write.csv(as.data.frame(results(data,name = i)), path)
       }
       zip(zipfile=fname, files=fs, flags = "-j")
     },
@@ -964,6 +963,17 @@ server <- function(input,output,session)
       getEnrichementPlot()
     })
   })
+  
+  output$downloadExampleDEAData <- downloadHandler(
+    filename = function() {
+      "subtype_BRCA_Subtype_PAM50_LumA_vs_Basal.csv"
+    },
+    content = function(file) {
+      metadata <- readr::read_csv("test/subtype_BRCA_Subtype_PAM50_LumA_vs_Basal.csv")
+      write_csv(metadata, file)
+    }
+  )
+  
   #---------------------------------
   # Volcano plot tab
   #---------------------------------
