@@ -802,10 +802,11 @@ server <- function(input,output,session)
       withProgress(message = 'Performing analysis',
                    detail = "It might take a while...", value = 0, {
                      
-                     if(isolate({input$deaanalysisselect})== "WikiPathways analysis"){
+                     if(isolate({input$deaanalysisselect}) == "WikiPathways analysis"){
                        message("o WikiPathways analysis")
                        # WikiPathways analysis
-                       wpgmtfile <- system.file("extdata/wikipathways-20180810-gmt-Homo_sapiens.gmt", package="clusterProfiler")
+                       wpgmtfile <- system.file("extdata/wikipathways-20180810-gmt-Homo_sapiens.gmt", 
+                                                package="clusterProfiler")
                        wp2gene <- read.gmt(wpgmtfile)
                        wp2gene <- wp2gene %>% tidyr::separate(ont, c("name","version","wpid","org"), "%")
                        wpid2gene <- wp2gene %>% dplyr::select(wpid, gene) #TERM2GENE
@@ -815,19 +816,19 @@ server <- function(input,output,session)
                          results <- enricher(dea.genes, 
                                              TERM2GENE = wpid2gene, 
                                              TERM2NAME = wpid2name,
-                                             pvalueCutoff = input$enrichmentfdr)
+                                             pvalueCutoff = isolate({input$enrichmentfdr}))
                        } else {
                          results <- GSEA(geneList, 
                                          TERM2GENE = wpid2gene, 
                                          TERM2NAME = wpid2name, 
                                          verbose = FALSE,
-                                         pvalueCutoff = input$enrichmentfdr)
+                                         pvalueCutoff = isolate({input$enrichmentfdr}))
                        }
                      } else if(isolate({input$deaanalysisselect}) == "MSigDb analysis"){
                        message("o MSigDb analysis")
                        # MSigDb analysis
                        if(input$msigdbtype != "All"){
-                         m_t2g <- msigdbr(species = "Homo sapiens", category = input$msigdbtype) %>% 
+                         m_t2g <- msigdbr(species = "Homo sapiens", category = isolate({input$msigdbtype}) %>% 
                            dplyr::select(gs_name, entrez_gene)
                        } else {
                          m_t2g <- msigdbr(species = "Homo sapiens") %>% 
@@ -836,11 +837,11 @@ server <- function(input,output,session)
                        if(isolate({input$deaanalysistype}) == "ORA"){
                          results <- enricher(dea.genes, 
                                              TERM2GENE = m_t2g,
-                                             pvalueCutoff =  input$enrichmentfdr)
+                                             pvalueCutoff =  isolate({input$enrichmentfdr}))
                        } else {
                          results <- GSEA(geneList, 
                                          TERM2GENE = m_t2g,
-                                         pvalueCutoff =  input$enrichmentfdr)
+                                         pvalueCutoff =  isolate({input$enrichmentfdr}))
                        }
                      } else if(isolate({input$deaanalysisselect}) == "Gene Ontology Analysis"){
                        message("o Gene Ontology Analysis")
@@ -851,7 +852,7 @@ server <- function(input,output,session)
                                              OrgDb         = org.Hs.eg.db,
                                              ont           = input$gotype,
                                              pAdjustMethod = "BH",
-                                             pvalueCutoff  = input$enrichmentfdr,
+                                             pvalueCutoff  = isolate({input$enrichmentfdr}),
                                              qvalueCutoff  = 0.05,
                                              readable      = TRUE)
                          
@@ -862,7 +863,7 @@ server <- function(input,output,session)
                                           nPerm        = 1000,
                                           minGSSize    = 100,
                                           maxGSSize    = 500,
-                                          pvalueCutoff = input$enrichmentfdr,
+                                          pvalueCutoff = isolate({input$enrichmentfdr}),
                                           verbose      = FALSE)
                        }
                        
@@ -895,7 +896,7 @@ server <- function(input,output,session)
                          selected = enrichement.analysis()$Description[1],
                          choices =  enrichement.analysis()$Description,
                          server = TRUE)
-
+    
     getEnrichementPlot <- reactive({
       results <- enrichement.analysis()
       if(is.null(results)) return(NULL)
@@ -917,46 +918,41 @@ server <- function(input,output,session)
         return(NULL)
       }
       
-      if(isolate({input$deaanalysisselect}) == "Gene Ontology Analysis") {
-        p <- dotplot(results, showCategory = 10) 
-      } else if(isolate({input$deaanalysisselect}) == "KEGG Analysis") {
-        if(isolate({input$deaanalysistype}) != "ORA") {
-          p <- gseaplot(results, geneSetID = 1, title = results$Description[1])
-        } 
-      } else if(isolate({input$deaanalysisselect}) == "WikiPathways analysis") {
-        p <- dotplot(results, showCategory = 10)
-      } else if(isolate({input$deaanalysisselect}) == "MSigDb analysis") {
-        p <- dotplot(results, showCategory = 10)
-      }
       
-      if(isolate({input$deaanalysistype}) != "ORA" & input$ea_plottype == "Ridgeline") {
-        p <- ridgeplot(results)
-      }
-      
-      if(isolate({input$deaanalysistype}) != "ORA" & input$ea_plottype ==  "Running score and preranked list") {
-        p <- gseaplot2(results, geneSetID = match(input$gsea_gene_sets, results$Description))
-      }
-      if(isolate({input$deaanalysistype}) != "ORA" & input$ea_plottype ==  "Ranked list of genes") {
-        p <- gsearank(results,  which(input$gsea_gene_sets ==  results$Description), 
-                      title = results[ match(input$gsea_gene_sets, results$Description), "Description"])
+      if(isolate({input$deaanalysistype}) == "ORA") {
+        p <- dotplot(results, showCategory = input$ea_nb_categories)
+      } else {
+        # GSEA plots
         
-        pp <- lapply( match(input$gsea_gene_sets, results$Description), function(i) {
-          anno <- results[i, c("NES",  "p.adjust")]
-          lab <- paste0(names(anno), "=",  round(anno, 3), collapse="\n")
+        if( input$ea_plottype == "Dot plot") {
+          p <- dotplot(results, showCategory = input$ea_nb_categories) + 
+            facet_grid(.~ifelse(NES < 0, 'suppressed', 'activated'))
+        }
+        
+        if(input$ea_plottype == "Ridgeline") {
+          p <- ridgeplot(results,showCategory = input$ea_nb_categories)
+        }
+        
+        if(input$ea_plottype ==  "Running score and preranked list") {
+          p <- gseaplot2(results, geneSetID = match(input$gsea_gene_sets, results$Description))
+        }
+        if(input$ea_plottype ==  "Ranked list of genes") {
+          p <- gsearank(results,  which(input$gsea_gene_sets ==  results$Description), 
+                        title = results[ match(input$gsea_gene_sets, results$Description), "Description"])
           
-          es <- results[i, "enrichmentScore"]
-          x <- ifelse(es < 0, 0, length(geneList) * .8)
-          gsearank(results, i, results[i, 2]) + xlab(NULL) +ylab(NULL) +
-            annotate("text", x,  es * .5, label = lab, 
-                     hjust=0, vjust=0, size = 4) + xlim(0, 12500)
-        })
-        p <- plot_grid(plotlist=pp, ncol=1)
+          pp <- lapply( match(input$gsea_gene_sets, results$Description), function(i) {
+            anno <- results[i, c("NES",  "p.adjust")]
+            lab <- paste0(names(anno), "=",  round(anno, 3), collapse="\n")
+            
+            es <- results[i, "enrichmentScore"]
+            x <- ifelse(es < 0, 0, length(geneList) * .8)
+            gsearank(results, i, results[i, 2]) + xlab(NULL) +ylab(NULL) +
+              annotate("text", x,  es * .5, label = lab, 
+                       hjust=0, vjust=0, size = 4) + xlim(0, 12500)
+          })
+          p <- plot_grid(plotlist=pp, ncol=1)
+        }
       }
-      
-      if(isolate({input$deaanalysistype}) != "ORA" & input$ea_plottype == "Dot plot") {
-        p <- p + facet_grid(.~ifelse(NES < 0, 'suppressed', 'activated'))
-      }
-      
       p
     })
     
@@ -1017,11 +1013,13 @@ server <- function(input,output,session)
   observeEvent(input$ea_plottype, {
     if(input$ea_plottype %in% c("Running score and preranked list", "Ranked list of genes")){
       shinyjs::show(id = "gsea_gene_sets", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+      shinyjs::hide(id = "ea_nb_categories", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
     } else {
       shinyjs::hide(id = "gsea_gene_sets", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+      shinyjs::show(id = "ea_nb_categories", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
     }
   })
-
+  
   #---------------------------------
   # Volcano plot tab
   #---------------------------------
