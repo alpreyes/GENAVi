@@ -837,6 +837,7 @@ server <- function(input,output,session)
                        if(isolate({input$deaanalysistype}) == "ORA"){
                          results <- enricher(dea.genes, 
                                              TERM2GENE = wpid2gene, 
+                                             universe      = names(geneList),
                                              TERM2NAME = wpid2name,
                                              pvalueCutoff = isolate({input$enrichmentfdr})
                          )
@@ -861,11 +862,13 @@ server <- function(input,output,session)
                        if(isolate({input$deaanalysistype}) == "ORA"){
                          results <- enricher(dea.genes, 
                                              TERM2GENE = m_t2g,
-                                             pvalueCutoff =  isolate({input$enrichmentfdr})
+                                             universe = names(geneList),
+                                             pvalueCutoff = isolate({input$enrichmentfdr})
                          )
                        } else {
                          results <- GSEA(geneList, 
                                          TERM2GENE = m_t2g,
+                                         universe =  unique(na.omit(readRDS("GRCh38.p12.rds")$entrezgene)),
                                          pvalueCutoff =  isolate({input$enrichmentfdr})
                          )
                        }
@@ -879,7 +882,6 @@ server <- function(input,output,session)
                                              ont           = input$gotype,
                                              pAdjustMethod = "BH",
                                              pvalueCutoff  = isolate({input$enrichmentfdr}),
-                                             qvalueCutoff  = 0.05,
                                              readable      = TRUE)
                          
                        } else {
