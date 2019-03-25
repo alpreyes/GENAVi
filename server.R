@@ -25,7 +25,8 @@ server <- function(input,output,session)
       for (i in resultsNames(data)){
         path <- paste0(i,".csv")
         fs <- c(fs, path)
-        write.csv(as.data.frame(results(data,name = i)), path)
+        df <- cbind("SYMBOL" = rownames(results(data,name = i)),as.data.frame(results(data,name = i)))
+        readr::write_csv(df, path)
       }
       zip(zipfile=fname, files=fs, flags = "-j")
     },

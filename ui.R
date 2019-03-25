@@ -22,14 +22,7 @@ ui <- fluidPage(title = "GENAVi",
                                         selectInput("select_tab1", "Select Transform", transforms, multiple = FALSE), ##need individual selectInputs for each tab
                                         downloadButton("downloadNormalizedData", "Download normalized files"),
                                         tags$hr(),
-                                        h3('Gene selection'), 
-                                        fileInput("input_gene_list_tab1", "Input Gene Symbol List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"), ##how to increase max upload size
-                                        textAreaInput(inputId = "input_gene_list_area",label = "Gene list filter: separate gene names by , or ; or newline",value =  "", width = "100%"),
-                                        actionButton("input_gene_list_but", "Select Rows",width = "100%"), ##do this to put selected rows at top of data table, trying it out
-                                        actionButton("select_most_variable", "Select 1000 genes of highest variance",width = "100%"), ##do this to put selected rows at top of data table, trying it out
-                                        actionButton("unselect_all", "Deselect all genes",width = "100%"), ##do this to put selected rows at top of data table, trying it out
-                                        #selectInput("select_sort_tab1", "Sort Table By", sortby, multiple = FALSE),
-                                        tags$hr(),
+                                        
                                         h3('Data upload'), 
                                         # Input: Select a file ----
                                         fileInput("rawcounts", "Choose CSV File",
@@ -39,7 +32,15 @@ ui <- fluidPage(title = "GENAVi",
                                                              ".csv")),
                                         tags$div(
                                           HTML(paste(help_text))
-                                        )
+                                        ),
+                                        tags$hr(),
+                                        h3('Gene selection'), 
+                                        fileInput("input_gene_list_tab1", "Input Gene Symbol List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"), ##how to increase max upload size
+                                        textAreaInput(inputId = "input_gene_list_area",label = "Gene list filter: separate gene names by , or ; or newline",value =  "", width = "100%"),
+                                        actionButton("input_gene_list_but", "Select Rows",width = "100%"), ##do this to put selected rows at top of data table, trying it out
+                                        actionButton("select_most_variable", "Select 1000 genes of highest variance",width = "100%"), ##do this to put selected rows at top of data table, trying it out
+                                        actionButton("unselect_all", "Deselect all genes",width = "100%") ##do this to put selected rows at top of data table, trying it out
+                                        #selectInput("select_sort_tab1", "Sort Table By", sortby, multiple = FALSE),
                            ),
                            mainPanel(
                              bsAlert("tab1message"),
@@ -213,7 +214,10 @@ ui <- fluidPage(title = "GENAVi",
                                         h3('Help material'), 
                                         shiny::actionButton(inputId='ab1', label="Learn More", 
                                                             icon = icon("th"), 
-                                                            onclick ="window.open('https://guangchuangyu.github.io/pathway-analysis-workshop/', '_blank')")
+                                                            onclick ="window.open('https://guangchuangyu.github.io/pathway-analysis-workshop/', '_blank')"),
+                                        shiny::actionButton(inputId='ab1', label="MSigDB Collections", 
+                                                            icon = icon("th"), 
+                                                            onclick ="window.open('http://software.broadinstitute.org/gsea/msigdb/collection_details.jsp', '_blank')")
                            ),    mainPanel(
                              bsAlert("messageanalysis"),
                              plotOutput("plotenrichment", height = 300),
