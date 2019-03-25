@@ -816,20 +816,22 @@ server <- function(input,output,session)
                          results <- enricher(dea.genes, 
                                              TERM2GENE = wpid2gene, 
                                              TERM2NAME = wpid2name,
-                                             pvalueCutoff = isolate({input$enrichmentfdr}))
+                                             pvalueCutoff = isolate({input$enrichmentfdr})
+                         )
                        } else {
                          results <- GSEA(geneList, 
                                          TERM2GENE = wpid2gene, 
                                          TERM2NAME = wpid2name, 
                                          verbose = FALSE,
-                                         pvalueCutoff = isolate({input$enrichmentfdr}))
+                                         pvalueCutoff = isolate({input$enrichmentfdr})
+                         )
                        }
                      } else if(isolate({input$deaanalysisselect}) == "MSigDb analysis"){
                        message("o MSigDb analysis")
                        # MSigDb analysis
                        if(input$msigdbtype != "All"){
-                         m_t2g <- msigdbr(species = "Homo sapiens", category = isolate({input$msigdbtype}) %>% 
-                           dplyr::select(gs_name, entrez_gene)
+                         m_t2g <- msigdbr(species = "Homo sapiens", category = isolate({input$msigdbtype})) %>% 
+                                            dplyr::select(gs_name, entrez_gene)
                        } else {
                          m_t2g <- msigdbr(species = "Homo sapiens") %>% 
                            dplyr::select(gs_name, entrez_gene)
@@ -837,11 +839,13 @@ server <- function(input,output,session)
                        if(isolate({input$deaanalysistype}) == "ORA"){
                          results <- enricher(dea.genes, 
                                              TERM2GENE = m_t2g,
-                                             pvalueCutoff =  isolate({input$enrichmentfdr}))
+                                             pvalueCutoff =  isolate({input$enrichmentfdr})
+                         )
                        } else {
                          results <- GSEA(geneList, 
                                          TERM2GENE = m_t2g,
-                                         pvalueCutoff =  isolate({input$enrichmentfdr}))
+                                         pvalueCutoff =  isolate({input$enrichmentfdr})
+                         )
                        }
                      } else if(isolate({input$deaanalysisselect}) == "Gene Ontology Analysis"){
                        message("o Gene Ontology Analysis")
@@ -881,234 +885,236 @@ server <- function(input,output,session)
                        }
                      }
                    })
-      save(results,file = paste0(isolate({input$deaanalysistype}),isolate({input$deaanalysisselect}),".rda"))
-      return(results)
+                         save(results,
+                              file = paste0(isolate({input$deaanalysistype}),
+                                            isolate({input$deaanalysisselect}),".rda"))
+                         return(results)
     })  
-    output$tbl.analysis <-  DT::renderDataTable({
-      input$enrichementbt
-      tbl <- enrichement.analysis()
-      if(is.null(tbl)) return(NULL)
-      tbl %>% summary %>% createTable2(show.rownames = F)
-      
-    })
-    
-    updateSelectizeInput(session, 'gsea_gene_sets', 
-                         selected = enrichement.analysis()$Description[1],
-                         choices =  enrichement.analysis()$Description,
-                         server = TRUE)
-    
-    getEnrichementPlot <- reactive({
-      results <- enrichement.analysis()
-      if(is.null(results)) return(NULL)
-      p <- NULL
-      
-      if(nrow(summary(results)) == 0){
-        if("pvalueCutoff"  %in% slotNames(results)){
-          aux <- results@pvalueCutoff
-        } else {
-          aux <- results@params$pvalueCutoff
-        }
-        createAlert(session, 
-                    "messageanalysis", 
-                    "messageanalysisAlert", 
-                    title = "No enriched terms found", 
-                    style =  "danger",
-                    content = paste0("No results for: P-value cut-off = ", aux),
-                    append = FALSE)
-        return(NULL)
-      }
-      
-      
-      if(isolate({input$deaanalysistype}) == "ORA") {
-        p <- dotplot(results, showCategory = input$ea_nb_categories)
-      } else {
-        # GSEA plots
+      output$tbl.analysis <-  DT::renderDataTable({
+        input$enrichementbt
+        tbl <- enrichement.analysis()
+        if(is.null(tbl)) return(NULL)
+        tbl %>% summary %>% createTable2(show.rownames = F)
         
-        if( input$ea_plottype == "Dot plot") {
-          p <- dotplot(results, showCategory = input$ea_nb_categories) + 
-            facet_grid(.~ifelse(NES < 0, 'suppressed', 'activated'))
-        }
+      })
+      
+      updateSelectizeInput(session, 'gsea_gene_sets', 
+                           selected = enrichement.analysis()$Description[1],
+                           choices =  enrichement.analysis()$Description,
+                           server = TRUE)
+      
+      getEnrichementPlot <- reactive({
+        results <- enrichement.analysis()
+        if(is.null(results)) return(NULL)
+        p <- NULL
         
-        if(input$ea_plottype == "Ridgeline") {
-          p <- ridgeplot(results,showCategory = input$ea_nb_categories)
-        }
-        
-        if(input$ea_plottype ==  "Running score and preranked list") {
-          p <- gseaplot2(results, geneSetID = match(input$gsea_gene_sets, results$Description))
-        }
-        if(input$ea_plottype ==  "Ranked list of genes") {
-          p <- gsearank(results,  which(input$gsea_gene_sets ==  results$Description), 
-                        title = results[ match(input$gsea_gene_sets, results$Description), "Description"])
-          
-          pp <- lapply( match(input$gsea_gene_sets, results$Description), function(i) {
-            anno <- results[i, c("NES",  "p.adjust")]
-            lab <- paste0(names(anno), "=",  round(anno, 3), collapse="\n")
-            
-            es <- results[i, "enrichmentScore"]
-            x <- ifelse(es < 0, 0, length(geneList) * .8)
-            gsearank(results, i, results[i, 2]) + xlab(NULL) +ylab(NULL) +
-              annotate("text", x,  es * .5, label = lab, 
-                       hjust=0, vjust=0, size = 4) + xlim(0, 12500)
-          })
-          p <- plot_grid(plotlist=pp, ncol=1)
-        }
-      }
-      p
-    })
-    
-    
-    # Save figure 
-    output$saveenrichementpicture <- downloadHandler(
-      filename = function(){input$enrichementPlot.filename},
-      content = function(file) {
-        if(tools::file_ext(input$enrichementPlot.filename) == "png") {
-          device <- function(..., width, height) {
-            grDevices::png(..., 
-                           width = isolate({input$ea_width}), 
-                           height = isolate({input$ea_height}), 
-                           res = 300, 
-                           units = "in")
+        if(nrow(summary(results)) == 0){
+          if("pvalueCutoff"  %in% slotNames(results)){
+            aux <- results@pvalueCutoff
+          } else {
+            aux <- results@params$pvalueCutoff
           }
-        } else if(tools::file_ext(input$enrichementPlot.filename) == "pdf") {
-          device <- "pdf"
-        } else if(tools::file_ext(input$enrichementPlot.filename) == "svg") {
-          device <- function(..., width, height) {
-            grDevices::svg(..., width = isolate({input$ea_width}), height = isolate({input$ea_height}))
-          } 
-        } else {
           createAlert(session, 
                       "messageanalysis", 
                       "messageanalysisAlert", 
-                      title = "Extension not recognized (svg, pdf and png allowed)", 
+                      title = "No enriched terms found", 
                       style =  "danger",
                       content = paste0("No results for: P-value cut-off = ", aux),
                       append = FALSE)
+          return(NULL)
         }
-        p <- getEnrichementPlot()
-        ggsave(file, 
-               plot = p , 
-               device = device, 
-               width = isolate({input$ea_width}), 
-               height = isolate({input$ea_height}), 
-               units = "in")
-      })
-    
-    output$plotenrichment <- renderPlot({
-      closeAlert(session, "messageanalysisAlert")
-      getEnrichementPlot()
-    })
-  })
-  
-  output$downloadExampleDEAData <- downloadHandler(
-    filename = function() {
-      "subtype_BRCA_Subtype_PAM50_LumA_vs_Basal.csv"
-    },
-    content = function(file) {
-      metadata <- readr::read_csv("test/subtype_BRCA_Subtype_PAM50_LumA_vs_Basal.csv")
-      write_csv(metadata, file)
-    }
-  )
-  
-  
-  observeEvent(input$ea_plottype, {
-    if(input$ea_plottype %in% c("Running score and preranked list", "Ranked list of genes")){
-      shinyjs::show(id = "gsea_gene_sets", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
-      shinyjs::hide(id = "ea_nb_categories", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
-    } else {
-      shinyjs::hide(id = "gsea_gene_sets", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
-      shinyjs::show(id = "ea_nb_categories", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
-    }
-  })
-  
-  #---------------------------------
-  # Volcano plot tab
-  #---------------------------------
-  observeEvent(input$volcanoplotBt, {
-    updateTabsetPanel(session, inputId="DEA", selected = "Volcano plot")
-    output$volcanoplot <- renderPlotly({
-      res <- get.DEA.results()
-      
-      if(is.null(res)) return(NULL)
-      deaSelect <- input$deaSelect
-      if(str_length(deaSelect) == 0) {
-        dea <-  as.data.frame(results(res))
-      } else {
-        if(input$lfc) {
-          
-          #dea <-  as.data.frame(lfcShrink(res, coef = deaSelect)) ### comment out this line to merge with tiagos changes, adding in apeglm for lfcshrink, doesn't break the app
-          
-          withProgress(message = 'Shrink log2 fold changes',
-                       detail = "Shrinking...", value = 0, {
-                         dea <-  as.data.frame(lfcShrink(res, 
-                                                         coef = deaSelect,
-                                                         type = "apeglm")) ### adding apeglm option breaks results
-                       }
-          )
-          
+        
+        
+        if(isolate({input$deaanalysistype}) == "ORA") {
+          p <- dotplot(results, showCategory = input$ea_nb_categories)
         } else {
-          lfcThreshold <- input$log2FoldChange
-          if(lfcThreshold > 0){
-            dea <-  as.data.frame(results(res,
-                                          name = deaSelect,
-                                          lfcThreshold = input$log2FoldChange,  
-                                          altHypothesis = "greaterAbs"))
-          } else {
-            dea <-  as.data.frame(results(res, name = deaSelect))
+          # GSEA plots
+          
+          if( input$ea_plottype == "Dot plot") {
+            p <- dotplot(results, showCategory = input$ea_nb_categories) + 
+              facet_grid(.~ifelse(NES < 0, 'suppressed', 'activated'))
+          }
+          
+          if(input$ea_plottype == "Ridgeline") {
+            p <- ridgeplot(results,showCategory = input$ea_nb_categories)
+          }
+          
+          if(input$ea_plottype ==  "Running score and preranked list") {
+            p <- gseaplot2(results, geneSetID = match(input$gsea_gene_sets, results$Description))
+          }
+          if(input$ea_plottype ==  "Ranked list of genes") {
+            p <- gsearank(results,  which(input$gsea_gene_sets ==  results$Description), 
+                          title = results[ match(input$gsea_gene_sets, results$Description), "Description"])
+            
+            pp <- lapply( match(input$gsea_gene_sets, results$Description), function(i) {
+              anno <- results[i, c("NES",  "p.adjust")]
+              lab <- paste0(names(anno), "=",  round(anno, 3), collapse="\n")
+              
+              es <- results[i, "enrichmentScore"]
+              x <- ifelse(es < 0, 0, length(geneList) * .8)
+              gsearank(results, i, results[i, 2]) + xlab(NULL) +ylab(NULL) +
+                annotate("text", x,  es * .5, label = lab, 
+                         hjust=0, vjust=0, size = 4) + xlim(0, 12500)
+            })
+            p <- plot_grid(plotlist=pp, ncol=1)
           }
         }
-      }
-      x.cut <- isolate({input$log2FoldChange})
-      y.cut <- isolate({input$padj})
-      
-      dea$group <- "Not Significant"
-      dea[which(dea$padj < y.cut & dea$log2FoldChange < -x.cut ),"group"] <- "Downregulated"
-      dea[which(dea$padj < y.cut & dea$log2FoldChange > x.cut ),"group"] <- "Upregulated"
+        p
+      })
       
       
-      f <- list(
-        family = "Courier New, monospace",
-        size = 18,
-        color = "#7f7f7f"
-      )
-      x <- list(
-        title = "log2FoldChange",
-        titlefont = f
-      )
-      y <- list(
-        title = "-log10(p-value adjusted)",
-        titlefont = f
-      )
+      # Save figure 
+      output$saveenrichementpicture <- downloadHandler(
+        filename = function(){input$enrichementPlot.filename},
+        content = function(file) {
+          if(tools::file_ext(input$enrichementPlot.filename) == "png") {
+            device <- function(..., width, height) {
+              grDevices::png(..., 
+                             width = isolate({input$ea_width}), 
+                             height = isolate({input$ea_height}), 
+                             res = 300, 
+                             units = "in")
+            }
+          } else if(tools::file_ext(input$enrichementPlot.filename) == "pdf") {
+            device <- "pdf"
+          } else if(tools::file_ext(input$enrichementPlot.filename) == "svg") {
+            device <- function(..., width, height) {
+              grDevices::svg(..., width = isolate({input$ea_width}), height = isolate({input$ea_height}))
+            } 
+          } else {
+            createAlert(session, 
+                        "messageanalysis", 
+                        "messageanalysisAlert", 
+                        title = "Extension not recognized (svg, pdf and png allowed)", 
+                        style =  "danger",
+                        content = paste0("No results for: P-value cut-off = ", aux),
+                        append = FALSE)
+          }
+          p <- getEnrichementPlot()
+          ggsave(file, 
+                 plot = p , 
+                 device = device, 
+                 width = isolate({input$ea_width}), 
+                 height = isolate({input$ea_height}), 
+                 units = "in")
+        })
       
-      p <- plot_ly(data = dea, 
-                   x = dea$log2FoldChange, 
-                   y = -log10(dea$padj), 
-                   text = rownames(dea), 
-                   mode = "markers", 
-                   color = dea$group) %>% 
-        layout(title ="Volcano Plot") %>%
-        layout(xaxis = x, yaxis = y)  %>%
-        layout(shapes=list(list(type='line', 
-                                x0 = x.cut, 
-                                x1 = x.cut, 
-                                y0 = 0, 
-                                y1 = max(-log10(dea$padj),na.rm = T), 
-                                line=list(dash='dot', width=1)),
-                           list(type='line', 
-                                x0 = -x.cut, 
-                                x1 = -x.cut, 
-                                y0 = 0, 
-                                y1 = max(-log10(dea$padj),na.rm = T), 
-                                line =list(dash='dot', width=1)),
-                           list(type ='line', 
-                                x0 = min(dea$log2FoldChange), 
-                                x1 = max(dea$log2FoldChange), 
-                                y0 =  -log10(y.cut), 
-                                y1 =  -log10(y.cut), 
-                                line = list(dash='dot', width=1))
-        ) 
-        )
-      return(p)
-    })
+      output$plotenrichment <- renderPlot({
+        closeAlert(session, "messageanalysisAlert")
+        getEnrichementPlot()
+      })
   })
+    
+    output$downloadExampleDEAData <- downloadHandler(
+      filename = function() {
+        "subtype_BRCA_Subtype_PAM50_LumA_vs_Basal.csv"
+      },
+      content = function(file) {
+        metadata <- readr::read_csv("test/subtype_BRCA_Subtype_PAM50_LumA_vs_Basal.csv")
+        write_csv(metadata, file)
+      }
+    )
+    
+    
+    observeEvent(input$ea_plottype, {
+      if(input$ea_plottype %in% c("Running score and preranked list", "Ranked list of genes")){
+        shinyjs::show(id = "gsea_gene_sets", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+        shinyjs::hide(id = "ea_nb_categories", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+      } else {
+        shinyjs::hide(id = "gsea_gene_sets", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+        shinyjs::show(id = "ea_nb_categories", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+      }
+    })
+    
+    #---------------------------------
+    # Volcano plot tab
+    #---------------------------------
+    observeEvent(input$volcanoplotBt, {
+      updateTabsetPanel(session, inputId="DEA", selected = "Volcano plot")
+      output$volcanoplot <- renderPlotly({
+        res <- get.DEA.results()
+        
+        if(is.null(res)) return(NULL)
+        deaSelect <- input$deaSelect
+        if(str_length(deaSelect) == 0) {
+          dea <-  as.data.frame(results(res))
+        } else {
+          if(input$lfc) {
+            
+            #dea <-  as.data.frame(lfcShrink(res, coef = deaSelect)) ### comment out this line to merge with tiagos changes, adding in apeglm for lfcshrink, doesn't break the app
+            
+            withProgress(message = 'Shrink log2 fold changes',
+                         detail = "Shrinking...", value = 0, {
+                           dea <-  as.data.frame(lfcShrink(res, 
+                                                           coef = deaSelect,
+                                                           type = "apeglm")) ### adding apeglm option breaks results
+                         }
+            )
+            
+          } else {
+            lfcThreshold <- input$log2FoldChange
+            if(lfcThreshold > 0){
+              dea <-  as.data.frame(results(res,
+                                            name = deaSelect,
+                                            lfcThreshold = input$log2FoldChange,  
+                                            altHypothesis = "greaterAbs"))
+            } else {
+              dea <-  as.data.frame(results(res, name = deaSelect))
+            }
+          }
+        }
+        x.cut <- isolate({input$log2FoldChange})
+        y.cut <- isolate({input$padj})
+        
+        dea$group <- "Not Significant"
+        dea[which(dea$padj < y.cut & dea$log2FoldChange < -x.cut ),"group"] <- "Downregulated"
+        dea[which(dea$padj < y.cut & dea$log2FoldChange > x.cut ),"group"] <- "Upregulated"
+        
+        
+        f <- list(
+          family = "Courier New, monospace",
+          size = 18,
+          color = "#7f7f7f"
+        )
+        x <- list(
+          title = "log2FoldChange",
+          titlefont = f
+        )
+        y <- list(
+          title = "-log10(p-value adjusted)",
+          titlefont = f
+        )
+        
+        p <- plot_ly(data = dea, 
+                     x = dea$log2FoldChange, 
+                     y = -log10(dea$padj), 
+                     text = rownames(dea), 
+                     mode = "markers", 
+                     color = dea$group) %>% 
+          layout(title ="Volcano Plot") %>%
+          layout(xaxis = x, yaxis = y)  %>%
+          layout(shapes=list(list(type='line', 
+                                  x0 = x.cut, 
+                                  x1 = x.cut, 
+                                  y0 = 0, 
+                                  y1 = max(-log10(dea$padj),na.rm = T), 
+                                  line=list(dash='dot', width=1)),
+                             list(type='line', 
+                                  x0 = -x.cut, 
+                                  x1 = -x.cut, 
+                                  y0 = 0, 
+                                  y1 = max(-log10(dea$padj),na.rm = T), 
+                                  line =list(dash='dot', width=1)),
+                             list(type ='line', 
+                                  x0 = min(dea$log2FoldChange), 
+                                  x1 = max(dea$log2FoldChange), 
+                                  y0 =  -log10(y.cut), 
+                                  y1 =  -log10(y.cut), 
+                                  line = list(dash='dot', width=1))
+          ) 
+          )
+        return(p)
+      })
+    })
 }
 
