@@ -934,8 +934,8 @@ server <- function(input,output,session)
         if(tools::file_ext(input$enrichementPlot.filename) == "png") {
           device <- function(..., width, height) {
             grDevices::png(..., 
-                           width = 10, 
-                           height = 10,
+                           width = isolate({input$ea_width}), 
+                           height = isolate({input$ea_height}), 
                            res = 300, 
                            units = "in")
           }
@@ -943,7 +943,7 @@ server <- function(input,output,session)
           device <- "pdf"
         } else if(tools::file_ext(input$enrichementPlot.filename) == "svg") {
           device <- function(..., width, height) {
-            grDevices::svg(..., width = 10, height = 10)
+            grDevices::svg(..., width = isolate({input$ea_width}), height = isolate({input$ea_height}))
           } 
         } else {
           createAlert(session, 
@@ -955,7 +955,12 @@ server <- function(input,output,session)
                       append = FALSE)
         }
         p <- getEnrichementPlot()
-        ggsave(file, plot = p , device = device)
+        ggsave(file, 
+               plot = p , 
+               device = device, 
+               width = isolate({input$ea_width}), 
+               height = isolate({input$ea_height}), 
+               units = "in")
       })
     
     output$plotenrichment <- renderPlot({
