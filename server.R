@@ -873,7 +873,6 @@ server <- function(input,output,session)
                        } else {
                          results <- GSEA(geneList, 
                                          TERM2GENE = m_t2g,
-                                         universe =  unique(na.omit(readRDS("GRCh38.p12.rds")$entrezgene)),
                                          pvalueCutoff =  isolate({input$enrichmentfdr})
                          )
                        }

@@ -254,7 +254,7 @@ ui <- fluidPage(title = "GENAVi",
                              bsAlert("messageanalysis"),
                              tabsetPanel(type = "pills",
                                          tabPanel("Plots",
-                                                  plotOutput("plotenrichment", height = "1000")),
+                                                  plotOutput("plotenrichment", height = "800")),
                                          tabPanel("Table",
                                                   DT::dataTableOutput('tbl.analysis'))
                              )
