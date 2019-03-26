@@ -137,7 +137,7 @@ ui <- fluidPage(title = "GENAVi",
                   ),
                   tabPanel("Tutorial",
                            icon = icon("book"),
-                           includeMarkdown("GENAVi_Tutorial.Rmd"))
+                           includeHTML("GENAVi_Tutorial.html"))
                 )
 )
 

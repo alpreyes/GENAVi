@@ -1,12 +1,12 @@
 ---
-title: "GENAVi_Tutorial"
+title: "GENAVi Tutorial"
 output:
   html_document:
     theme: spacelab
     highlight: tango
 ---
 
-# Tutorial 
+
 
 This quick-start tutorial will guide you through using the provided data files to recreate a normalization, plotting and differential expression analysis.  
 
@@ -21,25 +21,33 @@ GENAV_gene_list_input.txt
 3.	Open junkdnalab.shinyapps.io/GENAVi/
 
 4.	Select the ‘Browse’ button on the ‘Gene Expression’ tab of the app.  
+
 ![](tutorial_figures/step4.png)  
 
 5.	Select the ‘Visualization’ tab, and then the ‘Clustering Plots’ sub tab. Figure 3 from the Vignette will be created, showing the clustering of all samples by all genes shown in the data table.  
+
 ![](tutorial_figures/step5.png)  
 
 6.	To plot single genes as bar charts select the appropriate normalization method (a detailed explaination of which normalization method is suited to different datatypes is available in the Vignette). Variance stabilization transformation is optimal for most datasets for this purpose. Search and select the gene of interest in the data table. Once selected move to the ‘Visualization’ tab, and the ‘Expression plots’ sub-tab.  
+
 ![](tutorial_figures/step6a.png)  
+
 ![](tutorial_figures/step6b.png)  
 
 7.	To perform DEA select the Differential Expression Analysis tab. Select the Browser button to upload the metadata, which will be displayed in the app. 
+
 ![](tutorial_figures/step7.png)  
 
 8.	The settings for the DEA can then be selected. The column headers from the metadata file will be listed under the condition and covariate menus for selection. In this example select model as the condition and batch as the covariate to perform DEA between different ovarian cancer subtypes correcting for sequencing batch.  
+
 !(tutorial_figures/step8.png)  
 
 9.	The DEA results are displayed in the main pane. A full description of each column in the table is available in the Vignette.  
+
 ![](tutorial_figures/step9.png)  
 
 10.	A volcano plot can be generated with customized parameters for fold change and P value thresholds. Select the checkbox next to Perform Log fold change shrinkage, a log2FoldChange threshold of 1.5 and a P adjusted cut off of 0.01 for this example, which recreates Figure 4 from the Vignette.  
+
 ![](tutorial_figures/step10.png)  
 
 11.	The results of DEA can be downloaded using the ‘Download DEA Results’ button. These can easily be used to generate gene lists (example of a gene list is in the Google Drive folder and called GENAV_gene_list_input.txt to select differentially expressed genes to include in cluster, expression or bar plots (such as Figure 2 in the Vignette). 
