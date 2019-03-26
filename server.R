@@ -416,16 +416,16 @@ server <- function(input,output,session)
     
     matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% dplyr::select((res$ngene+1):ncol(tbl.tab1)) %>% as.matrix
     name <- "Expression"
-    if(input$select_z_score == "Rows z-score"){
-      name <- "Expression (Rows z-score)"
-      aux <-  colnames(matrix_expr)
-      matrix_expr = t(apply(matrix_expr, 1, scale))
-      colnames(matrix_expr) <- aux
-    }
-    if(input$select_z_score == "Columns z-score"){
-      name <- "Expression (Column z-score)"
-      matrix_expr <- scale(matrix_expr)
-    }
+    #if(input$select_z_score == "Rows z-score"){
+    #  name <- "Expression (Rows z-score)"
+    #  aux <-  colnames(matrix_expr)
+    #  matrix_expr = t(apply(matrix_expr, 1, scale))
+    #  colnames(matrix_expr) <- aux
+    #}
+    #if(input$select_z_score == "Columns z-score"){
+    #  name <- "Expression (Column z-score)"
+    #  matrix_expr <- scale(matrix_expr)
+    #}
     
     ##may need to change order of cell lines from default alphabetic to histotype specific???...do that with dendro???
     heatmap_expr <- main_heatmap(matrix_expr, name = name, colors = custom_pal_blues) %>%
