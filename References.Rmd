@@ -6,7 +6,9 @@ output:
     highlight: tango
 ---
 
-Since GENEAVi uses a set of tools to work, please cite them if you used them in your analysis.
+# References 
+
+Since GENEAVi uses a set of bioinformatics tools in its backend, please cite them if they were used in your analysis.
 
 * Heatmaps:
   * Schep, Alicia N., and Sarah K. Kummerfeld. "iheatmapr: interactive complex heatmaps in R." J Open Sour Softw 2.16 (2017): 359.

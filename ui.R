@@ -269,7 +269,7 @@ ui <- fluidPage(title = "GENAVi",
                            includeMarkdown("GENAVi_Tutorial.Rmd")),
                   tabPanel("References",
                            icon = icon("book"),
-                           includeMarkdown("references.Rmd"))
+                           includeMarkdown("References.Rmd"))
                 )
 )
 
