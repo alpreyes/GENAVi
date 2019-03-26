@@ -343,7 +343,7 @@ server <- function(input,output,session)
     res <- getEndGeneInfo(tbl.tab1)
     ngene <- res$ngene
     
-    m <- tbl.tab1 %>% select((res$ngene+1):ncol(tbl.tab1)) %>% as.matrix  
+    m <- tbl.tab1 %>% dplyr::select((res$ngene + 1):ncol(tbl.tab1)) %>% as.matrix  
     
     select <- 1:ncol(m)
     if(input$select_pca_type == "Most variant Genes"){
@@ -351,7 +351,7 @@ server <- function(input,output,session)
       rv <- rowVars(m)
       
       # select the ntop genes by variance
-      select <- order(rv, decreasing=TRUE)[seq_len(min(ntop, length(rv)))]
+      select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
     } else   if(input$select_pca_type == "Selected genes"){
       select <- input$tbl.tab1_rows_selected
       if(length(select) < 1) {
@@ -414,7 +414,7 @@ server <- function(input,output,session)
     res <- getEndGeneInfo(tbl.tab1)
     ngene <- res$ngene
     
-    matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% select((res$ngene+1):ncol(tbl.tab1)) %>% as.matrix
+    matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% dplyr::select((res$ngene+1):ncol(tbl.tab1)) %>% as.matrix
     name <- "Expression"
     if(input$select_z_score == "Rows z-score"){
       name <- "Expression (Rows z-score)"
@@ -761,8 +761,8 @@ server <- function(input,output,session)
     ret <- ret[!duplicated(ret$entrezgene),]
     
     # For ORA
-    ret.ora <- ret[abs(ret$log2FoldChange) > isolate({input$ea_subsetlc}) & ret$pvalue < isolate({input$ea_subsetfdr}),]
-    if(isolate({input$ea_subsettype}) == "Upregulated"){
+    ret.ora <- ret[abs(ret$log2FoldChange) > input$ea_subsetlc & ret$pvalue < input$ea_subsetfdr,]
+    if(input$ea_subsettype == "Upregulated"){
       ret.ora <- ret.ora[ret.ora$log2FoldChange > 0,]
     } else {
       ret.ora <- ret.ora[ret.ora$log2FoldChange < 0 ,]
@@ -770,16 +770,16 @@ server <- function(input,output,session)
     dea.genes <- ret.ora$entrezgene
     message("ORA: Using ", length(dea.genes), " genes")
     # For GSEA
-    if(isolate({input$earankingmethod}) == "log Fold Change") {
+    if(input$earankingmethod == "log Fold Change") {
       geneList.metric <- ret$log2FoldChange
-    } else if(isolate({input$earankingmethod}) ==  "-log10(P-value) * sig(log2FC)") {
+    } else if(input$earankingmethod ==  "-log10(P-value) * sig(log2FC)") {
       geneList.metric <- -log10(ret$pvalue) * sign(ret$log2FoldChange)
     } else {
       geneList.metric <- -log10(ret$pvalue) * ret$log2FoldChange
     }
     names(geneList.metric) <- ret$entrezgene
     geneList.metric <- sort(geneList.metric, decreasing = TRUE)
-    
+    message(head(geneList.metric))
     message("==================================")
     return(list("dea.genes" = dea.genes,
                 "geneList" = geneList.metric))
