@@ -913,9 +913,9 @@ server <- function(input,output,session)
                        }
                      }
                    })
-      save(results,
-           file = paste0(isolate({input$deaanalysistype}),
-                         isolate({input$deaanalysisselect}),".rda"))
+      #save(results,
+      #     file = paste0(isolate({input$deaanalysistype}),
+      #                   isolate({input$deaanalysisselect}),".rda"))
       return(results)
     })  
     output$tbl.analysis <-  DT::renderDataTable({
