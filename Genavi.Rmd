@@ -129,7 +129,7 @@ iii. DEA results tables
 ## 6. Gene enrichment analysis <a name="dea"></a>
 
 i. Background
-    1. One important step after identifying the differentially expressed genes is to retrieve a functional profile of those genes in order to better understand the underlying biological processes. Several databases provides annotated gene sets that can be used for the enrichement analysis (i.e.  Molecular Signatures Database - MSigDB, WikiPathways, Kyoto Encyclopedia of Genes and Genomes (KEGG) and Gene Ontology (GO)).
+    1. One important step after identifying the differentially expressed genes is to retrieve a functional profile of those genes in order to better understand the underlying biological processes. Several databases provides annotated gene sets that can be used for the enrichment analysis (i.e.  Molecular Signatures Database - MSigDB, WikiPathways, Kyoto Encyclopedia of Genes and Genomes (KEGG) and Gene Ontology (GO)).
 
 ii. Uploading DEA results
     1. Before performing gene enrichment analysis, the user must first upload a DEA results file, in csv format, in the same format in the  Differential Expression Analysis section. This is done by clicking the `"Browse..."` button in the “DEA results upload” section of the tab.
