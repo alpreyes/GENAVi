@@ -1,0 +1,16 @@
+---
+title: "References"
+output:
+  html_document:
+    theme: spacelab
+    highlight: tango
+---
+
+Since GENEAVi uses a set of tools to work, please cite them if you used them in your analysis.
+
+* Heatmaps:
+  * Schep, Alicia N., and Sarah K. Kummerfeld. "iheatmapr: interactive complex heatmaps in R." J Open Sour Softw 2.16 (2017): 359.
+* DEA analysis: 
+  * Love MI, Huber W, Anders S (2014). “Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.” Genome Biology, 15, 550. doi: 10.1186/s13059-014-0550-8.
+* Enrichment analysis: 
+  * Yu G, Wang L, Han Y, He Q (2012). “clusterProfiler: an R package for comparing biological themes among gene clusters.” OMICS: A Journal of Integrative Biology, 16(5), 284-287. doi: 10.1089/omi.2011.0118.
