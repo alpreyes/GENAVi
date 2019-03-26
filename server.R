@@ -25,9 +25,10 @@ server <- function(input,output,session)
       for (i in resultsNames(data)){
         path <- paste0(i,".csv")
         fs <- c(fs, path)
-        write.csv(as.data.frame(results(data,name = i)), path)
+        df <- cbind("Symbol" = rownames(results(data,name = i)),as.data.frame(results(data,name = i)))
+        write_csv(df, path)
       }
-      zip(zipfile=fname, files=fs, flags = "-j")
+      zip(zipfile = fname, files = fs, flags = "-j")
     },
     contentType = "application/zip"
   )  
@@ -736,6 +737,7 @@ server <- function(input,output,session)
   
   # Return list of DEA genes sorted and the names of the most significant ones  
   readDEA <- reactive({
+    closeAlert(session, "messageanalysisAlertInput")
     ret <- NULL
     inFile <- input$deafile
     if (!is.null(inFile))  {
@@ -755,11 +757,21 @@ server <- function(input,output,session)
       }
     }
     if(is.null(ret)) return(NULL)
-    GRCh38.p12 <- readRDS("GRCh38.p12.rds")
-    ret$entrezgene <- GRCh38.p12$entrezgene[match(ret$SYMBOL,GRCh38.p12$external_gene_name)]
-    ret <- ret[!is.na(ret$entrezgene),]
-    ret <- ret[!duplicated(ret$entrezgene),]
-    
+    if("Symbol" %in% colnames(ret)){
+      GRCh38.p12 <- readRDS("GRCh38.p12.rds")
+      ret$entrezgene <- GRCh38.p12$entrezgene[match(ret$Symbol,GRCh38.p12$external_gene_name)]
+      ret <- ret[!is.na(ret$entrezgene),]
+      ret <- ret[!duplicated(ret$entrezgene),]
+    } else {
+      createAlert(session, 
+                  "messageanalysis", 
+                  "messageanalysisAlertInput", 
+                  title = "Data input not as expected", 
+                  style =  "danger",
+                  content = paste0("No Symbol column in the input"),
+                  append = FALSE)
+      return(NULL)
+    }
     # For ORA
     ret.ora <- ret[abs(ret$log2FoldChange) > input$ea_subsetlc & ret$pvalue < input$ea_subsetfdr,]
     if(input$ea_subsettype == "Upregulated"){
@@ -779,8 +791,6 @@ server <- function(input,output,session)
     }
     names(geneList.metric) <- ret$entrezgene
     geneList.metric <- sort(geneList.metric, decreasing = TRUE)
-    message(head(geneList.metric))
-    message("==================================")
     return(list("dea.genes" = dea.genes,
                 "geneList" = geneList.metric))
   })
