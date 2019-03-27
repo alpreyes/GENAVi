@@ -815,7 +815,8 @@ server <- function(input,output,session)
     if(input$deaanalysistype == "ORA") {
       updateSelectizeInput(session, 'ea_plottype', 
                            selected = "Dot plot",
-                           choices = c("Dot plot"),
+                           choices = c("Dot plot",
+                                       "Enrichment map (network)"),
                            server = TRUE)
     } else {
       updateSelectizeInput(session, 'ea_plottype', 
@@ -823,7 +824,8 @@ server <- function(input,output,session)
                            choices = c("Dot plot",
                                        "Ridgeline",
                                        "Running score and preranked list",
-                                       "Ranked list of genes"),
+                                       "Ranked list of genes",
+                                       "Enrichment map (network)"),
                            server = TRUE)
     }
   })
@@ -832,6 +834,7 @@ server <- function(input,output,session)
     
     enrichement.analysis <- reactive({
       data <- readDEA()
+      #save(data,file = "test.rda")
       if(is.null(data)) return(NULL)
       dea.genes <- data$dea.genes
       geneList <- data$geneList
@@ -964,7 +967,14 @@ server <- function(input,output,session)
       
       
       if(isolate({input$deaanalysistype}) == "ORA") {
-        p <- dotplot(results, showCategory = input$ea_nb_categories)
+        if( input$ea_plottype == "Dot plot") {
+          p <- dotplot(results, showCategory = input$ea_nb_categories)
+        } 
+        
+        if( input$ea_plottype == "Enrichment map (network)") {
+          p <- emapplot(results)
+
+        }          
       } else {
         # GSEA plots
         
@@ -996,6 +1006,10 @@ server <- function(input,output,session)
           })
           p <- plot_grid(plotlist=pp, ncol=1)
         }
+        if( input$ea_plottype == "Enrichment map (network)") {
+          p <- emapplot(results)
+          
+        }          
       }
       p
     })
