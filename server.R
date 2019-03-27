@@ -760,8 +760,7 @@ server <- function(input,output,session)
     if("Symbol" %in% colnames(ret)){
       GRCh38.p12 <- readRDS("GRCh38.p12.rds")
       ret$entrezgene <- GRCh38.p12$entrezgene[match(ret$Symbol,GRCh38.p12$external_gene_name)]
-      ret <- ret[!is.na(ret$entrezgene),]
-      ret <- ret[!duplicated(ret$entrezgene),]
+      ret$ensembl_gene_id <- GRCh38.p12$ensembl_gene_id[match(ret$Symbol,GRCh38.p12$external_gene_name)]
     } else {
       createAlert(session, 
                   "messageanalysis", 
@@ -772,15 +771,19 @@ server <- function(input,output,session)
                   append = FALSE)
       return(NULL)
     }
+    # ENTREZ ID
     # For ORA
     ret.ora <- ret[abs(ret$log2FoldChange) > input$ea_subsetlc & ret$pvalue < input$ea_subsetfdr,]
     if(input$ea_subsettype == "Upregulated"){
       ret.ora <- ret.ora[ret.ora$log2FoldChange > 0,]
     } else {
-      ret.ora <- ret.ora[ret.ora$log2FoldChange < 0 ,]
+      ret.ora <- ret.ora[ret.ora$log2FoldChange < 0,]
     }
-    dea.genes <- ret.ora$entrezgene
+    dea.genes <- na.omit(ret.ora$entrezgene)
+    dea.genes.ensembl <- na.omit(ret.ora$ensembl_gene_id)
     message("ORA: Using ", length(dea.genes), " genes")
+    
+    ret.entrezid <- ret
     # For GSEA
     if(input$earankingmethod == "log Fold Change") {
       geneList.metric <- ret$log2FoldChange
@@ -789,10 +792,19 @@ server <- function(input,output,session)
     } else {
       geneList.metric <- -log10(ret$pvalue) * ret$log2FoldChange
     }
+    geneList.metric.ensembl <- geneList.metric
+    names(geneList.metric.ensembl) <- ret$ensembl_gene_id
+    geneList.metric.ensembl <- sort(geneList.metric.ensembl, decreasing = TRUE)
+    geneList.metric.ensembl <- geneList.metric.ensembl[!is.na(names(geneList.metric.ensembl))]
+    
     names(geneList.metric) <- ret$entrezgene
     geneList.metric <- sort(geneList.metric, decreasing = TRUE)
+    geneList.metric <- geneList.metric[!is.na(names(geneList.metric))]
+    
     return(list("dea.genes" = dea.genes,
-                "geneList" = geneList.metric))
+                "geneList" = geneList.metric,
+                "dea.genes.ensembl" = dea.genes.ensembl,
+                "geneList.ensembl" = geneList.metric.ensembl))
   })
   
   # Perform selected analysis
@@ -834,11 +846,17 @@ server <- function(input,output,session)
     
     enrichement.analysis <- reactive({
       data <- readDEA()
-      #save(data,file = "test.rda")
+      save(data,file = "test.rda")
       if(is.null(data)) return(NULL)
-      dea.genes <- data$dea.genes
-      geneList <- data$geneList
       
+      if(isolate({input$deaanalysisselect}) != "Gene Ontology Analysis") {
+        dea.genes <- data$dea.genes
+        geneList <- data$geneList
+      } else {
+        dea.genes <- data$dea.genes.ensembl
+        geneList <- data$geneList.ensembl
+        
+      }
       withProgress(message = 'Performing analysis',
                    detail = "It might take a while...", value = 0, {
                      
@@ -892,10 +910,10 @@ server <- function(input,output,session)
                      } else if(isolate({input$deaanalysisselect}) == "Gene Ontology Analysis"){
                        message("o Gene Ontology Analysis")
                        if(isolate({input$deaanalysistype}) == "ORA"){
-                         # Gene Ontology Analysis
                          results <- enrichGO(gene          = dea.genes,
                                              universe      = names(geneList),
                                              OrgDb         = org.Hs.eg.db,
+                                             keyType = ifelse(all(grepl("ENSG",names(geneList))), "ENSEMBL","ENTREZID"),
                                              ont           = input$gotype,
                                              pAdjustMethod = "BH",
                                              pvalueCutoff  = isolate({input$enrichmentfdr}),
@@ -905,6 +923,7 @@ server <- function(input,output,session)
                          results <- gseGO(geneList     = geneList,
                                           OrgDb        = org.Hs.eg.db,
                                           ont          = input$gotype,
+                                          keyType = ifelse(all(grepl("ENSG",names(geneList))), "ENSEMBL","ENTREZID"),
                                           nPerm        = 1000,
                                           minGSSize    = 100,
                                           maxGSSize    = 500,
