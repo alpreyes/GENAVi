@@ -107,10 +107,10 @@ createTable2 <- function(df,tableType = "GENAVi", show.rownames = TRUE){
                                                        filename = tableType),
                                                   list(extend='excel',
                                                        filename = tableType),
-                                                  list(extend='pdf',
+                                                  list(extend = 'pdf',
                                                        title = "",
-                                                       filename= tableType)),
-                                   text = 'Download'
+                                                       filename = tableType)),
+                                   text =  'Download current view'
                                  )),
                                fixedHeader = FALSE,
                                pageLength = 20,
@@ -144,7 +144,7 @@ createTable <- function(df,selected_rows=NULL,tableType = "GENAVi", show.rowname
                                                   list(extend='pdf',
                                                        title = "",
                                                        filename= tableType)),
-                                   text = 'Download'
+                                   text = 'Download current view'
                                  )),
                                fixedHeader = FALSE,
                                pageLength = 20,
