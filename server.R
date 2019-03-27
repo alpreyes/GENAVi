@@ -856,7 +856,7 @@ server <- function(input,output,session)
                     "messageanalysisAlertSymbol", 
                     title = "No genes identified", 
                     style =  "danger",
-                    content = paste0("We could not map the genes Symbols to entrez gene ID"),
+                    content = paste0("We could not map the genes Symbols to entrez gene ID. Please check input data."),
                     append = FALSE)
       }
       if(isolate({input$deaanalysisselect}) != "Gene Ontology Analysis") {
