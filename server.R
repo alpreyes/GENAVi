@@ -924,6 +924,25 @@ server <- function(input,output,session)
                                             organism = "hsa", 
                                             nPerm = 10000)
                        }
+                     } else if(isolate({input$deaanalysisselect}) == "Disease Ontology Analysis"){
+                       if(isolate({input$deaanalysistype}) == "ORA"){
+                         # Gene Ontology Analysis
+                         results <- enrichDO(gene          = dea.genes,
+                                             universe      = names(geneList),
+                                             pAdjustMethod = "BH",
+                                             ont           = "DO",
+                                             pvalueCutoff  = isolate({input$enrichmentfdr}),
+                                             readable      = TRUE)
+                         
+                       } else {
+                         results <- gseDO(geneList     = geneList,
+                                          nPerm        = 1000,
+                                          minGSSize = 10,
+                                          maxGSSize = 500,
+                                          pvalueCutoff = isolate({input$enrichmentfdr}),
+                                          verbose      = FALSE)
+                       }
+                       
                      }
                    })
       #save(results,
@@ -973,7 +992,7 @@ server <- function(input,output,session)
         
         if( input$ea_plottype == "Enrichment map (network)") {
           p <- emapplot(results)
-
+          
         }          
       } else {
         # GSEA plots
