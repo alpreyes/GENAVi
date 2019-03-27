@@ -845,10 +845,20 @@ server <- function(input,output,session)
   observeEvent(input$enrichementbt,  {
     
     enrichement.analysis <- reactive({
+      closeAlert(session, "messageanalysisAlertSymbol")
       data <- readDEA()
       save(data,file = "test.rda")
       if(is.null(data)) return(NULL)
       
+      if(length(data$dea.genes) == 0){
+        createAlert(session, 
+                    "messageanalysis", 
+                    "messageanalysisAlertSymbol", 
+                    title = "No genes identified", 
+                    style =  "danger",
+                    content = paste0("We could not map the genes Symbols to entrez gene ID"),
+                    append = FALSE)
+      }
       if(isolate({input$deaanalysisselect}) != "Gene Ontology Analysis") {
         dea.genes <- data$dea.genes
         geneList <- data$geneList
