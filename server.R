@@ -725,7 +725,7 @@ server <- function(input,output,session)
           }
         }
       }
-      tbl <- cbind("Gene" = rownames(tbl), tbl)
+      tbl <- cbind("Symbol" = rownames(tbl), tbl)
       tbl %>% createTable2(show.rownames = F)
     })
   })
