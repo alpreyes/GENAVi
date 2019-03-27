@@ -858,6 +858,7 @@ server <- function(input,output,session)
                     style =  "danger",
                     content = paste0("We could not map the genes Symbols to entrez gene ID. Please check input data."),
                     append = FALSE)
+        return(NULL)
       }
       if(isolate({input$deaanalysisselect}) != "Gene Ontology Analysis") {
         dea.genes <- data$dea.genes
