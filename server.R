@@ -372,14 +372,14 @@ server <- function(input,output,session)
     d <- data.frame(PC1=pca$x[,1], PC2=pca$x[,2], PC3=pca$x[,3], name=colnames(m))
     percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
     if(input$pca_dimensions == "2D") {
-      p <- plot_ly(d, x = ~PC1 , y = ~PC2, text = colnames(m)) 
+      p <- plot_ly(d, x = ~PC1 , y = ~PC2, text = colnames(m), marker=list(size=16), width = 1080, height = 880) ### marker to change pt size in pca plot
       p <- layout(p, title = "Principal Component Analysis (PCA)", 
                   xaxis = list(title = paste0("PC1: ",round(percentVar[1] * 100),"% variance")), 
                   yaxis = list(title = paste0("PC2: ",round(percentVar[2] * 100),"% variance")) 
       )
       
     } else {
-      p <- plot_ly(d, x = ~PC1 , y = ~PC2, z = ~PC3, text = ~paste(name), type = "scatter3d") %>%
+      p <- plot_ly(d, x = ~PC1 , y = ~PC2, z = ~PC3, text = ~paste(name), type = "scatter3d", marker=list(size=14), width = 1180, height = 980) %>%
         add_markers()
       p <- layout(p, 
                   scene = list(
