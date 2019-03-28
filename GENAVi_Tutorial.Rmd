@@ -51,3 +51,26 @@ GENAV_gene_list_input.txt
 ![](tutorial_figures/step10.png)  
 
 11.	The results of DEA can be downloaded using the ‘Download DEA Results’ button. These can easily be used to generate gene lists (example of a gene list is in the Google Drive folder and called GENAV_gene_list_input.txt to select differentially expressed genes to include in cluster, expression or bar plots (such as Figure 2 in the Vignette). 
+
+12. You can use the DEA results as a input for an  enrichment analysis of gene expression data with regard to functional gene sets and pathways. For more information, please read this workshop material https://guangchuangyu.github.io/pathway-analysis-workshop/.  A video demonstrating this part of the tools is available at https://youtu.be/gyfp45lmcV0.
+
+Among the options, GENAVi offers: 
+
+  - gene set enrichment analysis (GSEA) (Subramanian et al. 2005)  
+  - Over Representation Analysis (ORA) (Boyle et al. 2004). 
+
+For GSEA, multiple ranking methods are provided: 
+
+  * ranked by $logFC$ 
+  * $-log10(Pvalue)/sig(logFC)$ 
+  * $-log10(Pvalue) * logFC$. 
+
+Among the analysis, GENAVi provides: 
+
+  * WikiPathways analysis
+  * MSigDb analysis
+  * Gene Ontology Analysis 
+  * KEGG Analysis. 
+
+
+![](tutorial_figures/step12.png)  

@@ -11,7 +11,7 @@ server <- function(input,output,session)
       filter   = 'top'
     )
   })
-
+  
   output$downloadDEAFiles <- downloadHandler(
     filename = function() {
       paste("GENAVi_DEA_results_files", "zip", sep=".")
@@ -25,13 +25,14 @@ server <- function(input,output,session)
       for (i in resultsNames(data)){
         path <- paste0(i,".csv")
         fs <- c(fs, path)
-        write.csv(as.data.frame(results(data,name = i)), path)
+        df <- cbind("Symbol" = rownames(results(data,name = i)),as.data.frame(results(data,name = i)))
+        write_csv(df, path)
       }
-      zip(zipfile=fname, files=fs, flags = "-j")
+      zip(zipfile = fname, files = fs, flags = "-j")
     },
     contentType = "application/zip"
   )  
-    
+  
   output$downloadNormalizedData <- downloadHandler(
     filename = function() {
       paste("GENAVi_normalized_files", "zip", sep=".")
@@ -188,8 +189,71 @@ server <- function(input,output,session)
     tbl.tab1
   })
   
+  gene.selection <- reactiveVal(0)      
+  observeEvent(input$select_most_variable, {
+    gene.selection("Most Var")             # rv$value <- newValue
+  })
+  observeEvent(input$unselect_all, {
+    gene.selection("Unselect")             # rv$value <- newValue
+  })
+  
+  observeEvent(input$input_gene_list_but, {
+    aux <- gene.selection()
+    if(is.character(aux)) aux <- 0
+    gene.selection( aux + 1)             # rv$value <- newValue
+  })
+  
+  
+  
+  
+  # Function to add which genes were selected by the user
+  getTab1.selected <- reactive({
+    
+    # get original table
+    tab <- getTab1()
+    if(gene.selection() == "Most Var"){
+      m <- as.matrix(tab[,grep("Genename|Geneid|Chr|Start|End|Strand|Length", colnames(tab),ignore.case = T,invert = T)])
+      selected_rows <- sort(rowVars(m,na.rm = T), decreasing = T,index.return=TRUE)$ix[1:1000]
+      status <- factor("Unselected",levels = c("Unselected","Selected"))
+      tab <- cbind(status,tab)
+      tab$status[selected_rows] <- 'Selected'
+    } else if (gene.selection() == "Unselect") {
+      status <- factor("Unselected",levels = c("Unselected","Selected"))
+      tab <- cbind(status,tab)
+      selected_rows <- NULL
+    } else {
+      # which ones are already selected
+      selected_rows <- input$tbl.tab1_rows_selected
+      
+      # which column has our gene symbol ?
+      idx <- grep("symbol|genename",colnames(tab),ignore.case = T)
+      
+      # Read genes to filter from a file 
+      inFile <- input$input_gene_list_tab1
+      if (!is.null(inFile)) {
+        geneList <- read_lines(inFile$datapath)
+        selected_rows <- unique(c(selected_rows,which(tab[,idx] %in% geneList)))
+      }    
+      
+      # Read genes to filter from a textarea 
+      geneList <- isolate({input$input_gene_list_area})
+      if(!is.null(geneList)){
+        geneList <- parse.textarea.input(geneList)
+        selected_rows <- unique(c(selected_rows,which(tab[,idx] %in% geneList)))
+      }
+      
+      # Update the rows selected
+      status <- factor("Unselected",levels = c("Unselected","Selected"))
+      tab <- cbind(status,tab)
+      tab$status[selected_rows] <- 'Selected'
+    }
+    return(list("tab" = tab,"selected_rows" = selected_rows))
+    
+  })
+  
   output$tbl.tab1 <-  DT::renderDataTable({
-    tbl.tab1 <- getTab1()
+    tbl.tab1 <- getTab1.selected()$tab
+    selected_rows <- getTab1.selected()$selected_rows
     if(is.null(tbl.tab1)) return(NULL)
     ######### sorting by mean and sd ##################### ....fucks up the select sorting thing...
     #if(input$select_sort_tab1 == "-no selection-") {return(tbl.tab1)}
@@ -205,26 +269,6 @@ server <- function(input,output,session)
     ######## this section sorts the table so that selected rows are first #######
     ####### ordering rows like this makes the selection wonky in the figures, other rows than what you select are being displayed
     ####### try taking this out to see how tables are rendered...or not rendered???
-    selected_rows <- input$tbl.tab1_rows_selected
-    
-    
-    inFile <- input$input_gene_list_tab1
-    if (!is.null(inFile)) {
-      geneList <- read_lines(inFile$datapath)
-      idx <- grep("symbol|genename",colnames(tbl.tab1),ignore.case = T)
-      selected_rows <- unique(c(selected_rows,which(tbl.tab1[,idx] %in% geneList)))
-    }    
-    #  Parse textarea
-    #text.samples <- isolate({input$geneList})
-    #if(!is.null(text.samples)){
-    #  geneList <- parse.textarea.input(text.samples)
-    #  selected_rows <- unique(c(selected_rows,which(tbl.tab1[,1] %in% geneList)))
-    #}
-    
-    status <- factor("Unselected",levels = c("Unselected","Selected"))
-    tbl.tab1 <- cbind(status,tbl.tab1)
-    tbl.tab1$status[selected_rows] <- 'Selected'
-    
     tbl.tab1 %>% createTable(selected_rows,tableType = isolate({input$select_tab1}))
     
     ## try adding the genes list to match() here, see if it breaks the app
@@ -291,6 +335,65 @@ server <- function(input,output,session)
   #---------------------------------
   # Heatmap plot tab
   #---------------------------------
+  # calculate the variance for each gene
+  output$pca_plot <- renderPlotly({ 
+    closeAlert(session, "pcaAlert")
+    tbl.tab1 <- getTab1()
+    
+    # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
+    res <- getEndGeneInfo(tbl.tab1)
+    ngene <- res$ngene
+    
+    m <- tbl.tab1 %>% dplyr::select((res$ngene + 1):ncol(tbl.tab1)) %>% as.matrix  
+    
+    select <- 1:ncol(m)
+    if(input$select_pca_type == "Most variant Genes"){
+      ntop <- 500
+      rv <- rowVars(m)
+      
+      # select the ntop genes by variance
+      select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
+    } else   if(input$select_pca_type == "Selected genes"){
+      select <- input$tbl.tab1_rows_selected
+      if(length(select) < 1) {
+        createAlert(session, "genemessage3", "pcaAlert", title = "Missing data", style =  "danger",
+                    content = paste0("Please select genes in Gene Expression tab"),
+                    append = FALSE)
+        return(NULL)
+      }
+    }
+    
+    # perform a PCA on the data in assay(x) for the selected genes
+    pca <- prcomp(t(m[select,]))
+    
+    # the contribution to the total variance for each component
+    percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
+    
+    d <- data.frame(PC1=pca$x[,1], PC2=pca$x[,2], PC3=pca$x[,3], name=colnames(m))
+    percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
+    if(input$pca_dimensions == "2D") {
+      p <- plot_ly(d, x = ~PC1 , y = ~PC2, text = colnames(m)) 
+      p <- layout(p, title = "Principal Component Analysis (PCA)", 
+                  xaxis = list(title = paste0("PC1: ",round(percentVar[1] * 100),"% variance")), 
+                  yaxis = list(title = paste0("PC2: ",round(percentVar[2] * 100),"% variance")) 
+      )
+      
+    } else {
+      p <- plot_ly(d, x = ~PC1 , y = ~PC2, z = ~PC3, text = ~paste(name), type = "scatter3d") %>%
+        add_markers()
+      p <- layout(p, 
+                  scene = list(
+                    title = "Principal Component Analysis (PCA)", 
+                    xaxis = list(title = paste0("PC1: ",round(percentVar[1] * 100),"% variance")), 
+                    yaxis = list(title = paste0("PC2: ",round(percentVar[2] * 100),"% variance")),
+                    zaxis = list(title = paste0("PC3: ",round(percentVar[3] * 100),"% variance")) 
+                  )
+      )
+      
+    }
+    
+    p
+  })
   
   output$heatmap_expr <- renderIheatmap({ 
     
@@ -312,9 +415,21 @@ server <- function(input,output,session)
     res <- getEndGeneInfo(tbl.tab1)
     ngene <- res$ngene
     
-    matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% select((res$ngene+1):ncol(tbl.tab1)) 
+    matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% dplyr::select((res$ngene+1):ncol(tbl.tab1)) %>% as.matrix
+    name <- "Expression"
+    #if(input$select_z_score == "Rows z-score"){
+    #  name <- "Expression (Rows z-score)"
+    #  aux <-  colnames(matrix_expr)
+    #  matrix_expr = t(apply(matrix_expr, 1, scale))
+    #  colnames(matrix_expr) <- aux
+    #}
+    #if(input$select_z_score == "Columns z-score"){
+    #  name <- "Expression (Column z-score)"
+    #  matrix_expr <- scale(matrix_expr)
+    #}
+    
     ##may need to change order of cell lines from default alphabetic to histotype specific???...do that with dendro???
-    heatmap_expr <- main_heatmap(as.matrix(matrix_expr), name = "Expression", colors = custom_pal_blues) %>%
+    heatmap_expr <- main_heatmap(matrix_expr, name = name, colors = custom_pal_blues) %>%
       add_col_labels(ticktext = colnames(matrix_expr)) %>%
       add_row_labels(ticktext = geneNames, font = list(size = 7)) %>% ##trying to add dendro
       add_col_dendro(hclust(dist(t(as.matrix(matrix_expr)))), reorder = TRUE) ##may have to take out -1 to avoid losing 1st data col
@@ -381,11 +496,11 @@ server <- function(input,output,session)
     }
     
     heatmap_clus <-  tryCatch({
-     main_heatmap(as.matrix(cor(data, method = "pearson")), name = "Correlation", colors = custom_pal_blues) %>% ##adding this custom color palette breaks this heatmap...wait no it doesn't?
-      add_col_labels(ticktext = colnames(data)) %>%
-      add_row_labels(ticktext = colnames(data)) %>% ##works when not using add dendro, but calculates dist wrong?
-      add_col_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE) %>% ##add_dendro not working...save for later, try taking out t(matrix[]), but put back in later if it doesnt work
-      add_row_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE, side = "right") ##try taking out t(matrix[]), but put back in later if it doesnt work
+      main_heatmap(as.matrix(cor(data, method = "pearson")), name = "Correlation", colors = custom_pal_blues) %>% ##adding this custom color palette breaks this heatmap...wait no it doesn't?
+        add_col_labels(ticktext = colnames(data)) %>%
+        add_row_labels(ticktext = colnames(data)) %>% ##works when not using add dendro, but calculates dist wrong?
+        add_col_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE) %>% ##add_dendro not working...save for later, try taking out t(matrix[]), but put back in later if it doesnt work
+        add_row_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE, side = "right") ##try taking out t(matrix[]), but put back in later if it doesnt work
     }, warning = function(w){
       createAlert(session, "genemessage2", "geneAlert", title = "Error: Clustering not possible", style =  "danger",
                   content = paste0(w),
@@ -610,11 +725,407 @@ server <- function(input,output,session)
           }
         }
       }
-      tbl <- cbind("Gene" = rownames(tbl), tbl)
+      tbl <- cbind("Symbol" = rownames(tbl), tbl)
       tbl %>% createTable2(show.rownames = F)
     })
   })
   
+  #
+  # Pathway analysis tab
+  #  source: https://guangchuangyu.github.io/pathway-analysis-workshop/
+  #  
+  
+  # Return list of DEA genes sorted and the names of the most significant ones  
+  readDEA <- reactive({
+    closeAlert(session, "messageanalysisAlertInput")
+    ret <- NULL
+    inFile <- input$deafile
+    if (!is.null(inFile))  {
+      withProgress(message = 'Reading the data',
+                   detail = "This may take a while", value = 0, {
+                     ret <-  read_csv(inFile$datapath, col_types = readr::cols())
+                     setProgress(1, detail = paste("Completed"))
+                   }
+      )
+      if(!is.data.frame(ret)){
+        withProgress(message = 'Reading the data',
+                     detail = "This may take a while", value = 0, {
+                       ret <-  read_csv2(inFile$datapath, col_types = readr::cols())
+                       setProgress(1, detail = paste("Completed"))
+                     }
+        )
+      }
+    }
+    if(is.null(ret)) return(NULL)
+    if("Symbol" %in% colnames(ret)){
+      GRCh38.p12 <- readRDS("GRCh38.p12.rds")
+      ret$entrezgene <- GRCh38.p12$entrezgene[match(ret$Symbol,GRCh38.p12$external_gene_name)]
+      ret$ensembl_gene_id <- GRCh38.p12$ensembl_gene_id[match(ret$Symbol,GRCh38.p12$external_gene_name)]
+    } else {
+      createAlert(session, 
+                  "messageanalysis", 
+                  "messageanalysisAlertInput", 
+                  title = "Data input not as expected", 
+                  style =  "danger",
+                  content = paste0("No Symbol column in the input"),
+                  append = FALSE)
+      return(NULL)
+    }
+    # ENTREZ ID
+    # For ORA
+    ret.ora <- ret[abs(ret$log2FoldChange) > input$ea_subsetlc & ret$pvalue < input$ea_subsetfdr,]
+    if(input$ea_subsettype == "Upregulated"){
+      ret.ora <- ret.ora[ret.ora$log2FoldChange > 0,]
+    } else {
+      ret.ora <- ret.ora[ret.ora$log2FoldChange < 0,]
+    }
+    dea.genes <- na.omit(ret.ora$entrezgene)
+    dea.genes.ensembl <- na.omit(ret.ora$ensembl_gene_id)
+    message("ORA: Using ", length(dea.genes), " genes")
+    
+    ret.entrezid <- ret
+    # For GSEA
+    if(input$earankingmethod == "log Fold Change") {
+      geneList.metric <- ret$log2FoldChange
+    } else if(input$earankingmethod ==  "-log10(P-value) * sig(log2FC)") {
+      geneList.metric <- -log10(ret$pvalue) * sign(ret$log2FoldChange)
+    } else {
+      geneList.metric <- -log10(ret$pvalue) * ret$log2FoldChange
+    }
+    geneList.metric.ensembl <- geneList.metric
+    names(geneList.metric.ensembl) <- ret$ensembl_gene_id
+    geneList.metric.ensembl <- sort(geneList.metric.ensembl, decreasing = TRUE)
+    geneList.metric.ensembl <- geneList.metric.ensembl[!is.na(names(geneList.metric.ensembl))]
+    
+    names(geneList.metric) <- ret$entrezgene
+    geneList.metric <- sort(geneList.metric, decreasing = TRUE)
+    geneList.metric <- geneList.metric[!is.na(names(geneList.metric))]
+    
+    return(list("dea.genes" = dea.genes,
+                "geneList" = geneList.metric,
+                "dea.genes.ensembl" = dea.genes.ensembl,
+                "geneList.ensembl" = geneList.metric.ensembl))
+  })
+  
+  # Perform selected analysis
+  # 
+  observeEvent(input$deaanalysisselect,{
+    if(input$deaanalysisselect ==  "MSigDb analysis") {
+      shinyjs::show(id = "msigdbtype", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+    } else {
+      shinyjs::hide(id = "msigdbtype", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+    }    
+    
+    if(input$deaanalysisselect ==  "Gene Ontology Analysis") {
+      shinyjs::show(id = "gotype", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+    } else {
+      shinyjs::hide(id = "gotype", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+    }  
+  })
+  
+  observeEvent(input$deaanalysistype,  {
+    if(input$deaanalysistype == "ORA") {
+      updateSelectizeInput(session, 'ea_plottype', 
+                           selected = "Dot plot",
+                           choices = c("Dot plot",
+                                       "Enrichment map (network)"),
+                           server = TRUE)
+    } else {
+      updateSelectizeInput(session, 'ea_plottype', 
+                           selected = "Dot plot",
+                           choices = c("Dot plot",
+                                       "Ridgeline",
+                                       "Running score and preranked list",
+                                       "Ranked list of genes",
+                                       "Enrichment map (network)"),
+                           server = TRUE)
+    }
+  })
+  
+  observeEvent(input$enrichementbt,  {
+    
+    enrichement.analysis <- reactive({
+      closeAlert(session, "messageanalysisAlertSymbol")
+      data <- readDEA()
+      save(data,file = "test.rda")
+      if(is.null(data)) return(NULL)
+      
+      if(length(data$dea.genes) == 0){
+        createAlert(session, 
+                    "messageanalysis", 
+                    "messageanalysisAlertSymbol", 
+                    title = "No genes identified", 
+                    style =  "danger",
+                    content = paste0("We could not map the genes Symbols to entrez gene ID. Please check input data."),
+                    append = FALSE)
+        return(NULL)
+      }
+      if(isolate({input$deaanalysisselect}) != "Gene Ontology Analysis") {
+        dea.genes <- data$dea.genes
+        geneList <- data$geneList
+      } else {
+        dea.genes <- data$dea.genes.ensembl
+        geneList <- data$geneList.ensembl
+        
+      }
+      withProgress(message = 'Performing analysis',
+                   detail = "It might take a while...", value = 0, {
+                     
+                     if(isolate({input$deaanalysisselect}) == "WikiPathways analysis"){
+                       message("o WikiPathways analysis")
+                       # WikiPathways analysis
+                       wpgmtfile <- system.file("extdata/wikipathways-20180810-gmt-Homo_sapiens.gmt", 
+                                                package="clusterProfiler")
+                       wp2gene <- read.gmt(wpgmtfile)
+                       wp2gene <- wp2gene %>% tidyr::separate(ont, c("name","version","wpid","org"), "%")
+                       wpid2gene <- wp2gene %>% dplyr::select(wpid, gene) #TERM2GENE
+                       wpid2name <- wp2gene %>% dplyr::select(wpid, name) #TERM2NAME
+                       
+                       if(isolate({input$deaanalysistype}) == "ORA"){
+                         results <- enricher(dea.genes, 
+                                             TERM2GENE = wpid2gene, 
+                                             universe      = names(geneList),
+                                             TERM2NAME = wpid2name,
+                                             pvalueCutoff = isolate({input$enrichmentfdr})
+                         )
+                       } else {
+                         results <- GSEA(geneList, 
+                                         TERM2GENE = wpid2gene, 
+                                         TERM2NAME = wpid2name, 
+                                         verbose = FALSE,
+                                         pvalueCutoff = isolate({input$enrichmentfdr})
+                         )
+                       }
+                     } else if(isolate({input$deaanalysisselect}) == "MSigDb analysis"){
+                       message("o MSigDb analysis")
+                       # MSigDb analysis
+                       if(input$msigdbtype != "All"){
+                         m_t2g <- msigdbr(species = "Homo sapiens", category = isolate({input$msigdbtype})) %>% 
+                           dplyr::select(gs_name, entrez_gene)
+                       } else {
+                         m_t2g <- msigdbr(species = "Homo sapiens") %>% 
+                           dplyr::select(gs_name, entrez_gene)
+                       }
+                       if(isolate({input$deaanalysistype}) == "ORA"){
+                         results <- enricher(dea.genes, 
+                                             TERM2GENE = m_t2g,
+                                             universe = names(geneList),
+                                             pvalueCutoff = isolate({input$enrichmentfdr})
+                         )
+                       } else {
+                         results <- GSEA(geneList, 
+                                         TERM2GENE = m_t2g,
+                                         pvalueCutoff =  isolate({input$enrichmentfdr})
+                         )
+                       }
+                     } else if(isolate({input$deaanalysisselect}) == "Gene Ontology Analysis"){
+                       message("o Gene Ontology Analysis")
+                       if(isolate({input$deaanalysistype}) == "ORA"){
+                         results <- enrichGO(gene          = dea.genes,
+                                             universe      = names(geneList),
+                                             OrgDb         = org.Hs.eg.db,
+                                             keyType = ifelse(all(grepl("ENSG",names(geneList))), "ENSEMBL","ENTREZID"),
+                                             ont           = input$gotype,
+                                             pAdjustMethod = "BH",
+                                             pvalueCutoff  = isolate({input$enrichmentfdr}),
+                                             readable      = TRUE)
+                         
+                       } else {
+                         results <- gseGO(geneList     = geneList,
+                                          OrgDb        = org.Hs.eg.db,
+                                          ont          = input$gotype,
+                                          keyType = ifelse(all(grepl("ENSG",names(geneList))), "ENSEMBL","ENTREZID"),
+                                          nPerm        = 1000,
+                                          minGSSize    = 100,
+                                          maxGSSize    = 500,
+                                          pvalueCutoff = isolate({input$enrichmentfdr}),
+                                          verbose      = FALSE)
+                       }
+                       
+                     } else if(isolate({input$deaanalysisselect}) == "KEGG Analysis"){
+                       message("o KEGG Analysis")
+                       if(isolate({input$deaanalysistype}) == "ORA"){
+                         results <- enrichKEGG(dea.genes, 
+                                               pvalueCutoff = input$enrichmentfdr,
+                                               organism = "hsa")
+                       } else {
+                         results <- gseKEGG(geneList, 
+                                            pvalueCutoff = input$enrichmentfdr,
+                                            organism = "hsa", 
+                                            nPerm = 10000)
+                       }
+                     } else if(isolate({input$deaanalysisselect}) == "Disease Ontology Analysis"){
+                       if(isolate({input$deaanalysistype}) == "ORA"){
+                         # Gene Ontology Analysis
+                         results <- enrichDO(gene          = dea.genes,
+                                             universe      = names(geneList),
+                                             pAdjustMethod = "BH",
+                                             ont           = "DO",
+                                             pvalueCutoff  = isolate({input$enrichmentfdr}),
+                                             readable      = TRUE)
+                         
+                       } else {
+                         results <- gseDO(geneList     = geneList,
+                                          nPerm        = 1000,
+                                          minGSSize = 10,
+                                          maxGSSize = 500,
+                                          pvalueCutoff = isolate({input$enrichmentfdr}),
+                                          verbose      = FALSE)
+                       }
+                       
+                     }
+                   })
+      #save(results,
+      #     file = paste0(isolate({input$deaanalysistype}),
+      #                   isolate({input$deaanalysisselect}),".rda"))
+      return(results)
+    })  
+    output$tbl.analysis <-  DT::renderDataTable({
+      input$enrichementbt
+      tbl <- enrichement.analysis()
+      if(is.null(tbl)) return(NULL)
+      tbl %>% summary %>% createTable2(show.rownames = F)
+      
+    })
+    
+    updateSelectizeInput(session, 'gsea_gene_sets', 
+                         selected = enrichement.analysis()$Description[1],
+                         choices =  enrichement.analysis()$Description,
+                         server = TRUE)
+    
+    getEnrichementPlot <- reactive({
+      results <- enrichement.analysis()
+      if(is.null(results)) return(NULL)
+      p <- NULL
+      
+      if(nrow(summary(results)) == 0){
+        if("pvalueCutoff"  %in% slotNames(results)){
+          aux <- results@pvalueCutoff
+        } else {
+          aux <- results@params$pvalueCutoff
+        }
+        createAlert(session, 
+                    "messageanalysis", 
+                    "messageanalysisAlert", 
+                    title = "No enriched terms found", 
+                    style =  "danger",
+                    content = paste0("No results for enrichment analysis P-value cut-off = ", aux),
+                    append = FALSE)
+        return(NULL)
+      }
+      
+      
+      if(isolate({input$deaanalysistype}) == "ORA") {
+        if( input$ea_plottype == "Dot plot") {
+          p <- dotplot(results, showCategory = input$ea_nb_categories)
+        } 
+        
+        if( input$ea_plottype == "Enrichment map (network)") {
+          p <- emapplot(results)
+          
+        }          
+      } else {
+        # GSEA plots
+        
+        if( input$ea_plottype == "Dot plot") {
+          p <- dotplot(results, showCategory = input$ea_nb_categories) + 
+            facet_grid(.~ifelse(NES < 0, 'suppressed', 'activated'))
+        }
+        
+        if(input$ea_plottype == "Ridgeline") {
+          p <- ridgeplot(results,showCategory = input$ea_nb_categories)
+        }
+        
+        if(input$ea_plottype ==  "Running score and preranked list") {
+          p <- gseaplot2(results, geneSetID = match(input$gsea_gene_sets, results$Description))
+        }
+        if(input$ea_plottype ==  "Ranked list of genes") {
+          p <- gsearank(results,  which(input$gsea_gene_sets ==  results$Description), 
+                        title = results[ match(input$gsea_gene_sets, results$Description), "Description"])
+          
+          pp <- lapply( match(input$gsea_gene_sets, results$Description), function(i) {
+            anno <- results[i, c("NES",  "p.adjust")]
+            lab <- paste0(names(anno), "=",  round(anno, 3), collapse="\n")
+            
+            es <- results[i, "enrichmentScore"]
+            x <- ifelse(es < 0, 0, length(geneList) * .8)
+            gsearank(results, i, results[i, 2]) + xlab(NULL) +ylab(NULL) +
+              annotate("text", x,  es * .5, label = lab, 
+                       hjust=0, vjust=0, size = 4) + xlim(0, 12500)
+          })
+          p <- plot_grid(plotlist=pp, ncol=1)
+        }
+        if( input$ea_plottype == "Enrichment map (network)") {
+          p <- emapplot(results)
+          
+        }          
+      }
+      p
+    })
+    
+    
+    # Save figure 
+    output$saveenrichementpicture <- downloadHandler(
+      filename = function(){input$enrichementPlot.filename},
+      content = function(file) {
+        if(tools::file_ext(input$enrichementPlot.filename) == "png") {
+          device <- function(..., width, height) {
+            grDevices::png(..., 
+                           width = isolate({input$ea_width}), 
+                           height = isolate({input$ea_height}), 
+                           res = 300, 
+                           units = "in")
+          }
+        } else if(tools::file_ext(input$enrichementPlot.filename) == "pdf") {
+          device <- "pdf"
+        } else if(tools::file_ext(input$enrichementPlot.filename) == "svg") {
+          device <- function(..., width, height) {
+            grDevices::svg(..., width = isolate({input$ea_width}), height = isolate({input$ea_height}))
+          } 
+        } else {
+          createAlert(session, 
+                      "messageanalysis", 
+                      "messageanalysisAlert", 
+                      title = "Extension not recognized (svg, pdf and png allowed)", 
+                      style =  "danger",
+                      content = paste0("No results for: P-value cut-off = ", aux),
+                      append = FALSE)
+        }
+        p <- getEnrichementPlot()
+        ggsave(file, 
+               plot = p , 
+               device = device, 
+               width = isolate({input$ea_width}), 
+               height = isolate({input$ea_height}), 
+               units = "in")
+      })
+    
+    output$plotenrichment <- renderPlot({
+      closeAlert(session, "messageanalysisAlert")
+      getEnrichementPlot()
+    })
+  })
+  
+  output$downloadExampleDEAData <- downloadHandler(
+    filename = function() {
+      "subtype_BRCA_Subtype_PAM50_LumA_vs_Basal.csv"
+    },
+    content = function(file) {
+      metadata <- readr::read_csv("test/subtype_BRCA_Subtype_PAM50_LumA_vs_Basal.csv")
+      write_csv(metadata, file)
+    }
+  )
+  
+  
+  observeEvent(input$ea_plottype, {
+    if(input$ea_plottype %in% c("Running score and preranked list", "Ranked list of genes")){
+      shinyjs::show(id = "gsea_gene_sets", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+      shinyjs::hide(id = "ea_nb_categories", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+    } else {
+      shinyjs::hide(id = "gsea_gene_sets", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+      shinyjs::show(id = "ea_nb_categories", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+    }
+  })
   
   #---------------------------------
   # Volcano plot tab

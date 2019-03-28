@@ -7,10 +7,16 @@ list.of.packages <- c("shiny",
                       "readr",
                       "shinythemes",
                       "shinyBS",
+                      "magrittr",
                       "shinyjs",
+                      "msigdbr",
+                      "DOSE",
+                      "org.Hs.eg.db",
                       "apeglm",
+                      "clusterProfiler",
                       "DT",
                       "ashr",
+                      "enrichplot",
                       "plotly")
 
 #checking missing packages from list
@@ -39,7 +45,13 @@ suppressPackageStartupMessages({
   library(apeglm)
   library(ashr)
   library("plotly")
-  
+  library(DOSE)
+  library(clusterProfiler)
+  library(org.Hs.eg.db)
+  library(enrichplot)
+  library(magrittr)
+  library(GSEABase)
+  library(msigdbr)
 })
 # options(repos = BiocInstaller::biocinstallRepos())
 
@@ -95,10 +107,10 @@ createTable2 <- function(df,tableType = "GENAVi", show.rownames = TRUE){
                                                        filename = tableType),
                                                   list(extend='excel',
                                                        filename = tableType),
-                                                  list(extend='pdf',
+                                                  list(extend = 'pdf',
                                                        title = "",
-                                                       filename= tableType)),
-                                   text = 'Download'
+                                                       filename = tableType)),
+                                   text =  'Download current view'
                                  )),
                                fixedHeader = FALSE,
                                pageLength = 20,
@@ -132,7 +144,7 @@ createTable <- function(df,selected_rows=NULL,tableType = "GENAVi", show.rowname
                                                   list(extend='pdf',
                                                        title = "",
                                                        filename= tableType)),
-                                   text = 'Download'
+                                   text = 'Download current view'
                                  )),
                                fixedHeader = FALSE,
                                pageLength = 20,

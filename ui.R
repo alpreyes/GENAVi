@@ -20,12 +20,9 @@ ui <- fluidPage(title = "GENAVi",
                            sidebarPanel(id="sidebar",
                                         h3('Table'), 
                                         selectInput("select_tab1", "Select Transform", transforms, multiple = FALSE), ##need individual selectInputs for each tab
-                                        fileInput("input_gene_list_tab1", "Input Gene Symbol List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"), ##how to increase max upload size
-                                        #textAreaInput(inputId = "geneList",label = "Gene list filter: separate gene names by , or ; or newline",value =  "", width = "100%"),
-                                        #actionButton("but_sortSelectedFirst_tab1", "Selected Rows First"), ##do this to put selected rows at top of data table, trying it out
-                                        #selectInput("select_sort_tab1", "Sort Table By", sortby, multiple = FALSE),
                                         downloadButton("downloadNormalizedData", "Download normalized files"),
                                         tags$hr(),
+                                        
                                         h3('Data upload'), 
                                         # Input: Select a file ----
                                         fileInput("rawcounts", "Choose CSV File",
@@ -35,7 +32,15 @@ ui <- fluidPage(title = "GENAVi",
                                                              ".csv")),
                                         tags$div(
                                           HTML(paste(help_text))
-                                        )
+                                        ),
+                                        tags$hr(),
+                                        h3('Gene selection'), 
+                                        fileInput("input_gene_list_tab1", "Input Gene Symbol List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"), ##how to increase max upload size
+                                        textAreaInput(inputId = "input_gene_list_area",label = "Gene list filter: separate gene names by , or ; or newline",value =  "", width = "100%"),
+                                        actionButton("input_gene_list_but", "Select Rows",width = "100%"), ##do this to put selected rows at top of data table, trying it out
+                                        actionButton("select_most_variable", "Select 1000 genes of highest variance",width = "100%"), ##do this to put selected rows at top of data table, trying it out
+                                        actionButton("unselect_all", "Deselect all genes",width = "100%") ##do this to put selected rows at top of data table, trying it out
+                                        #selectInput("select_sort_tab1", "Sort Table By", sortby, multiple = FALSE),
                            ),
                            mainPanel(
                              bsAlert("tab1message"),
@@ -57,6 +62,10 @@ ui <- fluidPage(title = "GENAVi",
                                                 hidden(
                                                   div(id = "expression_heatmap",
                                                       h3('Expression Heatmap'),
+                                                      #selectInput("select_z_score", 
+                                                      #            label = "Standardized scores?", 
+                                                      #            choices = c("No","Rows z-score", "Columns z-score"), 
+                                                      #            multiple = FALSE),
                                                       iheatmaprOutput("heatmap_expr",height = "auto")
                                                   )
                                                 )
@@ -73,6 +82,21 @@ ui <- fluidPage(title = "GENAVi",
                                                     bsAlert("genemessage2"),
                                                     iheatmaprOutput("heatmap_clus",height = "800px")
                                                 )
+                                       ), tabPanel("PCA plots",
+                                                   icon = icon("object-group"),
+                                                   div(id = "pca_plots",
+                                                       bsAlert("genemessage3"),
+                                                       h3('PCA plot'),
+                                                       selectInput("select_pca_type", 
+                                                                   label = "PCA", 
+                                                                   choices = c("Most variant Genes", "All genes", "Selected genes"), 
+                                                                   multiple = FALSE),
+                                                       selectInput("pca_dimensions", 
+                                                                   label = "Number of dimensions", 
+                                                                   choices = c("2D", "3D"), 
+                                                                   multiple = FALSE),
+                                                       plotlyOutput("pca_plot")
+                                                   )
                                        )
                            )
                   ),
@@ -131,13 +155,122 @@ ui <- fluidPage(title = "GENAVi",
                              )
                            )
                   ),
+                  tabPanel("Enrichment analysis", 
+                           icon = icon("flask"),
+                           sidebarPanel(id="sidebar",
+                                        h3('DEA results upload'), 
+                                        # Input: Select a file ----
+                                        downloadButton('downloadExampleDEAData', 'Download example DEA file'),
+                                        fileInput("deafile", "Choose CSV File",
+                                                  multiple = TRUE,
+                                                  accept = c("text/csv",
+                                                             "text/comma-separated-values,text/plain",
+                                                             ".csv")),
+                                        
+                                        tags$hr(),
+                                        h3('ORA - selecting genes genes'), 
+                                        numericInput("ea_subsetfdr", "P-adj cut-off", value = 0.05, min = 0, max = 1, step = 0.05),
+                                        numericInput("ea_subsetlc", "LogFC cut-off", value = 1, min = 0, max = 3, step = 1),
+                                        selectInput("ea_subsettype", 
+                                                    "Gene status", 
+                                                    c("Upregulated",
+                                                      "Downregulated"), 
+                                                    multiple = FALSE),
+                                        tags$hr(),
+                                        h3('GSEA - ranking method'), 
+                                        selectInput("earankingmethod", 
+                                                    "Select the ranking method", 
+                                                    c("log Fold Change",
+                                                      "-log10(P-value) * sig(log2FC)",
+                                                      "-log10(P-value) * log2FC"), 
+                                                    multiple = FALSE),
+                                        tags$hr(),
+                                        h3('Enrichment Analysis'), 
+                                        selectInput("deaanalysistype", 
+                                                    "Select the type of analysis", 
+                                                    c("ORA (over representation analysis)" = "ORA",
+                                                      "GSEA (gene set enrichment analysis)" = "GSEA"), 
+                                                    multiple = FALSE),
+                                        selectInput("deaanalysisselect", 
+                                                    "Select the analysis", 
+                                                    c("WikiPathways analysis",
+                                                      "MSigDb analysis",
+                                                      "Gene Ontology Analysis",
+                                                      "KEGG Analysis",
+                                                      "Disease Ontology Analysis"), 
+                                                    multiple = FALSE),
+                                        selectInput("msigdbtype", 
+                                                    "Select collection for Molecular Signatures Database", 
+                                                    c("All human gene sets" = "All",
+                                                      "H: hallmark gene sets" = "H",
+                                                      "C1: positional gene sets" = "C1",
+                                                      "C2: curated gene sets" = "C2",
+                                                      "C3: motif gene sets" = "C3",
+                                                      "C4: computational gene sets" = "C4",
+                                                      "C5: GO gene sets" = "C5",
+                                                      "C6: oncogenic signatures" = "C6",
+                                                      "C7: immunologic signatures" = "C7"), 
+                                                    multiple = FALSE),
+                                        selectInput("gotype", 
+                                                    "Select collection for Molecular Signatures Database", 
+                                                    c("Molecular Function"="MF",
+                                                      "Cellular Component"="CC",
+                                                      "Biological Process" = "BP"), 
+                                                    multiple = FALSE),
+                                        numericInput("enrichmentfdr", 
+                                                     "P-value cut-off:", 
+                                                     value = 0.05, 
+                                                     min = 0, 
+                                                     max = 1, 
+                                                     step = 0.05),
+                                        actionButton("enrichementbt", "Perform analysis"),
+                                        tags$hr(),
+                                        h3('Plot options'), 
+                                        selectInput("ea_plottype", 
+                                                    "Plot type", 
+                                                    c("Dot plot",
+                                                      "Ridgeline",
+                                                      "Running score and preranked list",
+                                                      "Ranked list of genes"), 
+                                                    multiple = FALSE),
+                                        numericInput("ea_nb_categories", "Number of categories", value = 10, min = 2, max = 30, step = 1),
+                                        selectInput("gsea_gene_sets", "Plot gene sets", NULL, multiple = TRUE),
+                                        tags$hr(),
+                                        h3('Export figure'), 
+                                        textInput("enrichementPlot.filename", label = "Filename", value = "enrichement_plot.pdf"),
+                                        bsTooltip("enrichementPlot.filename", "Filename (pdf, png, svg)", "left"),
+                                        numericInput("ea_width", "Figure width (in)", value = 10, min = 5, max = 30, step = 1),
+                                        numericInput("ea_height", "Figure height (in)", value = 10, min = 5, max = 30, step = 1),
+                                        downloadButton('saveenrichementpicture', 'Export figure'),
+                                        tags$hr(),
+                                        h3('Help material'), 
+                                        shiny::actionButton(inputId='ab1', label="Learn More", 
+                                                            icon = icon("th"), 
+                                                            onclick ="window.open('https://guangchuangyu.github.io/pathway-analysis-workshop/', '_blank')"),
+                                        shiny::actionButton(inputId='ab1', label="MSigDB Collections", 
+                                                            icon = icon("th"), 
+                                                            onclick ="window.open('http://software.broadinstitute.org/gsea/msigdb/collection_details.jsp', '_blank')")
+                           ),    
+                           mainPanel(
+                             bsAlert("messageanalysis"),
+                             tabsetPanel(type = "pills",
+                                         tabPanel("Plots",
+                                                  plotOutput("plotenrichment", height = "800")),
+                                         tabPanel("Table",
+                                                  DT::dataTableOutput('tbl.analysis'))
+                             )
+                           )
+                  ),
                   tabPanel("Vignette", 
                            icon = icon("book"),
                            includeMarkdown("Genavi.Rmd")
                   ),
                   tabPanel("Tutorial",
                            icon = icon("book"),
-                           includeHTML("GENAVi_Tutorial.html"))
+                           includeMarkdown("GENAVi_Tutorial.Rmd")),
+                  tabPanel("References",
+                           icon = icon("book"),
+                           includeMarkdown("References.Rmd"))
                 )
 )
 

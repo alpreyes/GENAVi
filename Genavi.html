@@ -52,9 +52,7 @@ h6 {
 </style>
 
 
-</head>
 
-<body>
 
 <style type="text/css">
 .main-container {
@@ -79,22 +77,92 @@ img {
 button.code-folding-btn:focus {
   outline: none;
 }
+summary {
+  display: list-item;
+}
 </style>
 
 
 
-<div class="container-fluid main-container">
-
 <!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
 <script>
 $(document).ready(function () {
   window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
 });
 </script>
 
 <!-- code folding -->
 
 
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
 
 
 
@@ -250,6 +318,23 @@ $(document).ready(function () {
 <ol style="list-style-type: decimal">
 <li>After performing differential expression analysis, a result table for each comparison between the experimental condition to the reference condition will be available. The results available can be selected using the <code>&quot;DEA - select results&quot;</code> dropdown menu. The results of the DEA will be shown as a table giving base means across samples, log2 fold changes, standard errors, test statistics, p-values and adjusted p-values (Benjamini-Hochberg multiple hypothesis correction);</li>
 <li>The results table can also be visualized as a volcano plot (y-axis: - log10(p-value adjusted), x-axis: log2FoldChange) using the volcano plot menu in which the cut-offs for both axis can be specified. As results, an interactive plot is created highlighting the condition of each gene (Downregulated in experimental condition, Upregulated in experimental condition, or differential expression not significant) which can be further explored through zooming, hovering, clicking actions.</li>
+</ol></li>
+</ol>
+</div>
+<div id="gene-enrichment-analysis" class="section level2">
+<h2>6. Gene enrichment analysis <a name="dea"></a></h2>
+<ol style="list-style-type: lower-roman">
+<li>Background
+<ol style="list-style-type: decimal">
+<li>One important step after identifying the differentially expressed genes is to retrieve a functional profile of those genes in order to better understand the underlying biological processes. Several databases provides annotated gene sets that can be used for the enrichment analysis (i.e. Molecular Signatures Database - MSigDB, WikiPathways, Kyoto Encyclopedia of Genes and Genomes (KEGG) and Gene Ontology (GO)).</li>
+</ol></li>
+<li>Uploading DEA results
+<ol style="list-style-type: decimal">
+<li>Before performing gene enrichment analysis, the user must first upload a DEA results file, in csv format, in the same format in the Differential Expression Analysis section. This is done by clicking the <code>&quot;Browse...&quot;</code> button in the “DEA results upload” section of the tab.</li>
+<li>After the DEA results csv has been uploaded, the user can then select the the subset of genes that will be used for an Over Representation Analysis (ORA) (Boyle et al. 2004) (i.e. the significant upregulated or downregulated genes) and the ranking method used for a gene set enrichment analysis (GSEA) (Subramanian et al. 2005).</li>
+<li>Using the subset of genes for ORA and the ranking method for GSEA, the user can then choose between both analysis using the <code>&quot;Select the type of analysis&quot;</code> dropdown menu and which databases information it will use for the enrichment analysis using the <code>&quot;Select the type of analysis&quot;</code> dropdown menu.</li>
+<li>The GSEA results can be visualized through several types of plots which can be selected using the <code>&quot;Plot type&quot;</code> dropdown menu.</li>
+<li>For more information the users can read the documentation available at <a href="https://guangchuangyu.github.io/pathway-analysis-workshop/" class="uri">https://guangchuangyu.github.io/pathway-analysis-workshop/</a>.</li>
 </ol></li>
 </ol>
 </div>
