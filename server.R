@@ -372,8 +372,15 @@ server <- function(input,output,session)
     d <- data.frame(PC1=pca$x[,1], PC2=pca$x[,2], PC3=pca$x[,3], name=colnames(m))
     percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
     if(input$pca_dimensions == "2D") {
-      p <- plot_ly(d, x = ~PC1 , y = ~PC2, text = colnames(m), marker=list(size=16), width = 1080, height = 880) ### marker to change pt size in pca plot
-      p <- layout(p, title = "Principal Component Analysis (PCA)", 
+      # if(!is.null(metadata)) ### if metadata present then add color
+      # {
+      #   p <- plot_ly(d, x = ~PC1 , y = ~PC2, text = colnames(m), marker=list(size=16), width = 1080, height = 880, color = input$metadata$model) ### marker to change pt size in pca plot
+      # }
+      # else ### if no metadata default color
+      # {
+        p <- plot_ly(d, x = ~PC1 , y = ~PC2, text = colnames(m), marker=list(size=16), width = 1080, height = 880)
+      # }
+      p <- layout(p, title = "Principal Component Analysis", 
                   xaxis = list(title = paste0("PC1: ",round(percentVar[1] * 100),"% variance")), 
                   yaxis = list(title = paste0("PC2: ",round(percentVar[2] * 100),"% variance")) 
       )
@@ -383,7 +390,7 @@ server <- function(input,output,session)
         add_markers()
       p <- layout(p, 
                   scene = list(
-                    title = "Principal Component Analysis (PCA)", 
+                    title = "Principal Component Analysis", 
                     xaxis = list(title = paste0("PC1: ",round(percentVar[1] * 100),"% variance")), 
                     yaxis = list(title = paste0("PC2: ",round(percentVar[2] * 100),"% variance")),
                     zaxis = list(title = paste0("PC3: ",round(percentVar[3] * 100),"% variance")) 
@@ -535,7 +542,7 @@ server <- function(input,output,session)
     updateSelectizeInput(session, 'select_clus', choices = choices, server = TRUE)
   })  
   observe({
-    metadata <- readMetaData()
+    metadata <- readMetaData() ### try reactive?
     if(!is.null(metadata)){
       updateSelectizeInput(session, 'condition', choices =  colnames(metadata)[-1], server = TRUE)
     }
