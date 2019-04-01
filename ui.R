@@ -95,6 +95,7 @@ ui <- fluidPage(title = "GENAVi",
                                                                    label = "Number of dimensions", 
                                                                    choices = c("2D", "3D"), 
                                                                    multiple = FALSE),
+                                                       selectInput("pcacolor", "Color samples by", NULL, multiple = FALSE), 
                                                        plotlyOutput("pca_plot")
                                                    )
                                        )

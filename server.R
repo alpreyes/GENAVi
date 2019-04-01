@@ -369,8 +369,24 @@ server <- function(input,output,session)
     # the contribution to the total variance for each component
     percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
     
-    d <- data.frame(PC1=pca$x[,1], PC2=pca$x[,2], PC3=pca$x[,3], name=colnames(m))
+    if(!is.null(input$pcacolor) & stringr::str_length(input$pcacolor) > 1) {
+      sample.id <- which(readMetaData()[1,] %in% colnames(m))
+      color.idx <- which(input$pcacolor == colnames(readMetaData()))
+      metadata <- readMetaData()[,c(sample.id,color.idx)]
+      d <- data.frame(PC1 = pca$x[,1], 
+                      PC2 = pca$x[,2], 
+                      PC3 = pca$x[,3], 
+                      name = colnames(m),
+                      color = metadata[match(colnames(m),metadata[,1,drop = T]),2,drop = T])
+    } else {
+      d <- data.frame(PC1 = pca$x[,1], 
+                      PC2 = pca$x[,2], 
+                      PC3 = pca$x[,3], 
+                      name = colnames(m),
+                      color = rep("blue",length(colnames(m))))
+    }
     percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
+    
     if(input$pca_dimensions == "2D") {
       # if(!is.null(metadata)) ### if metadata present then add color
       # {
@@ -378,7 +394,7 @@ server <- function(input,output,session)
       # }
       # else ### if no metadata default color
       # {
-        p <- plot_ly(d, x = ~PC1 , y = ~PC2, text = colnames(m), marker=list(size=16), width = 1080, height = 880)
+      p <- plot_ly(d, x = ~PC1 , y = ~PC2, color = ~color, text = colnames(m), marker=list(size=16), width = 1080, height = 880)
       # }
       p <- layout(p, title = "Principal Component Analysis", 
                   xaxis = list(title = paste0("PC1: ",round(percentVar[1] * 100),"% variance")), 
@@ -386,7 +402,7 @@ server <- function(input,output,session)
       )
       
     } else {
-      p <- plot_ly(d, x = ~PC1 , y = ~PC2, z = ~PC3, text = ~paste(name), type = "scatter3d", marker=list(size=14), width = 1180, height = 980) %>%
+      p <- plot_ly(d, x = ~PC1 , y = ~PC2, z = ~PC3, color = ~color, text = ~paste(name), type = "scatter3d", marker=list(size=14), width = 1180, height = 980) %>%
         add_markers()
       p <- layout(p, 
                   scene = list(
@@ -548,6 +564,12 @@ server <- function(input,output,session)
     }
     if(!is.null(metadata)){
       updateSelectizeInput(session, 'covariates', choices =  c(" ",colnames(metadata)[-1]), server = TRUE)
+    }
+    if(!is.null(metadata)){
+      updateSelectizeInput(session, 'pcacolor', choices =  colnames(metadata)[-1], server = TRUE)
+      shinyjs::show("pcacolor")
+    } else {
+      shinyjs::hide("pcacolor")
     }
     #if(is.null(getDataType(as.logical(input$tcgaDatabase),input$tcgaDataCategoryFilter))) {
     #  shinyjs::hide("tcgaDataTypeFilter")
