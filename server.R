@@ -397,8 +397,8 @@ server <- function(input,output,session)
       p <- plot_ly(d, x = ~PC1 , y = ~PC2, color = ~color, text = colnames(m), marker=list(size=16), width = 1080, height = 880)
       # }
       p <- layout(p, title = "Principal Component Analysis", 
-                  xaxis = list(title = paste0("PC1: ",round(percentVar[1] * 100, digits = 2)),"% variance")), 
-                  yaxis = list(title = paste0("PC2: ",round(percentVar[2] * 100, digits = 2)),"% variance")) 
+                  xaxis = list(title = paste0("PC1: ",round(percentVar[1] * 100, digits = 2),"% variance")), 
+                  yaxis = list(title = paste0("PC2: ",round(percentVar[2] * 100, digits = 2),"% variance")) 
       )
       
     } else {
@@ -407,9 +407,9 @@ server <- function(input,output,session)
       p <- layout(p, 
                   scene = list(
                     title = "Principal Component Analysis", 
-                    xaxis = list(title = paste0("PC1: ",round(percentVar[1] * 100, digits = 2)),"% variance")), 
-                    yaxis = list(title = paste0("PC2: ",round(percentVar[2] * 100, digits = 2)),"% variance")),
-                    zaxis = list(title = paste0("PC3: ",round(percentVar[3] * 100, digits = 2) ),"% variance")) 
+                    xaxis = list(title = paste0("PC1: ",round(percentVar[1] * 100, digits = 2),"% variance")), 
+                    yaxis = list(title = paste0("PC2: ",round(percentVar[2] * 100, digits = 2),"% variance")),
+                    zaxis = list(title = paste0("PC3: ",round(percentVar[3] * 100, digits = 2),"% variance")) 
                   )
       )
       
