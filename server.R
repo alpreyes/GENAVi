@@ -648,8 +648,18 @@ server <- function(input,output,session)
                      return(NULL)
                    } 
                    dds <-  tryCatch({
-                     dds <- DESeqDataSetFromMatrix(countData = cts,
-                                                   colData = metadata,
+                     keep.samples <- !is.na(metadata[,input$condition,drop = T])
+                     createAlert(session, 
+                                 "deamessage", 
+                                 "deaAlert", 
+                                 title = paste0(sum(!keep.samples), " samples with have NA annotations"), 
+                                 style =  "warning",
+                                 content = "To perform the DEA samples cannot be labled as NA we will remove it",
+                                 append = FALSE)
+                  
+                     
+                     dds <- DESeqDataSetFromMatrix(countData = cts[,keep.samples],
+                                                   colData = metadata[keep.samples,],
                                                    design = form)
                      setProgress(0.2, detail = paste("Performing DEA"))
                      keep <- rowSums(counts(dds)) >= 10
