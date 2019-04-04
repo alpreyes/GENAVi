@@ -169,7 +169,7 @@ ui <- fluidPage(title = "GENAVi",
                                                              ".csv")),
                                         
                                         tags$hr(),
-                                        h3('ORA - selecting genes genes'), 
+                                        h3('ORA - selecting genes'), 
                                         numericInput("ea_subsetfdr", "P-adj cut-off", value = 0.05, min = 0, max = 1, step = 0.05),
                                         numericInput("ea_subsetlc", "LogFC cut-off", value = 1, min = 0, max = 3, step = 1),
                                         selectInput("ea_subsettype", 
