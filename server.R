@@ -347,8 +347,8 @@ server <- function(input,output,session)
     m <- tbl.tab1 %>% dplyr::select((res$ngene + 1):ncol(tbl.tab1)) %>% as.matrix  
     
     select <- 1:ncol(m)
-    if(input$select_pca_type == "Most variant Genes"){
-      ntop <- 500
+    if(input$select_pca_type == "Top 1000 variable genes"){
+      ntop <- 1000
       rv <- rowVars(m)
       
       # select the ntop genes by variance
