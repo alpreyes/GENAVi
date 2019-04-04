@@ -370,7 +370,7 @@ server <- function(input,output,session)
     percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
     
     if(!is.null(input$pcacolor) & stringr::str_length(input$pcacolor) > 1) {
-      sample.id <- which(readMetaData()[1,] %in% colnames(m))
+      sample.id <- which(readMetaData()[1,] %in% colnames(m))[1]
       color.idx <- which(input$pcacolor == colnames(readMetaData()))
       metadata <- readMetaData()[,c(sample.id,color.idx)]
       d <- data.frame(PC1 = pca$x[,1], 
@@ -388,17 +388,10 @@ server <- function(input,output,session)
     percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
     
     if(input$pca_dimensions == "2D") {
-      # if(!is.null(metadata)) ### if metadata present then add color
-      # {
-      #   p <- plot_ly(d, x = ~PC1 , y = ~PC2, text = colnames(m), marker=list(size=16), width = 1080, height = 880, color = input$metadata$model) ### marker to change pt size in pca plot
-      # }
-      # else ### if no metadata default color
-      # {
       p <- plot_ly(d, x = ~PC1 , y = ~PC2, color = ~color, text = colnames(m), marker=list(size=16), width = 1080, height = 880)
-      # }
       p <- layout(p, title = "Principal Component Analysis", 
-                  xaxis = list(title = paste0("PC1: ",round(percentVar[1] * 100, digits = 2),"% variance")), 
-                  yaxis = list(title = paste0("PC2: ",round(percentVar[2] * 100, digits = 2),"% variance")) 
+                  xaxis = list(title = paste0("PC1: ", round(percentVar[1] * 100, digits = 2),"% variance")), 
+                  yaxis = list(title = paste0("PC2: ", round(percentVar[2] * 100, digits = 2),"% variance")) 
       )
       
     } else {
@@ -407,9 +400,9 @@ server <- function(input,output,session)
       p <- layout(p, 
                   scene = list(
                     title = "Principal Component Analysis", 
-                    xaxis = list(title = paste0("PC1: ",round(percentVar[1] * 100, digits = 2),"% variance")), 
-                    yaxis = list(title = paste0("PC2: ",round(percentVar[2] * 100, digits = 2),"% variance")),
-                    zaxis = list(title = paste0("PC3: ",round(percentVar[3] * 100, digits = 2),"% variance")) 
+                    xaxis = list(title = paste0("PC1: ", round(percentVar[1] * 100, digits = 2),"% variance")), 
+                    yaxis = list(title = paste0("PC2: ", round(percentVar[2] * 100, digits = 2),"% variance")),
+                    zaxis = list(title = paste0("PC3: ", round(percentVar[3] * 100, digits = 2),"% variance")) 
                   )
       )
       
