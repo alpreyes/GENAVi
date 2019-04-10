@@ -40,7 +40,7 @@ GENAV_gene_list_input.txt
 
 8.	The settings for the DEA can then be selected. The column headers from the metadata file will be listed under the condition and covariate menus for selection. In this example select model as the condition and batch as the covariate to perform DEA between different ovarian cancer subtypes correcting for sequencing batch.  
 
-!(tutorial_figures/step8.png)  
+![](tutorial_figures/step8.png)  
 
 9.	The DEA results are displayed in the main pane. A full description of each column in the table is available in the Vignette.  
 
