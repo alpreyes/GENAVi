@@ -35,11 +35,25 @@ ui <- fluidPage(title = "GENAVi",
                                         ),
                                         tags$hr(),
                                         h3('Gene selection'), 
-                                        fileInput("input_gene_list_tab1", "Input Gene Symbol List (Optional)", multiple = FALSE, accept = NULL, width = NULL, buttonLabel = "Browse", placeholder = "No file selected"), ##how to increase max upload size
-                                        textAreaInput(inputId = "input_gene_list_area",label = "Gene list filter: separate gene names by , or ; or newline",value =  "", width = "100%"),
-                                        actionButton("input_gene_list_but", "Select Rows",width = "100%"), ##do this to put selected rows at top of data table, trying it out
-                                        actionButton("select_most_variable", "Select 1000 genes of highest variance",width = "100%"), ##do this to put selected rows at top of data table, trying it out
-                                        actionButton("unselect_all", "Deselect all genes",width = "100%") ##do this to put selected rows at top of data table, trying it out
+                                        fileInput("input_gene_list_tab1", "Input Gene Symbol List (Optional)", 
+                                                  multiple = FALSE, 
+                                                  accept = NULL, 
+                                                  width = NULL, 
+                                                  buttonLabel = "Browse", 
+                                                  placeholder = "No file selected"), ##how to increase max upload size
+                                        textAreaInput(inputId = "input_gene_list_area",
+                                                      label = "Gene list filter: separate gene names by , or ; or newline",
+                                                      value =  "", 
+                                                      width = "100%"),
+                                        actionButton("input_gene_list_but", 
+                                                     "Select Rows",
+                                                     width = "100%"), ##do this to put selected rows at top of data table, trying it out
+                                        actionButton("select_most_variable", 
+                                                     "Select 1000 genes of highest variance",
+                                                     width = "100%"), ##do this to put selected rows at top of data table, trying it out
+                                        actionButton("unselect_all", 
+                                                     "Deselect all genes",
+                                                     width = "100%") ##do this to put selected rows at top of data table, trying it out
                                         #selectInput("select_sort_tab1", "Sort Table By", sortby, multiple = FALSE),
                            ),
                            mainPanel(

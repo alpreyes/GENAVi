@@ -143,7 +143,7 @@ server <- function(input,output,session)
       withProgress(message = 'Normalizing data',
                    detail = "This may take a while", value = 0, {
                      # normalization: rlog takes a lot of time (hours for a big matrix)
-                     raw      <- cbind(metadata, data) ##might might have to take out blind option???
+                     raw      <- cbind(metadata, data) # might might have to take out blind option???
                      setProgress(0.1, detail = paste("Starting VST"))
                      vst      <- cbind(metadata, tryCatch(vst(data),error = function(e){varianceStabilizingTransformation(data)}))
                      setProgress(0.2, detail = paste("VST completed, starting rownorm"))
@@ -167,9 +167,16 @@ server <- function(input,output,session)
       ret <- get(load("genavi.rda"))
     }
     if(length(names(ret)) == 5){
-      transforms <-  c("raw counts",  "row normalized",  "logCPM - log Counts per Million",  "vst - Variance Stabilizing Transformation",  "rlog - regularized logarithm")
+      transforms <-  c("raw counts",  
+                       "row normalized",  
+                       "logCPM - log Counts per Million",  
+                       "vst - Variance Stabilizing Transformation",  
+                       "rlog - regularized logarithm")
     } else {
-      transforms <-  c("raw counts",  "row normalized",  "logCPM - log Counts per Million",  "vst - Variance Stabilizing Transformation")
+      transforms <-  c("raw counts",  
+                       "row normalized",  
+                       "logCPM - log Counts per Million",  
+                       "vst - Variance Stabilizing Transformation")
     }
     updateSelectizeInput(session, 'select_tab1', 
                          selected = "raw counts",

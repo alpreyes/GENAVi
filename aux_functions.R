@@ -32,6 +32,7 @@ suppressPackageStartupMessages({
   library(shiny)
   library(tidyr) 
   library(ggplot2) 
+  library(rmarkdown)
   library(DESeq2)
   library(edgeR)
   library(iheatmapr)
@@ -182,12 +183,16 @@ getEndGeneInfo <- function(data){
 
 addgeneinfo <- function(data){
   id <- data %>% pull(1)
+  
+  mouse.only.symbols <- setdiff(GRCm38$Symbol,hg38$Symbol)
+  human.only.symbols <- setdiff(hg38$Symbol,GRCm38$Symbol)
+  
   if(all(grepl("ENSG",id))) {
     colnames(data)[1] <- "EnsemblID"
     aux <- strsplit(data$EnsemblID,"\\.")
     data$EnsemblID <- as.character(unlist(lapply(aux,function(x) x[1])))
     data <- merge(hg38,data,by = "EnsemblID")
-  } else if(any(id %in% hg38$Symbol)) {
+  } else if(any(id %in% human.only.symbols)) {
     colnames(data)[1] <- "Symbol"
     data <- merge(hg38,data,by = "Symbol")
   } else  if(all(grepl("ENSMUSG",id))) { # Mouse
@@ -195,7 +200,7 @@ addgeneinfo <- function(data){
     aux <- strsplit(data$EnsemblID,"\\.")
     data$EnsemblID <- as.character(unlist(lapply(aux,function(x) x[1])))
     data <- merge(GRCm38,data,by = "EnsemblID")
-  } else if(any(id %in% GRCm38$Symbol)) {
+  } else if(any(id %in% mouse.only.symbols)) {
     colnames(data)[1] <- "Symbol"
     data <- merge(GRCm38,data,by = "Symbol")
   } else {
