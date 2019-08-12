@@ -1,0 +1,169 @@
+---
+title: "Data normalization using DESeq2"
+output: html_document
+params:
+  raw_counts: NA
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Data Normalization
+
+This report provides the code used to data normalization in GENAVi.
+
+## Load required libraries
+```{r libraries}
+library(DESeq2)
+library(readr)
+```
+
+## Auxiliary functions
+
+### Normalization functions
+```{R}
+rownorm <- function(counts) {
+  rownorm.tbl <- (counts - rowMeans(counts,na.rm = TRUE)) / apply(counts,1,sd)
+  colnames(rownorm.tbl) <- colnames(counts)
+  return(rownorm.tbl)
+}
+
+
+normalized_data <- function(data = NULL, type = NULL){
+  if (type == "rlog") {
+    ret <- rlog(data)
+  } else if(type == "vst") {
+    ret <- tryCatch(
+      vst(data),
+      error = function(e){ 
+        varianceStabilizingTransformation(data) 
+      })
+  } else if (type == "cpm") {
+    ret <- cpm(data, log = TRUE)
+  } else if (type == "raw") {
+    ret <- data
+  } else if (type == "rownorm") {
+    ret <- rownorm(data)
+  }
+  return(ret)
+}
+```
+
+## Read input file
+
+```{r data}
+inFile <- input$rawcounts
+print(inFile)
+
+if (!is.null(inFile)){
+  raw.counts <-  readr::read_csv(inFile$datapath, col_types = readr::cols())
+}
+if(!is.data.frame(raw.counts)){
+  raw.counts <-  readr::read_csv2(inFile$datapath, col_types = readr::cols())
+}  
+
+dim(raw.counts)
+head(raw.counts)
+```
+
+## Add gene information
+
+The code below will add gene information to the raw counts.
+
+```{R geneInfo}
+res <- getEndGeneInfo(raw.counts)
+raw.counts <- res$data
+ngene <- res$ngene
+
+raw.counts <- raw.counts[rowSums(raw.counts[,(ngene + 1):ncol(raw.counts)]) > 1,] ##filtering step, actually change the object
+data <- as.matrix(raw.counts[,(ngene + 1):ncol(tbl.tab1)])
+metadata <- tbl.tab1[,1:(ngene)]
+```
+
+## Normalize the data
+
+Using DESeq2 to normalize the data.
+```{r normalization}
+type <- input$select_tab1
+message(type)
+
+norm.data <- normalized_data(data,type)
+
+norm.data.w.metada <- cbind(metadata, norm.data)
+head(norm.data.w.metada)
+```
+
+## Add gene information
+
+### Retrieve gene information
+
+```{R biomart}
+library(biomaRt)
+attributes <-  c(
+  "chromosome_name",
+  "start_position",
+  "end_position",
+  "strand",
+  "ensembl_gene_id",
+  "entrezgene_id",
+  "external_gene_name"
+)
+
+mouse <- useMart("ensembl", dataset = "mmusculus_gene_ensembl")
+db.datasets <- listDatasets(mouse)
+description <- db.datasets[db.datasets$dataset == "mmusculus_gene_ensembl",]$description
+message("Using: ", description)
+mouse.genes <- getBM(attributes = attributes , mart = mouse)
+
+# Get last version of human from EMSEMBL using  biomaRt
+# to access hg19, the host argument should be set to "grch37.ensembl.org"
+human <- useMart("ensembl", dataset = "hsapiens_gene_ensembl", host = "www.ensembl.org")
+db.datasets <- listDatasets(human)
+description <- db.datasets[db.datasets$dataset == "hsapiens_gene_ensembl",]$description
+message("Using: ", description)
+human.genes <- getBM(attributes =  attributes, mart = human)
+```
+
+### Annotate the data
+
+We will first check if the gene information is from Human or Mouse, then merge gene symbols/names
+and gene information.
+
+```{R}
+
+# Input: gene count matrix with the first column as gene symbols/IDs
+addgeneinfo <- function(data){
+  
+  # Get gene symbol/IDs
+  id <- data %>% pull(1)
+  
+  # Are they human ENSEMBL IDs ?
+  if(all(grepl("ENSG",id))) {
+    colnames(data)[1] <- "EnsemblID"
+    aux <- strsplit(data$EnsemblID,"\\.")
+    data$EnsemblID <- as.character(unlist(lapply(aux,function(x) x[1])))
+    data <- merge(human.genes,data,by = "EnsemblID")
+  } else if(any(id %in% setdiff(human.genes$Symbol, mouse.genes$Symbol)) { 
+    # Are they human Symbol IDs ?
+    colnames(data)[1] <- "Symbol"
+    data <- merge(human.genes, data, by = "Symbol")
+  } else if(all(grepl("ENSMUSG",id))) { # Are they mouse ENSEMBL IDs ?
+    colnames(data)[1] <- "EnsemblID"
+    aux <- strsplit(data$EnsemblID,"\\.")
+    data$EnsemblID <- as.character(unlist(lapply(aux,function(x) x[1])))
+    data <- merge(mouse.genes, data, by = "EnsemblID")
+  } else if(any(id %in% setdiff(mouse.genes$Symbol, human.genes$Symbol))) {
+    colnames(data)[1] <- "Symbol"
+    data <- merge(mouse.genes, data, by = "Symbol")
+  } else {
+    return("gene-error")
+  }
+  return(data)
+}
+```
+
+# Session Information
+```{r sessionInfo}
+sessionInfo()
+```
