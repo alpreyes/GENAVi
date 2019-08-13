@@ -3,6 +3,64 @@ source("aux_functions.R")$value
 server <- function(input,output,session) 
 {
   
+  # ---------------------------------
+  # Creating reports with code
+  # We will create for each section a HTML with the code to 
+  # used in Genavi
+  # - Required reports:
+  #    - DEA
+  #    - Normalization
+  #    - PCA/t-sne
+  #    - Volcano/Heatmap plots
+  # ---------------------------------
+  output$reportNorm <- downloadHandler(
+    
+    # For PDF output, change this to "report.pdf"
+    filename = "report.html",
+    content = function(file) {
+      # Copy the report file to a temporary directory before processing it, in
+      # case we don't have write permissions to the current working dir (which
+      # can happen when deployed).
+      tempReport <- file.path("normalization.Rmd")
+      #file.copy("/Users/tiago/Documents/GENAVi/report/report.Rmd", tempReport, overwrite = TRUE)
+      
+      # Set up parameters to pass to Rmd document
+      #params <- list(n = input$slider)
+      
+      # Knit the document, passing in the `params` list, and eval it in a
+      # child of the global environment (this isolates the code in the document
+      # from the code in this app).
+      rmarkdown::render(input = "normalization.Rmd", output_file = file)
+      
+    }
+  )
+  
+  output$reportPCA <- downloadHandler(
+    
+    # For PDF output, change this to "report.pdf"
+    filename = "report_PCA_genavi.html",
+    content = function(file) {
+      
+      tbl.tab1 <- getTab1()
+      
+      # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
+      res <- getEndGeneInfo(tbl.tab1)
+      ngene <- res$ngene
+      m <- tbl.tab1 %>% dplyr::select((res$ngene + 1):ncol(tbl.tab1)) %>% as.matrix  
+      # Set up parameters to pass to Rmd document
+      params <- list(matrix = m)
+      
+      # Knit the document, passing in the `params` list, and eval it in a
+      # child of the global environment (this isolates the code in the document
+      # from the code in this app).
+      rmarkdown::render(input = "report/pca.Rmd", params = params, output_file = file,
+                        envir = new.env(parent = globalenv()))
+      
+    }
+  )
+  
+  
+  
   output$contents <-  DT::renderDataTable({
     data <- getNormalizedData()$raw
     if(!is.null(data)) data %>% DT::datatable(
@@ -353,7 +411,7 @@ server <- function(input,output,session)
     
     m <- tbl.tab1 %>% dplyr::select((res$ngene + 1):ncol(tbl.tab1)) %>% as.matrix  
     
-    select <- 1:ncol(m)
+    select <- 1:nrow(m)
     if(input$select_pca_type == "Top 1000 variable genes"){
       ntop <- 1000
       rv <- rowVars(m)

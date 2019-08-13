@@ -21,6 +21,7 @@ ui <- fluidPage(title = "GENAVi",
                                         h3('Table'), 
                                         selectInput("select_tab1", "Select Transform", transforms, multiple = FALSE), ##need individual selectInputs for each tab
                                         downloadButton("downloadNormalizedData", "Download normalized files"),
+                                        downloadButton("reportNorm", "Download report"),
                                         tags$hr(),
                                         
                                         h3('Data upload'), 
@@ -110,6 +111,7 @@ ui <- fluidPage(title = "GENAVi",
                                                                    choices = c("2D", "3D"), 
                                                                    multiple = FALSE),
                                                        selectInput("pcacolor", "Color samples by", NULL, multiple = FALSE), 
+                                                       downloadButton("reportPCA", "Download as report"),
                                                        plotlyOutput("pca_plot")
                                                    )
                                        )
