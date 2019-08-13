@@ -16,7 +16,7 @@ server <- function(input,output,session)
   output$reportNorm <- downloadHandler(
     
     # For PDF output, change this to "report.pdf"
-    filename = "report.html",
+    filename = "report_normalization_genavi.html",
     content = function(file) {
       # Copy the report file to a temporary directory before processing it, in
       # case we don't have write permissions to the current working dir (which
@@ -47,6 +47,7 @@ server <- function(input,output,session)
       res <- getEndGeneInfo(tbl.tab1)
       ngene <- res$ngene
       m <- tbl.tab1 %>% dplyr::select((res$ngene + 1):ncol(tbl.tab1)) %>% as.matrix  
+      rownames(m) <- tbl.tab1 %>% pull(1)
       # Set up parameters to pass to Rmd document
       params <- list(matrix = m)
       

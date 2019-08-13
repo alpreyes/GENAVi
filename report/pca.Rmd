@@ -13,8 +13,10 @@ matrix <- params$matrix
 
 
 # Load required libraries
-```{r libraries}
+```{r libraries, message = FALSE}
 library(plotly)
+library(plyr)
+library(dplyr)
 ```
 
 # Data
