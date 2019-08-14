@@ -54,14 +54,17 @@ server <- function(input,output,session)
       # Knit the document, passing in the `params` list, and eval it in a
       # child of the global environment (this isolates the code in the document
       # from the code in this app).
-      rmarkdown::render(input = "report/pca.Rmd", 
-                        params = params, 
-                        output_file = file,
-                        envir = new.env(parent = globalenv()))
+      shiny::withProgress(value = 0,
+                          message = 'Rendering PCA report.',
+                          detail =  'This might take some minutes.',{
+                            rmarkdown::render(input = "report/pca.Rmd", 
+                                              params = params, 
+                                              output_file = file,
+                                              envir = new.env(parent = globalenv()))
+                          })
       
     }
   )
-  
   
   output$reportDEA <- downloadHandler(
     
