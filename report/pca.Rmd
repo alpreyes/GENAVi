@@ -113,13 +113,14 @@ plot.2d <- plot_ly(pca.df,
                    x = ~PC1 , 
                    y = ~PC2, 
                    text = colnames(matrix), 
-                   marker = list(size=16), 
+                   marker = list(size = 16), 
                    width = 1080, 
                    height = 880)
 plot.2d <- layout(plot.2d, 
+                  showlegend = FALSE,
                   title = "Principal Component Analysis", 
-                  xaxis = list(title = paste0("PC1: ", round(percentVar[1] * 100, digits = 2),"% variance")), 
-                  yaxis = list(title = paste0("PC2: ", round(percentVar[2] * 100, digits = 2),"% variance")) 
+                  xaxis = list(title = paste0("PC1: ", round(percentVar[1] * 100, digits = 2), "% variance")), 
+                  yaxis = list(title = paste0("PC2: ", round(percentVar[2] * 100, digits = 2), "% variance")) 
 )
 plot.2d
 ```
@@ -133,13 +134,14 @@ plot.3d <- plot_ly(pca.df,
                    z = ~PC3, 
                    text = ~paste(name), 
                    type = "scatter3d", 
-                   marker=list(size=14), 
+                   marker = list(size = 14), 
                    width = 1180, 
                    height = 980) %>%
   add_markers()
 plot.3d <- layout(plot.3d, 
                   scene = list(
                     title = "Principal Component Analysis", 
+                    showlegend = FALSE,
                     xaxis = list(title = paste0("PC1: ", round(percentVar[1] * 100, digits = 2),"% variance")), 
                     yaxis = list(title = paste0("PC2: ", round(percentVar[2] * 100, digits = 2),"% variance")),
                     zaxis = list(title = paste0("PC3: ", round(percentVar[3] * 100, digits = 2),"% variance")) 
