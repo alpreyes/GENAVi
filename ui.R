@@ -21,7 +21,7 @@ ui <- fluidPage(title = "GENAVi",
                                         h3('Table'), 
                                         selectInput("select_tab1", "Select Transform", transforms, multiple = FALSE), ##need individual selectInputs for each tab
                                         downloadButton("downloadNormalizedData", "Download normalized files"),
-                                        downloadButton("reportNorm", "Download report"),
+                                        #downloadButton("reportNorm", "Download report"),
                                         tags$hr(),
                                         
                                         h3('Data upload'), 

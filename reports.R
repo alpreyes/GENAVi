@@ -14,19 +14,7 @@ output$reportNorm <- downloadHandler(
   # For PDF output, change this to "report.pdf"
   filename = "report_normalization_genavi.html",
   content = function(file) {
-    # Copy the report file to a temporary directory before processing it, in
-    # case we don't have write permissions to the current working dir (which
-    # can happen when deployed).
-    tempReport <- file.path("normalization.Rmd")
-    #file.copy("/Users/tiago/Documents/GENAVi/report/report.Rmd", tempReport, overwrite = TRUE)
-    
-    # Set up parameters to pass to Rmd document
-    #params <- list(n = input$slider)
-    
-    # Knit the document, passing in the `params` list, and eval it in a
-    # child of the global environment (this isolates the code in the document
-    # from the code in this app).
-    rmarkdown::render(input = "normalization.Rmd", output_file = file)
+    rmarkdown::render(input = "report/normalization.Rmd", output_file = file)
     
   }
 )
