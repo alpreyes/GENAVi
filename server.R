@@ -3,6 +3,7 @@ source("aux_functions.R")$value
 server <- function(input,output,session) 
 {
   
+  # Adding code for rendering reports with code
   source("reports.R", local = TRUE)$value
   
   output$contents <-  DT::renderDataTable({
