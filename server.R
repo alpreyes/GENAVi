@@ -54,13 +54,74 @@ server <- function(input,output,session)
       # Knit the document, passing in the `params` list, and eval it in a
       # child of the global environment (this isolates the code in the document
       # from the code in this app).
-      rmarkdown::render(input = "report/pca.Rmd", params = params, output_file = file,
+      rmarkdown::render(input = "report/pca.Rmd", 
+                        params = params, 
+                        output_file = file,
                         envir = new.env(parent = globalenv()))
       
     }
   )
   
   
+  output$reportDEA <- downloadHandler(
+    
+    # For PDF output, change this to "report.pdf"
+    filename = "report_DEA_genavi.html",
+    content = function(file) {
+      shiny::withProgress(value = 0,message = 'Rendering DEA report.',
+                          detail =  'This might take some minutes.',{
+                            
+                            metadata <- readMetaData()
+                            if(!is.null(readData())) all_cell_lines <- readData()
+                            res <- getEndGeneInfo(all_cell_lines)
+                            matrix <- res$data
+                            ngene <- res$ngene
+                            
+                            if("Symbol" %in% colnames(matrix)){
+                              genes <- matrix %>% pull("Symbol")
+                            } else if("Genename" %in% colnames(matrix))  {
+                              genes <- matrix %>% pull("Genename")
+                            } else {
+                              genes <- matrix %>% pull(1)
+                            }
+                            
+                            cts <- as.matrix(matrix[,(ngene + 1):ncol(matrix)])
+                            rownames(cts) <-  genes
+                            rownames(cts) <- matrix %>% pull(1)
+                            
+                            # Read aux values required for analysis (condition, covariates and reference value)
+                            cond <- isolate(input$condition)
+                            cov <- isolate(input$covariates)
+                            ref <-  isolate(input$reference)
+                            lfc <-  isolate(input$lfc)
+                            log2FoldChange <- isolate(input$log2FoldChange)
+                            lfc <-  isolate(input$lfc)
+                            deaSelect <-  isolate(input$deaSelect)
+                            padj <-  isolate(input$padj)
+                            
+                            # Set up parameters to pass to Rmd document
+                            params <- list( 
+                              log2FoldChange = log2FoldChange,
+                              padj = padj,
+                              metadata = metadata,
+                              deaSelect = deaSelect,
+                              lfc =  lfc,
+                              condition = cond,
+                              covariates = cov,
+                              raw_cts = cts,
+                              reference = ref)
+                            
+                            # Knit the document, passing in the `params` list, and eval it in a
+                            # child of the global environment (this isolates the code in the document
+                            # from the code in this app).
+                            rmarkdown::render(input = "report/DEA.Rmd", 
+                                              params = params, 
+                                              output_file = file,
+                                              envir = new.env(parent = globalenv()))
+                          })
+      
+    }
+  )
   
   output$contents <-  DT::renderDataTable({
     data <- getNormalizedData()$raw
@@ -630,11 +691,6 @@ server <- function(input,output,session)
     } else {
       shinyjs::hide("pcacolor")
     }
-    #if(is.null(getDataType(as.logical(input$tcgaDatabase),input$tcgaDataCategoryFilter))) {
-    #  shinyjs::hide("tcgaDataTypeFilter")
-    #} else {
-    #  shinyjs::show("tcgaDataTypeFilter")
-    #}
   })
   
   
@@ -792,12 +848,12 @@ server <- function(input,output,session)
       res <- get.DEA.results()
       if(is.null(res)) return(NULL)
       deaSelect <- input$deaSelect
-      lfcThreshold <- input$log2FoldChange
+      
       if(str_length(deaSelect) == 0) {
-        if(lfcThreshold > 0){
+        if(input$log2FoldChange > 0){
           tbl <-  as.data.frame(results(res,
-                                        lfcThreshold=input$log2FoldChange,  
-                                        altHypothesis="greaterAbs"))
+                                        lfcThreshold = input$log2FoldChange,  
+                                        altHypothesis = "greaterAbs"))
           
         } else {
           tbl <-  as.data.frame(results(res,name = deaSelect))
@@ -814,7 +870,7 @@ server <- function(input,output,session)
                        })
           
         } else {
-          if(lfcThreshold > 0){
+          if(input$log2FoldChange > 0){
             tbl <-  as.data.frame(results(res,
                                           name = deaSelect,
                                           lfcThreshold = input$log2FoldChange,  
@@ -1252,8 +1308,7 @@ server <- function(input,output,session)
           )
           
         } else {
-          lfcThreshold <- input$log2FoldChange
-          if(lfcThreshold > 0){
+          if(input$log2FoldChange > 0){
             dea <-  as.data.frame(results(res,
                                           name = deaSelect,
                                           lfcThreshold = input$log2FoldChange,  

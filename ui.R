@@ -150,8 +150,10 @@ ui <- fluidPage(title = "GENAVi",
                                         h3('Volcano plot'), 
                                         numericInput("log2FoldChange", "log2FoldChange  cut-off:", value = 0, min = 0, max = 10, step = 0.1),
                                         numericInput("padj", "P adjusted cut-off:", 0.01, min = 0, max = 1,step = 0.1),
-                                        actionButton("volcanoplotBt", "Plot volcano plot")
-                                        
+                                        actionButton("volcanoplotBt", "Plot volcano plot"),
+                                        tags$hr(),
+                                        h3('HTML report'),
+                                        downloadButton("reportDEA", "Download Report")
                            ),
                            mainPanel(
                              bsAlert("deamessage"),

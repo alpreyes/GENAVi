@@ -1,0 +1,197 @@
+---
+title: "Differential Expression Analasysi (DEA)"
+output: html_document
+params:
+  log2FoldChange: NA
+  padj: NA
+  deaSelect: NA
+  lfc: NA
+  condition: NA
+  covariates: NA
+  raw_cts: NA
+  metadata: NA
+  reference: NA
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = FALSE)
+```
+
+
+# Load required libraries
+```{r libraries, message = FALSE}
+library(plotly)
+library(plyr)
+library(dplyr)
+library(DESeq2)
+```
+
+# Variables
+```{r variabels}
+# DEA formula definition
+condition <- params$condition
+condition
+covariates <- params$covariates
+covariates
+
+# Level of reference
+reference <- params$reference
+reference
+
+# Cut-offs
+log2FoldChange <- params$log2FoldChange
+log2FoldChange
+
+padj <- params$padj
+padj
+
+# Results
+deaSelect <- params$deaSelect
+deaSelect
+
+lfc <- params$lfc
+lfc
+```
+
+# Data
+```{r data}
+raw_cts <- params$raw_cts
+head(raw_cts)
+dim(raw_cts)
+```
+
+# Metadata
+```{r metadata}
+metadata <- params$metadata
+head(metadata)
+dim(metadata)
+```
+
+
+#### Define formual
+```{R plot2dall, message = FALSE}
+form <- NULL
+if(is.null(covariates)){
+  if(str_length(condition) > 0) form <- as.formula(paste0("~ ", condition))
+} else if(str_length(condition) > 0 & (length(covariates) == 0)) {
+  form <- as.formula(paste0("~ ", condition))
+} else if(length(covariates) > 0) {
+  form <- as.formula(paste0("~ ",paste(covariates,collapse = "+")," + ", condition))
+}
+as.character(form)
+```
+
+
+### DEA
+
+```{R,eval = TRUE}
+res <- NULL
+# Samples must be in the same order as in the metadata
+metadata <- metadata[match(colnames(raw_cts), metadata %>% pull(1)),]
+
+# To perform the DEA samples cannot be labled as NA we will remove it
+table(metadata[,condition])
+keep.samples <- !is.na(metadata[,condition,drop = T])
+
+# Perform DEA using defined formula
+dds <- DESeqDataSetFromMatrix(countData = raw_cts[,keep.samples],
+                              colData = metadata[keep.samples,],
+                              design = form)
+keep <- rowSums(counts(dds)) >= 10
+dds[[condition]] <- relevel(dds[[condition]], ref = reference)
+dds <- dds[keep,]
+res <- DESeq(dds)
+DESeq2::resultsNames(res)
+```
+
+
+## Get results
+
+```{R,eval = TRUE , message = FALSE}  
+# results selected
+deaSelect
+if(str_length(deaSelect) == 0) {
+  # if not result selected get the first one
+  dea <-  DESeq2::results(res) %>% as.data.frame
+} else {
+  if(lfc) {
+    dea <-  as.data.frame(lfcShrink(res, 
+                                    coef = deaSelect,
+                                    type = "apeglm"))
+  } else {
+    if(log2FoldChange > 0){
+      dea <-  DESeq2::results(res,
+                              name = deaSelect,
+                              lfcThreshold = log2FoldChange,
+                              altHypothesis = "greaterAbs") %>% 
+        as.data.frame
+    } else {
+      dea <-  DESeq2::results(res, name = deaSelect) %>% 
+        as.data.frame
+    }
+  }
+}
+DT::datatable(dea)
+```
+
+
+## Volcano plot
+
+```{R,eval = TRUE , message = FALSE}  
+x.cut <- log2FoldChange
+y.cut <- padj
+
+dea$group <- "Not Significant"
+dea[which(dea$padj < y.cut & dea$log2FoldChange < -x.cut ),"group"] <- "Downregulated"
+dea[which(dea$padj < y.cut & dea$log2FoldChange > x.cut ),"group"] <- "Upregulated"
+
+
+f <- list(
+  family = "Courier New, monospace",
+  size = 18,
+  color = "#7f7f7f"
+)
+x <- list(
+  title = "log2FoldChange",
+  titlefont = f
+)
+y <- list(
+  title = "-log10(p-value adjusted)",
+  titlefont = f
+)
+
+p <- plot_ly(data = dea, 
+             x = dea$log2FoldChange, 
+             y = -log10(dea$padj), 
+             text = rownames(dea), 
+             mode = "markers", 
+             color = dea$group) %>% 
+  layout(title = "Volcano Plot") %>%
+  layout(xaxis = x, yaxis = y)  %>%
+  layout(shapes = list(list(type = 'line', 
+                            x0 = x.cut, 
+                            x1 = x.cut, 
+                            y0 = 0, 
+                            y1 = max(-log10(dea$padj),na.rm = T), 
+                            line = list(dash = 'dot', width = 1)),
+                       list(type = 'line', 
+                            x0 = -x.cut, 
+                            x1 = -x.cut, 
+                            y0 = 0, 
+                            y1 = max(-log10(dea$padj),na.rm = T), 
+                            line = list(dash = 'dot', width = 1)),
+                       list(type = 'line', 
+                            x0 = min(dea$log2FoldChange), 
+                            x1 = max(dea$log2FoldChange), 
+                            y0 =  -log10(y.cut), 
+                            y1 =  -log10(y.cut), 
+                            line = list(dash = 'dot', width = 1))
+  ) 
+  )
+p
+```
+
+# Session Information
+```{r sessionInfo}
+sessionInfo()
+```
