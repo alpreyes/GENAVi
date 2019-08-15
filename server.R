@@ -368,7 +368,7 @@ server <- function(input,output,session)
           text =   paste0("Please select genes in Gene Expression tab"),
           type = "info"
         )
-      return(NULL)
+        return(NULL)
       }
     }
     
@@ -712,7 +712,7 @@ server <- function(input,output,session)
                        text = paste0(e),
                        type = "error"
                      )
-
+                     
                      return(NULL)
                    })
                  }
@@ -1052,7 +1052,10 @@ server <- function(input,output,session)
     output$tbl.analysis <-  DT::renderDataTable({
       input$enrichementbt
       tbl <- enrichement.analysis()
-      if(is.null(tbl)) return(NULL)
+      if(is.null(tbl)) {
+        
+        return(NULL)
+      }
       tbl %>% summary %>% createTable2(show.rownames = F)
       
     })
@@ -1073,13 +1076,13 @@ server <- function(input,output,session)
         } else {
           aux <- results@params$pvalueCutoff
         }
-        createAlert(session, 
-                    "messageanalysis", 
-                    "messageanalysisAlert", 
-                    title = "No enriched terms found", 
-                    style =  "danger",
-                    content = paste0("No results for enrichment analysis P-value cut-off = ", aux),
-                    append = FALSE)
+        
+        sendSweetAlert(
+          session = session,
+          title =  "No enriched terms found", 
+          text =  paste0("No results for enrichment analysis P-value cut-off = ", aux),
+          type = "error"
+        )
         return(NULL)
       }
       
@@ -1152,13 +1155,13 @@ server <- function(input,output,session)
             grDevices::svg(..., width = isolate({input$ea_width}), height = isolate({input$ea_height}))
           } 
         } else {
-          createAlert(session, 
-                      "messageanalysis", 
-                      "messageanalysisAlert", 
-                      title = "Extension not recognized (svg, pdf and png allowed)", 
-                      style =  "danger",
-                      content = paste0("No results for: P-value cut-off = ", aux),
-                      append = FALSE)
+          
+          sendSweetAlert(
+            session = session,
+            title = "Extension not recognized", 
+            text =  paste0("svg, pdf and png allowed"),
+            type = "error"
+          )
         }
         p <- getEnrichementPlot()
         ggsave(file, 
