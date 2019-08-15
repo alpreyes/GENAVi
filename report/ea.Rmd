@@ -196,51 +196,53 @@ if(params$deaanalysistype == "ORA"){
 ```
 
 
-## Results table  
-```{R table}
+`r if (nrow(summary(results)) > 0)'## Results table'`
+
+```{R table, eval = (nrow(summary(results)) > 0), include = (nrow(summary(results)) > 0)}
 results %>% summary %>% DT::datatable(options = list(scrollX = TRUE,  class = 'cell-border stripe'))
 ```
 
-## Plots
 
-`r if (params$deaanalysistype == "ORA")'### Dot plot'`
+`r if (nrow(summary(results)) > 0)'## Plots'`
 
-```{R ORA_dot, eval = (params$deaanalysistype == "ORA"), include = (params$deaanalysistype == "ORA")}
+`r if (params$deaanalysistype == "ORA" & nrow(summary(results)) > 0)'### Dot plot'`
+
+```{R ORA_dot, eval = (params$deaanalysistype == "ORA"  & nrow(summary(results)) > 0), include = (params$deaanalysistype == "ORA" & nrow(summary(results)) > 0)}
 params$ea_nb_categories
 dotplot(results, showCategory = params$ea_nb_categories)
 ```
 
 
-`r if (params$deaanalysistype == "ORA")'### Enrichment map (network)'`
+`r if (params$deaanalysistype == "ORA" & nrow(summary(results)) > 0)'### Enrichment map (network)'`
 
-```{R ORA_map, eval = (params$deaanalysistype == "ORA"), include = (params$deaanalysistype == "ORA")}
+```{R ORA_map, eval = (params$deaanalysistype == "ORA" & nrow(summary(results)) > 0), include = (params$deaanalysistype == "ORA" & nrow(summary(results)) > 0)}
 emapplot(results)
 ```
 
-`r if (params$deaanalysistype != "ORA")'### Dot plot'`
+`r if (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0)'### Dot plot'`
 
-```{R, eval = (params$deaanalysistype != "ORA"), include = (params$deaanalysistype != "ORA")}
+```{R, eval = (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0), include = (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0)}
 params$ea_nb_categories
 dotplot(results, showCategory = params$ea_nb_categories) + 
   facet_grid(.~ifelse(NES < 0, 'suppressed', 'activated'))
 ```
 
-`r if (params$deaanalysistype != "ORA")'### Ridgeline'`
+`r if (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0)'### Ridgeline'`
 
-```{R, eval = (params$deaanalysistype != "ORA"), include = (params$deaanalysistype != "ORA")}
+```{R, eval = (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0), include = (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0)}
 params$ea_nb_categories
 ridgeplot(results,showCategory = params$ea_nb_categories)
 ```
 
-`r if (params$deaanalysistype != "ORA")'### Running score and preranked list'`
+`r if (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0)'### Running score and preranked list'`
 
-```{R, eval = (params$deaanalysistype != "ORA"), include = (params$deaanalysistype != "ORA")}
+```{R, eval = (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0), include = (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0)}
 gseaplot2(results, geneSetID = match(params$gsea_gene_sets, results$Description))
 ```
 
-`r if (params$deaanalysistype != "ORA")'### Ranked list of genes'`
+`r if (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0)'### Ranked list of genes'`
 
-```{R, eval = (params$deaanalysistype != "ORA"), include = (params$deaanalysistype != "ORA")}
+```{R, eval = (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0), include = (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0)}
 p <- gsearank(results,  which(params$gsea_gene_sets ==  results$Description), 
               title = results[ match(params$gsea_gene_sets, results$Description), "Description"])
 params$gsea_gene_sets
