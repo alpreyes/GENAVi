@@ -4,6 +4,9 @@ output:
   html_document:
     theme: spacelab
     highlight: tango
+    toc: true
+    number_sections: true
+
 ---
 
 
@@ -13,12 +16,13 @@ This quick-start tutorial will guide you through using the provided data files t
 1.	A set of example files for use with this tutorial can be found at;
 https://drive.google.com/drive/folders/1FocRZ6x05_0TwC_xiSIYwhsj9KAYNZwZ?usp=sharing
 
-2.	Download and save the following files;
-GENAVi_Cell_Line_RNA_seq_count_matrix.csv
-GENAVi_Cell_Line_RNA_seq_metadata.csv
-GENAV_gene_list_input.txt
+2.	Download and save the following files:
 
-3.	Open junkdnalab.shinyapps.io/GENAVi/
+* GENAVi_Cell_Line_RNA_seq_count_matrix.csv
+* GENAVi_Cell_Line_RNA_seq_metadata.csv
+* GENAV_gene_list_input.txt
+
+3.	Open [junkdnalab.shinyapps.io/GENAVi/](junkdnalab.shinyapps.io/GENAVi/)
 
 4.	Select the ‘Browse’ button on the ‘Gene Expression’ tab of the app.  
 
@@ -33,6 +37,7 @@ GENAV_gene_list_input.txt
 ![](tutorial_figures/step6a.png)  
 
 ![](tutorial_figures/step6b.png)  
+
 
 7.	To perform DEA select the Differential Expression Analysis tab. Select the Browser button to upload the metadata, which will be displayed in the app. 
 
@@ -73,4 +78,6 @@ Among the analysis, GENAVi provides:
   * KEGG Analysis. 
 
 
-![](tutorial_figures/step12.png)  
+![](tutorial_figures/step12.png)
+
+
