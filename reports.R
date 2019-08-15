@@ -59,6 +59,17 @@ output$reportDEA <- downloadHandler(
                         detail =  'This might take some minutes.',{
                           
                           metadata <- readMetaData()
+                          
+                          if(is.null(metadata)){
+                            sendSweetAlert(
+                              session = session,
+                              title = "Opps...",
+                              text = "Missing metadata input",
+                              type = "error"
+                            )
+                            return(NULL)
+                          }
+                          
                           if(!is.null(readData())) all_cell_lines <- readData()
                           res <- getEndGeneInfo(all_cell_lines)
                           matrix <- res$data
@@ -120,6 +131,14 @@ output$reportEA <- downloadHandler(
                         detail =  'This might take some minutes.',{
                           
                           data <- readDEA()
+                          if(is.null(data)) {
+                            sendSweetAlert(
+                              session = session,
+                              title = "Opps...",
+                              text = "Missing data input",
+                              type = "error"
+                            )
+                          }
                           # Set up parameters to pass to Rmd document
                           params <- list( 
                             deaanalysistype = isolate({input$deaanalysistype}),

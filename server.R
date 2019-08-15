@@ -77,33 +77,30 @@ server <- function(input,output,session)
   })
   
   checkDataInput <- function(data){
-    closeAlert(session, "tab1Alert")
     if(is.null(data)) return(NULL)
     if("status" %in% colnames(data)) data$status <- NULL
     res <- getEndGeneInfo(data)
     
     if(all(res$data == "gene-error")){
-      createAlert(session, 
-                  "tab1message", 
-                  "tab1Alert", 
-                  title = "Input error", 
-                  style =  "danger",
-                  content = paste0("Data uploaded does not have the expected format. We were unable to identify the gene column or map it to hg38 or mm10."),
-                  append = FALSE)
+      sendSweetAlert(
+        session = session,
+        title =  "Input error", 
+        text =   paste0("Data uploaded does not have the expected format. We were unable to identify the gene column or map it to hg38 or mm10."),
+        type = "error"
+      )
     }
     
     data <- tryCatch({
       colSums(res$data[,(res$ngene + 1):ncol(res$data)])
       return(data)
     }, error = function(e){
-      createAlert(session, 
-                  "tab1message", 
-                  "tab1Alert", 
-                  title = "Input error", 
-                  style =  "danger",
-                  content = paste0("Data uploaded does not have the expected format. Please check the input file description."),
-                  append = FALSE)
       
+      sendSweetAlert(
+        session = session,
+        title =  "Input error", 
+        text =   paste0("Data uploaded does not have the expected format. Please check the input file description."),
+        type = "error"
+      )
       return(NULL)
     })
     return(data)
@@ -347,7 +344,6 @@ server <- function(input,output,session)
   #---------------------------------
   # calculate the variance for each gene
   output$pca_plot <- renderPlotly({ 
-    closeAlert(session, "pcaAlert")
     tbl.tab1 <- getTab1()
     
     # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
@@ -506,9 +502,12 @@ server <- function(input,output,session)
     if(input$select_clus_type == "Genes") {
       selected_rows <- input$tbl.tab1_rows_selected
       if(length(selected_rows) < 1) {
-        createAlert(session, "genemessage2", "geneAlert", title = "Missing data", style =  "danger",
-                    content = paste0("Please select genes in Gene Expression tab"),
-                    append = FALSE)
+        sendSweetAlert(
+          session = session,
+          title =  "Missing data",
+          text =   paste0("Please select genes in Gene Expression tab"),
+          type = "error"
+        )
         return(NULL)
       }
       inFile <- input$input_gene_list_tab1
@@ -528,14 +527,21 @@ server <- function(input,output,session)
         add_col_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE) %>% ##add_dendro not working...save for later, try taking out t(matrix[]), but put back in later if it doesnt work
         add_row_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE, side = "right") ##try taking out t(matrix[]), but put back in later if it doesnt work
     }, warning = function(w){
-      createAlert(session, "genemessage2", "geneAlert", title = "Error: Clustering not possible", style =  "danger",
-                  content = paste0(w),
-                  append = TRUE)
+      sendSweetAlert(
+        session = session,
+        title =  "Sorry, we had an error...",
+        text =  "Clustering is not possible",
+        type = "error"
+      )
       return(NULL)
     }, error = function(e){
-      createAlert(session, "genemessage2", "geneAlert", title = "Error: Clustering not possible", style =  "danger",
-                  content = paste0(e),
-                  append = TRUE)
+      
+      sendSweetAlert(
+        session = session,
+        title =  "Sorry, we had an error...",
+        text =  "Clustering is not possible",
+        type = "error"
+      )
       return(NULL)
     })
     if(is.null(heatmap_clus)) return(NULL)
@@ -578,13 +584,16 @@ server <- function(input,output,session)
   
   
   get.DEA.results <- reactive({
-    closeAlert(session, "deaAlert")
     input$dea
     metadata <- readMetaData()
     if(is.null(metadata)) {
-      createAlert(session, "deamessage", "deaAlert", title = "Missing metadata", style =  "danger",
-                  content = paste0("Please upload metadata file"),
-                  append = FALSE)
+      
+      sendSweetAlert(
+        session = session,
+        title =  "Missing metadata",
+        text = paste0("Please upload metadata file"),
+        type = "error"
+      )
       return(NULL)
     }
     if(!is.null(readData())) all_cell_lines <- readData()
@@ -610,58 +619,77 @@ server <- function(input,output,session)
     ref <-  isolate(input$reference)
     
     if(is.null(cond))   {
-      createAlert(session, "deamessage", "deaAlert", title = "Missing metadata", style =  "danger",
-                  content = paste0("Please select condition file"),
-                  append = FALSE)
+      sendSweetAlert(
+        session = session,
+        title =  "Missing condition",
+        text = paste0("Please select condition file"),
+        type = "error"
+      )
       return(NULL)
     } 
     form <- getFormula()
     if(is.null(form)){
-      createAlert(session, "deamessage", "deaAlert", title = "Missing formula", style =  "danger",
-                  content = paste0("Please select condition column"),
-                  append = FALSE)
+      sendSweetAlert(
+        session = session,
+        title =  "Missing formula",
+        text = paste0("Please select condition column"),
+        type = "error"
+      )
       return(NULL)
     }
     if(str_length(ref) == 0)   {
-      createAlert(session, "deamessage", "deaAlert", title = "Missing reference level", style =  "danger",
-                  content = paste0("Please select reference level"),
-                  append = FALSE)
+      
+      sendSweetAlert(
+        session = session,
+        title =  "Missing reference level",
+        text = paste0("Please select reference level"),
+        type = "error"
+      )
       return(NULL)
     } 
     if(nrow(metadata) != ncol(cts))   {
-      createAlert(session, "deamessage", "deaAlert", title = "Metadata error", style =  "danger",
-                  content = paste0("Metadata and data does not have same samples"),
-                  append = FALSE)
+      sendSweetAlert(
+        session = session,
+        title =  "Metadata error",
+        text = paste0("Metadata and data does not have same samples"),
+        type = "error"
+      )
       return(NULL)
     } 
     
     withProgress(message = 'DESeq2 Analysis',
                  detail = "Creating input file", value = 0, {
                    
-                   
                    if(!all(metadata %>% pull(1) %in% colnames(cts)))   {
-                     createAlert(session, "deamessage", "deaAlert", title = "Metadata error", style =  "danger",
-                                 content = paste0("First column of the metadata file must have the mapping to the samples with the exact names"),
-                                 append = FALSE)
+                     sendSweetAlert(
+                       session = session,
+                       title =  "Metadata error",
+                       text = paste0("First column of the metadata file must have the mapping to the samples with the exact names"),
+                       type = "error"
+                     )
                      return(NULL)
                    } 
                    metadata <- metadata[match(colnames(cts), metadata %>% pull(1)),]
                    if(!all(metadata %>% pull(1) == colnames(cts)))   {
-                     createAlert(session, "deamessage", "deaAlert", title = "Metadata error", style =  "danger",
-                                 content = paste0("First column of the metadata file must have the mapping to the samples with the exact names"),
-                                 append = FALSE)
+                     
+                     sendSweetAlert(
+                       session = session,
+                       title =  "Metadata error",
+                       text = paste0("First column of the metadata file must have the mapping to the samples with the exact names"),
+                       type = "error"
+                     )
                      return(NULL)
                    } 
                    dds <-  tryCatch({
                      keep.samples <- !is.na(metadata[,input$condition,drop = T])
                      if(any(is.na(metadata[,input$condition,drop = T]))){
-                       createAlert(session, 
-                                   "deamessage", 
-                                   "deaAlert", 
-                                   title = paste0(sum(!keep.samples), " samples with have NA annotations"), 
-                                   style =  "warning",
-                                   content = "To perform the DEA samples cannot be labled as NA we will remove it",
-                                   append = FALSE)
+                       
+                       sendSweetAlert(
+                         session = session,
+                         title =  paste0(sum(!keep.samples), " samples with have NA annotations"), 
+                         text = "To perform the DEA samples cannot be labled as NA we will remove it",
+                         type = "error"
+                       )
                      }
                      
                      dds <- DESeqDataSetFromMatrix(countData = cts[,keep.samples],
@@ -674,11 +702,14 @@ server <- function(input,output,session)
                      dds <- DESeq(dds)
                      return(dds)
                    }, error = function(e){
-                     createAlert(session, "deamessage", "deaAlert", 
-                                 title = "Error in DEA", style =  "danger",
-                                 content = paste0(e),
-                                 append = FALSE)
                      
+                     sendSweetAlert(
+                       session = session,
+                       title = "Error in DEA",
+                       text = paste0(e),
+                       type = "error"
+                     )
+
                      return(NULL)
                    })
                  }
@@ -775,7 +806,6 @@ server <- function(input,output,session)
   
   # Return list of DEA genes sorted and the names of the most significant ones  
   readDEA <- reactive({
-    closeAlert(session, "messageanalysisAlertInput")
     ret <- NULL
     inFile <- input$deafile
     if (!is.null(inFile))  {
@@ -800,13 +830,12 @@ server <- function(input,output,session)
       ret$entrezgene <- GRCh38.p12$entrezgene[match(ret$Symbol,GRCh38.p12$external_gene_name)]
       ret$ensembl_gene_id <- GRCh38.p12$ensembl_gene_id[match(ret$Symbol,GRCh38.p12$external_gene_name)]
     } else {
-      createAlert(session, 
-                  "messageanalysis", 
-                  "messageanalysisAlertInput", 
-                  title = "Data input not as expected", 
-                  style =  "danger",
-                  content = paste0("No Symbol column in the input"),
-                  append = FALSE)
+      sendSweetAlert(
+        session = session,
+        title = "Data input not as expected", 
+        text = paste0("No Symbol column in the input"),
+        type = "error"
+      )
       return(NULL)
     }
     # ENTREZ ID
@@ -883,18 +912,18 @@ server <- function(input,output,session)
   observeEvent(input$enrichementbt,  {
     
     enrichement.analysis <- reactive({
-      closeAlert(session, "messageanalysisAlertSymbol")
       data <- readDEA()
       if(is.null(data)) return(NULL)
       
       if(length(data$dea.genes) == 0){
-        createAlert(session, 
-                    "messageanalysis", 
-                    "messageanalysisAlertSymbol", 
-                    title = "No genes identified", 
-                    style =  "danger",
-                    content = paste0("We could not map the genes Symbols to entrez gene ID. Please check input data."),
-                    append = FALSE)
+        
+        sendSweetAlert(
+          session = session,
+          title = "No genes identified", 
+          text = "We could not map the genes Symbols to entrez gene ID. Please check input data.",
+          type = "error"
+        )
+        
         return(NULL)
       }
       if(isolate({input$deaanalysisselect}) != "Gene Ontology Analysis") {
@@ -1138,7 +1167,6 @@ server <- function(input,output,session)
       })
     
     output$plotenrichment <- renderPlot({
-      closeAlert(session, "messageanalysisAlert")
       getEnrichementPlot()
     })
   })

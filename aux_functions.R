@@ -9,6 +9,7 @@ list.of.packages <- c("shiny",
                       "shinyBS",
                       "magrittr",
                       "shinyjs",
+                      "shinyWidgets",
                       "prettydoc",
                       "msigdbr",
                       "DOSE",
@@ -45,6 +46,7 @@ suppressPackageStartupMessages({
   library(plotly)
   library(shinythemes)
   library(shinyBS)
+  library(shinyWidgets)
   library(apeglm)
   library(ashr)
   library("plotly")

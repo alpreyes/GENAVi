@@ -156,7 +156,6 @@ ui <- fluidPage(title = "GENAVi",
                                         downloadButton("reportDEA", "Download Report")
                            ),
                            mainPanel(
-                             bsAlert("deamessage"),
                              tabsetPanel(type = "pills",
                                          id = "DEA",
                                          tabPanel("Metadata",
@@ -274,7 +273,6 @@ ui <- fluidPage(title = "GENAVi",
                                                             onclick ="window.open('http://software.broadinstitute.org/gsea/msigdb/collection_details.jsp', '_blank')")
                            ),    
                            mainPanel(
-                             bsAlert("messageanalysis"),
                              tabsetPanel(type = "pills",
                                          tabPanel("Plots",
                                                   plotOutput("plotenrichment", height = "800")),
