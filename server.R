@@ -913,10 +913,20 @@ server <- function(input,output,session)
   })
   
   observeEvent(input$enrichementbt,  {
+
+  
     
     enrichement.analysis <- reactive({
       data <- readDEA()
-      if(is.null(data)) return(NULL)
+      if(is.null(data)) {
+        sendSweetAlert(
+          session = session,
+          title = "Missing input data", 
+          text = "Please upload DEA results",
+          type = "error"
+        )
+        return(NULL)
+      }
       
       if(length(data$dea.genes) == 0){
         
@@ -1135,7 +1145,6 @@ server <- function(input,output,session)
       p
     })
     
-    
     # Save figure 
     output$saveenrichementpicture <- downloadHandler(
       filename = function(){input$enrichementPlot.filename},
@@ -1175,8 +1184,12 @@ server <- function(input,output,session)
     output$plotenrichment <- renderPlot({
       getEnrichementPlot()
     })
+    
+    
+ 
   })
   
+
   output$downloadExampleDEAData <- downloadHandler(
     filename = function() {
       "subtype_BRCA_Subtype_PAM50_LumA_vs_Basal.csv"
@@ -1186,6 +1199,8 @@ server <- function(input,output,session)
       write_csv(metadata, file)
     }
   )
+  
+
   
   
   observeEvent(input$ea_plottype, {
