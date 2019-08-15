@@ -1,6 +1,12 @@
 ---
 title: "Differential Expression Analasysi (DEA)"
-output: html_document
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    toc: true
+    number_sections: true
+    df_print: paged
 params:
   log2FoldChange: NA
   padj: NA

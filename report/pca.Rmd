@@ -1,6 +1,12 @@
 ---
-title: "Principal component analysis"
-output: html_document
+title: "Principal component analysis (PCA)"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    toc: true
+    number_sections: true
+    df_print: paged
 params:
   matrix: NA
   
@@ -21,7 +27,7 @@ library(dplyr)
 
 # Data
 ```{r data}
-head(matrix)
+matrix %>% as.data.frame %>% head
 dim(matrix)
 ```
 

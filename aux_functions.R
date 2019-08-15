@@ -9,6 +9,7 @@ list.of.packages <- c("shiny",
                       "shinyBS",
                       "magrittr",
                       "shinyjs",
+                      "prettydoc",
                       "msigdbr",
                       "DOSE",
                       "org.Hs.eg.db",
@@ -25,8 +26,9 @@ new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"
 #install missing ones
 if(length(new.packages)) {
   install.packages(new.packages, dependencies = TRUE,quiet = TRUE)
-  source("https://bioconductor.org/biocLite.R")
-  biocLite(new.packages, dependencies = TRUE,quiet = TRUE)
+  if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+  BiocManager::install(new.packages, dependencies = TRUE,quiet = TRUE)
 }
 suppressPackageStartupMessages({
   library(shiny)
@@ -56,7 +58,7 @@ suppressPackageStartupMessages({
 })
 # options(repos = BiocInstaller::biocinstallRepos())
 
-options(shiny.maxRequestSize=1024^3) # Max file upload 1GB 
+options(shiny.maxRequestSize = 1024^3) # Max file upload 1GB 
 options(shiny.sanitize.errors = FALSE) # show original message problem
 
 # default input file
