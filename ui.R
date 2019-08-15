@@ -280,17 +280,24 @@ ui <- fluidPage(title = "GENAVi",
                              )
                            )
                   ),
-                  tabPanel("Vignette", 
+                  tabPanel("Help", ##changing from tab 2, but still usibg tab2 in other parts of code
+                           #icon = icon("object-group"),
                            icon = icon("book"),
-                           includeMarkdown("Genavi.Rmd")
-                  ),
-                  tabPanel("Tutorial",
-                           icon = icon("book"),
-                           includeHTML("GENAVi_Tutorial.html")),
-                           #includeMarkdown("GENAVi_Tutorial.Rmd")),
-                  tabPanel("References",
-                           icon = icon("book"),
-                           includeMarkdown("References.Rmd"))
+                           tabsetPanel(type = "pills",
+                                       tabPanel("Vignette", 
+                                                icon = icon("book"),
+                                                includeMarkdown("Genavi.Rmd")
+                                       ),
+                                       tabPanel("Tutorial",
+                                                icon = icon("book"),
+                                                includeHTML("GENAVi_Tutorial.html")),
+                                       #includeMarkdown("GENAVi_Tutorial.Rmd")),
+                                       tabPanel("References",
+                                                icon = icon("book"),
+                                                includeMarkdown("References.Rmd")
+                                       )
+                           )
+                  )
                 )
 )
 
