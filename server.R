@@ -885,7 +885,6 @@ server <- function(input,output,session)
     enrichement.analysis <- reactive({
       closeAlert(session, "messageanalysisAlertSymbol")
       data <- readDEA()
-      save(data,file = "test.rda")
       if(is.null(data)) return(NULL)
       
       if(length(data$dea.genes) == 0){

@@ -109,3 +109,38 @@ output$reportDEA <- downloadHandler(
     
   }
 )
+
+
+output$reportEA <- downloadHandler(
+  
+  # For PDF output, change this to "report.pdf"
+  filename = "report_EA_genavi.html",
+  content = function(file) {
+    shiny::withProgress(value = 0,message = 'Rendering EA report.',
+                        detail =  'This might take some minutes.',{
+                          
+                          data <- readDEA()
+                          # Set up parameters to pass to Rmd document
+                          params <- list( 
+                            deaanalysistype = isolate({input$deaanalysistype}),
+                            ea_plottype = isolate({input$ea_plottype}),
+                            gsea_gene_sets = isolate({input$gsea_gene_sets}),
+                            enrichmentfdr = isolate({input$enrichmentfdr}),
+                            msigdbtype = isolate({input$msigdbtype}),
+                            gotype = isolate({input$gotype}),
+                            deaanalysisselect = isolate({input$deaanalysisselect}),
+                            ea_nb_categories = isolate({input$ea_nb_categories}),
+                            data = data)
+                          print(params)
+                          
+                          # Knit the document, passing in the `params` list, and eval it in a
+                          # child of the global environment (this isolates the code in the document
+                          # from the code in this app).
+                          rmarkdown::render(input = "report/EA.Rmd", 
+                                            params = params, 
+                                            output_file = file,
+                                            envir = new.env(parent = globalenv()))
+                        })
+    
+  }
+)
