@@ -155,7 +155,7 @@ output$reportEA <- downloadHandler(
                           # Knit the document, passing in the `params` list, and eval it in a
                           # child of the global environment (this isolates the code in the document
                           # from the code in this app).
-                          rmarkdown::render(input = "report/EA.Rmd", 
+                          rmarkdown::render(input = "report/ea.Rmd", 
                                             params = params, 
                                             output_file = file,
                                             envir = new.env(parent = globalenv()))
