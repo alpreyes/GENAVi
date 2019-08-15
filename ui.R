@@ -36,7 +36,7 @@ ui <- fluidPage(title = "GENAVi",
                                            size =  "sm",
                                            animate = animateOptions(
                                              enter = animations$fading_entrances$fadeInLeftBig,
-                                             exit = animations$fading_exits$fadeOutRightBig
+                                             exit = animations$fading_exits$fadeOutLeft
                                            ),
                                            fileInput("rawcounts", "Choose CSV File",
                                                      multiple = TRUE,
@@ -55,7 +55,7 @@ ui <- fluidPage(title = "GENAVi",
                                            size =  "sm",
                                            animate = animateOptions(
                                              enter = animations$fading_entrances$fadeInLeftBig,
-                                             exit = animations$fading_exits$fadeOutRightBig
+                                             exit = animations$fading_exits$fadeOutLeft
                                            ),
                                            selectInput("select_tab1", "Select Transform", transforms, multiple = FALSE)
                                   ), ##need individual selectInputs for each tab
@@ -67,7 +67,7 @@ ui <- fluidPage(title = "GENAVi",
                                            size =  "sm",
                                            animate = animateOptions(
                                              enter = animations$fading_entrances$fadeInLeftBig,
-                                             exit = animations$fading_exits$fadeOutRightBig
+                                             exit = animations$fading_exits$fadeOutLeft
                                            ),
                                            downloadButton("downloadNormalizedData", "Download normalized files")
                                   ),
@@ -80,7 +80,7 @@ ui <- fluidPage(title = "GENAVi",
                                            size =  "sm",
                                            animate = animateOptions(
                                              enter = animations$fading_entrances$fadeInLeftBig,
-                                             exit = animations$fading_exits$fadeOutRightBig
+                                             exit = animations$fading_exits$fadeOutLeft
                                            ),
                                            fileInput("input_gene_list_tab1", "Input Gene Symbol List (Optional)", 
                                                      multiple = FALSE, 
@@ -105,7 +105,7 @@ ui <- fluidPage(title = "GENAVi",
                                   #selectInput("select_sort_tab1", "Sort Table By", sortby, multiple = FALSE),
                            ),
                            column(10,
-                             DT::dataTableOutput('tbl.tab1') ##dont think i need to change this to calc/render data tables live
+                                  DT::dataTableOutput('tbl.tab1') ##dont think i need to change this to calc/render data tables live
                            )
                   ),
                   tabPanel("Visualization", ##changing from tab 2, but still usibg tab2 in other parts of code
@@ -147,18 +147,21 @@ ui <- fluidPage(title = "GENAVi",
                                                    icon = icon("object-group"),
                                                    div(id = "pca_plots",
                                                        bsAlert("genemessage3"),
-                                                       h3('PCA plot'),
-                                                       selectInput("select_pca_type", 
-                                                                   label = "PCA", 
-                                                                   choices = c("Top 1000 variable genes", "All genes", "Selected genes"), 
-                                                                   multiple = FALSE),
-                                                       selectInput("pca_dimensions", 
-                                                                   label = "Number of dimensions", 
-                                                                   choices = c("2D", "3D"), 
-                                                                   multiple = FALSE),
-                                                       selectInput("pcacolor", "Color samples by", NULL, multiple = FALSE), 
-                                                       downloadButton("reportPCA", "Download as report"),
-                                                       plotlyOutput("pca_plot")
+                                                       column(3,
+                                                              h3('PCA plot'),
+                                                              selectInput("select_pca_type", 
+                                                                          label = "PCA", 
+                                                                          choices = c("Top 1000 variable genes", "All genes", "Selected genes"), 
+                                                                          multiple = FALSE),
+                                                              selectInput("pca_dimensions", 
+                                                                          label = "Number of dimensions", 
+                                                                          choices = c("2D", "3D"), 
+                                                                          multiple = FALSE),
+                                                              selectInput("pcacolor", "Color samples by", NULL, multiple = FALSE), 
+                                                              downloadButton("reportPCA", "Download as report")),
+                                                       column(7,
+                                                              jqui_resizable(plotlyOutput("pca_plot",height = 600,width = 600))
+                                                       )
                                                    )
                                        )
                            )
@@ -174,20 +177,20 @@ ui <- fluidPage(title = "GENAVi",
                                            width = "300px",
                                            size =  "sm",
                                            animate = animateOptions(
-                                             enter = animations$fading_entrances$fadeInLeftBig,
-                                             exit = animations$fading_exits$fadeOutRightBig
+                                             enter = animations$fading_entrances$fadeInLeft,
+                                             exit = animations$fading_exits$fadeOutLeft
                                            ),
-                                        # Input: Select a file ----
-                                        downloadButton('downloadData', 'Download example metadata file'),
-                                        fileInput("metadata", "Choose CSV File",
-                                                  multiple = TRUE,
-                                                  accept = c("text/csv",
-                                                             "text/comma-separated-values,text/plain",
-                                                             ".csv")),
-                                        tags$div(
-                                          HTML(paste(help_text2))
-                                        )
-                                        ),
+                                           # Input: Select a file ----
+                                           downloadButton('downloadData', 'Download example metadata file'),
+                                           fileInput("metadata", "Choose CSV File",
+                                                     multiple = TRUE,
+                                                     accept = c("text/csv",
+                                                                "text/comma-separated-values,text/plain",
+                                                                ".csv")),
+                                           tags$div(
+                                             HTML(paste(help_text2))
+                                           )
+                                  ),
                                   dropdown(label = "DE analysis",
                                            icon = icon("flask"),
                                            style = "bordered", 
@@ -196,18 +199,18 @@ ui <- fluidPage(title = "GENAVi",
                                            size =  "sm",
                                            animate = animateOptions(
                                              enter = animations$fading_entrances$fadeInLeftBig,
-                                             exit = animations$fading_exits$fadeOutRightBig
+                                             exit = animations$fading_exits$fadeOutLeft
                                            ),
-                                        
-                                        selectInput("condition", "Select condition column for DEA", NULL, multiple = FALSE), ##need individual selectInputs for each tab
-                                        selectInput("covariates", 
-                                                    label = "Select covariates for DEA",
-                                                    choices =  NULL, 
-                                                    multiple = TRUE), ##need individual selectInputs for each tab
-                                        verbatimTextOutput("formulatext"),
-                                        selectInput("reference", "Select reference level for DEA", NULL, multiple = FALSE), ##need individual selectInputs for each tab
-                                        actionButton("dea", "Perform DEA")
-                                        ),
+                                           
+                                           selectInput("condition", "Select condition column for DEA", NULL, multiple = FALSE), ##need individual selectInputs for each tab
+                                           selectInput("covariates", 
+                                                       label = "Select covariates for DEA",
+                                                       choices =  NULL, 
+                                                       multiple = TRUE), ##need individual selectInputs for each tab
+                                           verbatimTextOutput("formulatext"),
+                                           selectInput("reference", "Select reference level for DEA", NULL, multiple = FALSE), ##need individual selectInputs for each tab
+                                           actionButton("dea", "Perform DEA")
+                                  ),
                                   dropdown(label = "Select Results",
                                            icon = icon("table"),
                                            style = "bordered", 
@@ -216,13 +219,13 @@ ui <- fluidPage(title = "GENAVi",
                                            size =  "sm",
                                            animate = animateOptions(
                                              enter = animations$fading_entrances$fadeInLeftBig,
-                                             exit = animations$fading_exits$fadeOutRightBig
+                                             exit = animations$fading_exits$fadeOutLeft
                                            ),
-                                        
-                                        selectInput("deaSelect", "Select results", NULL, multiple = FALSE), ##need individual selectInputs for each tab
-                                        checkboxInput(inputId="lfc", label = "Perform Log fold change shrinkage", value = FALSE, width = NULL),
-                                        downloadButton("downloadDEAFiles", "Download DEA Results")
-                                        ),
+                                           
+                                           selectInput("deaSelect", "Select results", NULL, multiple = FALSE), ##need individual selectInputs for each tab
+                                           checkboxInput(inputId="lfc", label = "Perform Log fold change shrinkage", value = FALSE, width = NULL),
+                                           downloadButton("downloadDEAFiles", "Download DEA Results")
+                                  ),
                                   dropdown(label = "Volcano plot",
                                            icon = icon("chart-bar"),
                                            style = "bordered", 
@@ -231,14 +234,14 @@ ui <- fluidPage(title = "GENAVi",
                                            size =  "sm",
                                            animate = animateOptions(
                                              enter = animations$fading_entrances$fadeInLeftBig,
-                                             exit = animations$fading_exits$fadeOutRightBig
+                                             exit = animations$fading_exits$fadeOutLeft
                                            ),
                                            
-                                     
-                                        numericInput("log2FoldChange", "log2FoldChange  cut-off:", value = 0, min = 0, max = 10, step = 0.1),
-                                        numericInput("padj", "P adjusted cut-off:", 0.01, min = 0, max = 1,step = 0.1),
-                                        actionButton("volcanoplotBt", "Plot volcano plot")
-                                        ),
+                                           
+                                           numericInput("log2FoldChange", "log2FoldChange  cut-off:", value = 0, min = 0, max = 10, step = 0.1),
+                                           numericInput("padj", "P adjusted cut-off:", 0.01, min = 0, max = 1,step = 0.1),
+                                           actionButton("volcanoplotBt", "Plot volcano plot")
+                                  ),
                                   dropdown(label = "Generate report",
                                            icon = icon("file-code"),
                                            style = "bordered", 
@@ -247,27 +250,27 @@ ui <- fluidPage(title = "GENAVi",
                                            size =  "sm",
                                            animate = animateOptions(
                                              enter = animations$fading_entrances$fadeInLeftBig,
-                                             exit = animations$fading_exits$fadeOutRightBig
+                                             exit = animations$fading_exits$fadeOutLeft
                                            ),
-                                        downloadButton("reportDEA", "Download Report")
-                                        )
+                                           downloadButton("reportDEA", "Download Report")
+                                  )
                            ),
-                          column(10,
-                             tabsetPanel(type = "pills",
-                                         id = "DEA",
-                                         tabPanel("Metadata",
-                                                  tags$hr(),
-                                                  DT::dataTableOutput('metadata.tbl')
-                                         ), 
-                                         tabPanel("DEA results",
-                                                  tags$hr(),
-                                                  DT::dataTableOutput('dea.results') 
-                                         ),
-                                         tabPanel("Volcano plot",
-                                                  tags$hr(),
-                                                  plotlyOutput('volcanoplot') 
-                                         )
-                             )
+                           column(10,
+                                  tabsetPanel(type = "pills",
+                                              id = "DEA",
+                                              tabPanel("Metadata",
+                                                       tags$hr(),
+                                                       DT::dataTableOutput('metadata.tbl')
+                                              ), 
+                                              tabPanel("DEA results",
+                                                       tags$hr(),
+                                                       DT::dataTableOutput('dea.results') 
+                                              ),
+                                              tabPanel("Volcano plot",
+                                                       tags$hr(),
+                                                       plotlyOutput('volcanoplot') 
+                                              )
+                                  )
                            )
                   ),
                   tabPanel("Enrichment analysis", 
@@ -282,7 +285,7 @@ ui <- fluidPage(title = "GENAVi",
                                            size =  "sm",
                                            animate = animateOptions(
                                              enter = animations$fading_entrances$fadeInLeftBig,
-                                             exit = animations$fading_exits$fadeOutRightBig
+                                             exit = animations$fading_exits$fadeOutLeft
                                            ),
                                            downloadButton('downloadExampleDEAData', 'Download example DEA file'),
                                            fileInput("deafile", "Choose CSV File",
@@ -299,7 +302,7 @@ ui <- fluidPage(title = "GENAVi",
                                            width = "300px",
                                            animate = animateOptions(
                                              enter = animations$fading_entrances$fadeInLeftBig,
-                                             exit = animations$fading_exits$fadeOutRightBig
+                                             exit = animations$fading_exits$fadeOutLeft
                                            ),
                                            selectInput("deaanalysistype", 
                                                        "Select the type of analysis", 
@@ -366,7 +369,7 @@ ui <- fluidPage(title = "GENAVi",
                                            width = "300px",
                                            animate = animateOptions(
                                              enter = animations$fading_entrances$fadeInLeftBig,
-                                             exit = animations$fading_exits$fadeOutRightBig
+                                             exit = animations$fading_exits$fadeOutLeft
                                            ),
                                            
                                            selectInput("ea_plottype", 
@@ -388,7 +391,7 @@ ui <- fluidPage(title = "GENAVi",
                                     width = "300px",
                                     animate = animateOptions(
                                       enter = animations$fading_entrances$fadeInLeftBig,
-                                      exit = animations$fading_exits$fadeOutRightBig
+                                      exit = animations$fading_exits$fadeOutLeft
                                     ),
                                     tooltip = tooltipOptions(title = "Export image"),
                                     textInput("enrichementPlot.filename", label = "Filename", value = "enrichement_plot.pdf"),
@@ -406,7 +409,7 @@ ui <- fluidPage(title = "GENAVi",
                                     width = "300px",
                                     animate = animateOptions(
                                       enter = animations$fading_entrances$fadeInLeftBig,
-                                      exit = animations$fading_exits$fadeOutRightBig
+                                      exit = animations$fading_exits$fadeOutLeft
                                     ),
                                     downloadButton('reportEA', 'Download HTML report'))
                                   ,
@@ -419,7 +422,7 @@ ui <- fluidPage(title = "GENAVi",
                                     width = "300px",
                                     animate = animateOptions(
                                       enter = animations$fading_entrances$fadeInLeftBig,
-                                      exit = animations$fading_exits$fadeOutRightBig
+                                      exit = animations$fading_exits$fadeOutLeft
                                     ),
                                     shiny::actionButton(inputId='ab1', label="Learn More", 
                                                         icon = icon("th"), 
