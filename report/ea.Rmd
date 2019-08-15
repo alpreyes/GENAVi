@@ -195,6 +195,12 @@ if(params$deaanalysistype == "ORA"){
 }
 ```
 
+
+## Results table  
+```{R table}
+results %>% summary %>% DT::datatable(options = list(scrollX = TRUE,  class = 'cell-border stripe'))
+```
+
 ## Plots
 
 `r if (params$deaanalysistype == "ORA")'### Dot plot'`
@@ -237,7 +243,7 @@ gseaplot2(results, geneSetID = match(params$gsea_gene_sets, results$Description)
 ```{R, eval = (params$deaanalysistype != "ORA"), include = (params$deaanalysistype != "ORA")}
 p <- gsearank(results,  which(params$gsea_gene_sets ==  results$Description), 
               title = results[ match(params$gsea_gene_sets, results$Description), "Description"])
-
+params$gsea_gene_sets
 pp <- lapply( match(params$gsea_gene_sets, results$Description), function(i) {
   anno <- results[i, c("NES",  "p.adjust")]
   lab <- paste0(names(anno), "=",  round(anno, 3), collapse = "\n")
@@ -255,8 +261,8 @@ pp <- lapply( match(params$gsea_gene_sets, results$Description), function(i) {
              vjust = 0, 
              size = 4) + xlim(0, 12500)
   
-  p <- plot_grid(plotlist = pp, ncol = 1)
 })
+p <- plot_grid(plotlist = pp, ncol = 1)
 
 p
 ```
