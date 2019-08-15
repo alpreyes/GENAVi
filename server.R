@@ -397,14 +397,42 @@ server <- function(input,output,session)
     percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
     
     if(input$pca_dimensions == "2D") {
-      p <- plot_ly(d, x = ~PC1 , y = ~PC2, color = ~color, text = colnames(m), marker=list(size=16), width = 1080, height = 880)
-      p <- layout(p, title = "Principal Component Analysis", 
-                  xaxis = list(title = paste0("PC1: ", round(percentVar[1] * 100, digits = 2),"% variance")), 
-                  yaxis = list(title = paste0("PC2: ", round(percentVar[2] * 100, digits = 2),"% variance")) 
+      p <-
+        plot_ly(
+          d,
+          x = ~ PC1 ,
+          y = ~ PC2,
+          color = ~ color,
+          text = colnames(m),
+          marker = list(size = 16),
+          width = 800,
+          height = 600
+        )
+      p <- layout(
+        p,
+        title = "Principal Component Analysis",
+        xaxis = list(title = paste0(
+          "PC1: ", round(percentVar[1] * 100, digits = 2), "% variance"
+        )),
+        yaxis = list(title = paste0(
+          "PC2: ", round(percentVar[2] * 100, digits = 2), "% variance"
+        ))
       )
       
     } else {
-      p <- plot_ly(d, x = ~PC1 , y = ~PC2, z = ~PC3, color = ~color, text = ~paste(name), type = "scatter3d", marker=list(size=14), width = 1180, height = 980) %>%
+      p <-
+        plot_ly(
+          d,
+          x = ~ PC1 ,
+          y = ~ PC2,
+          z = ~ PC3,
+          color = ~ color,
+          text = ~ paste(name),
+          type = "scatter3d",
+          marker = list(size = 14),
+          width = 800,
+          height = 600
+        ) %>%
         add_markers()
       p <- layout(p, 
                   scene = list(
@@ -414,7 +442,9 @@ server <- function(input,output,session)
                     zaxis = list(title = paste0("PC3: ", round(percentVar[3] * 100, digits = 2),"% variance")) 
                   )
       )
-      
+      if(is.null(input$pcacolor) || stringr::str_length(input$pcacolor) == 0) { 
+        p <- layout(p,showlegend = FALSE)
+      }
     }
     
     p
