@@ -58,7 +58,6 @@ ui <- fluidPage(title = "GENAVi",
                                         #selectInput("select_sort_tab1", "Sort Table By", sortby, multiple = FALSE),
                            ),
                            mainPanel(
-                             bsAlert("tab1message"),
                              DT::dataTableOutput('tbl.tab1') ##dont think i need to change this to calc/render data tables live
                            )
                   ),

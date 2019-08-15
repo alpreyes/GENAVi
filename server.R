@@ -362,10 +362,13 @@ server <- function(input,output,session)
     } else   if(input$select_pca_type == "Selected genes"){
       select <- input$tbl.tab1_rows_selected
       if(length(select) < 1) {
-        createAlert(session, "genemessage3", "pcaAlert", title = "Missing data", style =  "danger",
-                    content = paste0("Please select genes in Gene Expression tab"),
-                    append = FALSE)
-        return(NULL)
+        sendSweetAlert(
+          session = session,
+          title =  "Missing data",
+          text =   paste0("Please select genes in Gene Expression tab"),
+          type = "info"
+        )
+      return(NULL)
       }
     }
     
