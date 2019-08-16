@@ -17,6 +17,10 @@ params:
   gotype: NA
   deaanalysisselect: NA
   ea_nb_categories: NA
+  earankingmethod: NA
+  ea_subsetfdr: NA
+  ea_subsetlc: NA
+  ea_subsettype: NA
 ---
 
 ```{r setup, include=FALSE}
@@ -31,22 +35,106 @@ library(plyr)
 library(dplyr)
 ```
 
-# Data
-```{r data}
-data <- params$data
-```
-
-`r if (params$deaanalysisselect != "Gene Ontology Analysis")'## Genes used for analysis'`
-
-```{R eval = (params$deaanalysisselect == "Gene Ontology Analysis"), include =   (params$deaanalysisselect == "Gene Ontology Analysis")}
-dea.genes <- data$dea.genes.ensembl
-geneList <- data$geneList.ensembl
+# Input DEA file
+```{R}
+dea_result <- params$data$dea.results
+dea_result %>% head
 ```
 
 
-```{R eval = (params$deaanalysisselect != "Gene Ontology Analysis"), include =   (params$deaanalysisselect != "Gene Ontology Analysis")}
-dea.genes <- data$dea.genes
-geneList <- data$geneList
+## Add gene information
+
+### Retrieve gene information
+
+```{R biomart, eval = FALSE}
+library(biomaRt)
+attributes <-  c(
+  "chromosome_name",
+  "start_position",
+  "end_position",
+  "strand",
+  "ensembl_gene_id",
+  "entrezgene_id",
+  "external_gene_name"
+)
+
+# Get last version of human from EMSEMBL using  biomaRt
+human <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+hg38 <- getBM(attributes =  attributes, mart = human)
+```
+
+```{R biomartlocal,include = FALSE, eval = TRUE}
+hg38 <- params$data$hg38
+hg38$entrezgene_id <- hg38$entrezgene
+```
+
+```{R mapgenes}
+dea_result$entrezgene_id <- hg38$entrezgene_id[match(dea_result$Symbol,hg38$external_gene_name)]
+dea_result$ensembl_gene_id <- hg38$ensembl_gene_id[match(dea_result$Symbol,hg38$external_gene_name)]
+head(dea_result)
+```
+
+# Selecting genes from DEA file
+
+## GSEA analysis - Ranking method
+```{r gsearankmethod, eval=TRUE}
+# Calculate method score for each gene using the DEA file
+params$earankingmethod
+if(params$earankingmethod == "log Fold Change") {
+  geneList.metric <- dea_result$log2FoldChange
+} else if(params$earankingmethod ==  "-log10(P-value) * sig(log2FC)") {
+  geneList.metric <- -log10(dea_result$pvalue) * sign(dea_result$log2FoldChange)
+} else {
+  geneList.metric <- -log10(dea_result$pvalue) * dea_result$log2FoldChange
+}
+```
+
+```{r gsearankingensembl, eval = (params$deaanalysisselect == "Gene Ontology Analysis"), include =   (params$deaanalysisselect == "Gene Ontology Analysis" )}
+# Gene entrez ENSEMBL version (used in Gene Ontology Analysis")
+geneList <- geneList.metric
+names(geneList) <- dea_result$ensembl_gene_id
+geneList <- sort(geneList, decreasing = TRUE)
+geneList <- geneList[!is.na(names(geneList))]
+```
+
+```{r gsearankingentrez, eval=(params$deaanalysisselect != "Gene Ontology Analysis"), include = (params$deaanalysisselect != "Gene Ontology Analysis" )}
+# Gene entrez ID version   
+geneList <- geneList.metric 
+names(geneList) <- dea_result$entrezgene_id
+geneList <- sort(geneList, decreasing = TRUE)
+geneList <- geneList[!is.na(names(geneList))]
+```
+
+`r if (params$deaanalysistype != "ORA")'## ORA analysis - Selecting significant genes'`
+
+```{r oraparams, eval= (params$deaanalysisselect != "Gene Ontology Analysis"  & params$deaanalysistype == "ORA"), include = (params$deaanalysisselect != "Gene Ontology Analysis"  & params$deaanalysistype == "ORA")}
+params$ea_subsettype # Direction (upregulated or downregulated genes)
+params$ea_subsetlc # log FC cut-off
+params$ea_subsetfdr # FDR cut-off
+```
+
+```{r oraentrez, eval= (params$deaanalysisselect != "Gene Ontology Analysis"  & params$deaanalysistype == "ORA"), include = (params$deaanalysisselect != "Gene Ontology Analysis"  & params$deaanalysistype == "ORA")}
+ora <- dea_result[abs(dea_result$log2FoldChange) > params$ea_subsetlc & dea_result$pvalue < params$ea_subsetfdr,]
+if(params$ea_subsettype == "Upregulated"){
+  ora <- ora[ora$log2FoldChange > 0,]
+} else {
+  ora <- ora[ora$log2FoldChange < 0,]
+}
+dea.genes <- na.omit(ora$entrezgene_id)
+```
+
+```{r oraensembl, eval=(params$deaanalysisselect == "Gene Ontology Analysis"  & params$deaanalysistype == "ORA"), include = (params$deaanalysisselect == "Gene Ontology Analysis"  & params$deaanalysistype == "ORA")}
+ora <- dea_result[abs(dea_result$log2FoldChange) > params$ea_subsetlc & dea_result$pvalue < params$ea_subsetfdr,]
+if(params$ea_subsettype == "Upregulated"){
+  ora <- ora[ora$log2FoldChange > 0,]
+} else {
+  ora <- ora[ora$log2FoldChange < 0,]
+}
+dea.genes <- na.omit(ora$ensembl_gene_id)
+```
+
+```{R}
+save(geneList,dea_result,dea.genes,file = "test.rda")
 ```
 
 
@@ -61,7 +149,6 @@ length(dea.genes)
 head(geneList)
 length(geneList)
 ```    
-
 
 ## Enrichment analysis (EA) parameters
 ```{r eaparams}

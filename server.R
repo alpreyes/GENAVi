@@ -839,25 +839,26 @@ server <- function(input,output,session)
   
   # Return list of DEA genes sorted and the names of the most significant ones  
   readDEA <- reactive({
-    ret <- NULL
+    data <- NULL
     inFile <- input$deafile
     if (!is.null(inFile))  {
       withProgress(message = 'Reading the data',
                    detail = "This may take a while", value = 0, {
-                     ret <-  read_csv(inFile$datapath, col_types = readr::cols())
+                     data <-  read_csv(inFile$datapath, col_types = readr::cols())
                      setProgress(1, detail = paste("Completed"))
                    }
       )
-      if(!is.data.frame(ret)){
+      if(!is.data.frame(data)){
         withProgress(message = 'Reading the data',
                      detail = "This may take a while", value = 0, {
-                       ret <-  read_csv2(inFile$datapath, col_types = readr::cols())
+                       data <-  read_csv2(inFile$datapath, col_types = readr::cols())
                        setProgress(1, detail = paste("Completed"))
                      }
         )
       }
     }
-    if(is.null(ret)) return(NULL)
+    if(is.null(data)) return(NULL)
+    ret <- data
     if("Symbol" %in% colnames(ret)){
       GRCh38.p12 <- readRDS("GRCh38.p12.rds")
       ret$entrezgene <- GRCh38.p12$entrezgene[match(ret$Symbol,GRCh38.p12$external_gene_name)]
@@ -883,7 +884,6 @@ server <- function(input,output,session)
     dea.genes.ensembl <- na.omit(ret.ora$ensembl_gene_id)
     message("ORA: Using ", length(dea.genes), " genes")
     
-    ret.entrezid <- ret
     # For GSEA
     if(input$earankingmethod == "log Fold Change") {
       geneList.metric <- ret$log2FoldChange
@@ -902,9 +902,11 @@ server <- function(input,output,session)
     geneList.metric <- geneList.metric[!is.na(names(geneList.metric))]
     
     return(list("dea.genes" = dea.genes,
-                "geneList" = geneList.metric,
                 "dea.genes.ensembl" = dea.genes.ensembl,
-                "geneList.ensembl" = geneList.metric.ensembl))
+                "geneList" = geneList.metric,
+                "geneList.ensembl" = geneList.metric.ensembl,
+                "dea.results" = data,
+                "hg38" = GRCh38.p12))
   })
   
   # Perform selected analysis

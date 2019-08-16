@@ -69,7 +69,7 @@ ui <- fluidPage(title = "GENAVi",
                                              enter = animations$fading_entrances$fadeInLeftBig,
                                              exit = animations$fading_exits$fadeOutLeft
                                            ),
-                                           downloadButton("downloadNormalizedData", "Download normalized files")
+                                           downloadButton("downloadNormalizedData", "Download normalized files",class = "btn-primary")
                                   ),
                                   #downloadButton("reportNorm", "Download report"),
                                   dropdown(label = "Gene selection",
@@ -94,13 +94,16 @@ ui <- fluidPage(title = "GENAVi",
                                                          width = "100%"),
                                            actionButton("input_gene_list_but", 
                                                         "Select Rows",
-                                                        width = "100%"), ##do this to put selected rows at top of data table, trying it out
+                                                        width = "100%", 
+                                                        class = "btn-primary"), ##do this to put selected rows at top of data table, trying it out
                                            actionButton("select_most_variable", 
                                                         "Select 1000 genes of highest variance",
-                                                        width = "100%"), ##do this to put selected rows at top of data table, trying it out
+                                                        width = "100%", 
+                                                        class = "btn-primary"), ##do this to put selected rows at top of data table, trying it out
                                            actionButton("unselect_all", 
                                                         "Deselect all genes",
-                                                        width = "100%")
+                                                        width = "100%", 
+                                                        class = "btn-primary")
                                   ) ##do this to put selected rows at top of data table, trying it out
                                   #selectInput("select_sort_tab1", "Sort Table By", sortby, multiple = FALSE),
                            ),
@@ -162,7 +165,7 @@ ui <- fluidPage(title = "GENAVi",
                                                                           choices = c("2D", "3D"), 
                                                                           multiple = FALSE),
                                                               selectInput("pcacolor", "Color samples by", NULL, multiple = FALSE), 
-                                                              downloadButton("reportPCA", "Generate report")),
+                                                              downloadButton("reportPCA", "Generate report",class = "btn-primary")),
                                                        column(6,
                                                               plotlyOutput("pca_plot",height = "600",width = "600")
                                                        )
@@ -185,7 +188,7 @@ ui <- fluidPage(title = "GENAVi",
                                              exit = animations$fading_exits$fadeOutLeft
                                            ),
                                            # Input: Select a file ----
-                                           downloadButton('downloadData', 'Download example metadata file'),
+                                           downloadButton('downloadData', 'Download example metadata file',class = "btn-primary"),
                                            fileInput("metadata", "Choose CSV File",
                                                      multiple = TRUE,
                                                      accept = c("text/csv",
@@ -213,7 +216,7 @@ ui <- fluidPage(title = "GENAVi",
                                                        multiple = TRUE), ##need individual selectInputs for each tab
                                            verbatimTextOutput("formulatext"),
                                            selectInput("reference", "Select reference level for DEA", NULL, multiple = FALSE), ##need individual selectInputs for each tab
-                                           actionButton("dea", "Perform DEA")
+                                           actionButton("dea", "Perform DEA", class = "btn-primary")
                                   ),
                                   dropdown(label = "Select Results",
                                            icon = icon("table"),
@@ -228,7 +231,7 @@ ui <- fluidPage(title = "GENAVi",
                                            
                                            selectInput("deaSelect", "Select results", NULL, multiple = FALSE), ##need individual selectInputs for each tab
                                            checkboxInput(inputId="lfc", label = "Perform Log fold change shrinkage", value = FALSE, width = NULL),
-                                           downloadButton("downloadDEAFiles", "Download DEA Results")
+                                           downloadButton("downloadDEAFiles", "Download DEA Results",class = "btn-primary")
                                   ),
                                   dropdown(label = "Volcano plot",
                                            icon = icon("chart-bar"),
@@ -244,7 +247,7 @@ ui <- fluidPage(title = "GENAVi",
                                            
                                            numericInput("log2FoldChange", "log2FoldChange  cut-off:", value = 0, min = 0, max = 10, step = 0.1),
                                            numericInput("padj", "P adjusted cut-off:", 0.01, min = 0, max = 1,step = 0.1),
-                                           actionButton("volcanoplotBt", "Plot volcano plot")
+                                           actionButton("volcanoplotBt", "Plot volcano plot", class = "btn-primary")
                                   ),
                                   dropdown(label = "Generate report",
                                            icon = icon("file-code"),
@@ -256,7 +259,7 @@ ui <- fluidPage(title = "GENAVi",
                                              enter = animations$fading_entrances$fadeInLeftBig,
                                              exit = animations$fading_exits$fadeOutLeft
                                            ),
-                                           downloadButton("reportDEA", "Download Report")
+                                           downloadButton("reportDEA", "Download Report",class = "btn-primary")
                                   )
                            ),
                            column(10,
@@ -291,7 +294,7 @@ ui <- fluidPage(title = "GENAVi",
                                              enter = animations$fading_entrances$fadeInLeftBig,
                                              exit = animations$fading_exits$fadeOutLeft
                                            ),
-                                           downloadButton('downloadExampleDEAData', 'Download example DEA file'),
+                                           downloadButton('downloadExampleDEAData', 'Download example DEA file',class = "btn-primary"),
                                            fileInput("deafile", "Choose CSV File",
                                                      multiple = TRUE,
                                                      accept = c("text/csv",
@@ -363,7 +366,7 @@ ui <- fluidPage(title = "GENAVi",
                                                          "-log10(P-value) * log2FC"), 
                                                        multiple = FALSE),
                                            
-                                           actionButton("enrichementbt", "Perform analysis")
+                                           actionButton("enrichementbt", "Perform analysis", class = "btn-primary")
                                   ),
                                   dropdown(label = "Plot options",
                                            icon = icon("image"),
@@ -402,7 +405,7 @@ ui <- fluidPage(title = "GENAVi",
                                     bsTooltip("enrichementPlot.filename", "Filename (pdf, png, svg)", "left"),
                                     numericInput("ea_width", "Figure width (in)", value = 10, min = 5, max = 30, step = 1),
                                     numericInput("ea_height", "Figure height (in)", value = 10, min = 5, max = 30, step = 1),
-                                    downloadButton('saveenrichementpicture', 'Export figure')
+                                    downloadButton('saveenrichementpicture', 'Export figure',class = "btn-primary")
                                   ),
                                   dropdown(
                                     label = "Generate report",
@@ -415,7 +418,7 @@ ui <- fluidPage(title = "GENAVi",
                                       enter = animations$fading_entrances$fadeInLeftBig,
                                       exit = animations$fading_exits$fadeOutLeft
                                     ),
-                                    downloadButton('reportEA', 'Download HTML report'))
+                                    downloadButton('reportEA', 'Download HTML report',class = "btn-primary"))
                                   ,
                                   dropdown(
                                     label = "Help material",
@@ -430,10 +433,13 @@ ui <- fluidPage(title = "GENAVi",
                                     ),
                                     shiny::actionButton(inputId='ab1', label="Learn More", 
                                                         icon = icon("th"), 
-                                                        onclick ="window.open('https://guangchuangyu.github.io/pathway-analysis-workshop/', '_blank')"),
+                                                        onclick ="window.open('https://guangchuangyu.github.io/pathway-analysis-workshop/', '_blank')", 
+                                                        class = "btn-primary"),
                                     shiny::actionButton(inputId='ab1', label="MSigDB Collections", 
                                                         icon = icon("th"), 
-                                                        onclick ="window.open('http://software.broadinstitute.org/gsea/msigdb/collection_details.jsp', '_blank')"))),
+                                                        onclick ="window.open('http://software.broadinstitute.org/gsea/msigdb/collection_details.jsp', '_blank')", 
+                                                        class = "btn-primary"))
+                           ),
                            column(8,
                                   
                                   tabsetPanel(type = "pills",

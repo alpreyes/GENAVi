@@ -138,6 +138,7 @@ output$reportEA <- downloadHandler(
                               text = "Missing data input",
                               type = "error"
                             )
+                            return(NULL)
                           }
                           # Set up parameters to pass to Rmd document
                           params <- list( 
@@ -149,6 +150,10 @@ output$reportEA <- downloadHandler(
                             gotype = isolate({input$gotype}),
                             deaanalysisselect = isolate({input$deaanalysisselect}),
                             ea_nb_categories = isolate({input$ea_nb_categories}),
+                            earankingmethod = isolate({input$earankingmethod}),
+                            ea_subsetfdr = isolate({input$ea_subsetfdr}),
+                            ea_subsetlc = isolate({input$ea_subsetlc}),
+                            ea_subsettype = isolate({input$ea_subsettype}),
                             data = data)
                           print(params)
                           

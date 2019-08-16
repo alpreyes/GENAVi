@@ -217,7 +217,7 @@ addgeneinfo <- function(data){
   return(data)
 }
 
-help_text <-  '<div class="panel panel-default">
+help_text <-  '<div class="panel panel-primary">
   <div class="panel-heading"> <span style="padding-left:10px"><b> Input file description</b> </span></div>
 <div class="panel-body">
 <style type="text/css">
@@ -251,15 +251,15 @@ text-align: center
 </style>
 <table class="tg">
 <tr>
-<th class="tg-031e"> <span class="label label-default"> Format</span></th>
+<th class="tg-031e"> <span class="label label-primary"> Format</span></th>
 <th class="tg-031e"> comma-separated values (CSV)
 </tr>
 <tr>
-<th class="tg-031e"> <span class="label label-default"> Column 1</span></th>
+<th class="tg-031e"> <span class="label label-primary"> Column 1</span></th>
 <th class="tg-031e"> Gene Identifier -  Gene symbol or ENSEMBL ID
 </tr>
 <tr>
-<th class="tg-031e"> <span class="label label-default"> Column 2-n</span></th>
+<th class="tg-031e"> <span class="label label-primary"> Column 2-n</span></th>
 <th class="tg-031e"> Gene expression raw counts </th>
 </tr>
 <tr>
@@ -267,7 +267,7 @@ text-align: center
 </div>
 </div>'
 
-help_text2 <-  '<div class="panel panel-default">
+help_text2 <-  '<div class="panel panel-primary">
   <div class="panel-heading"> <span style="padding-left:10px"><b> Input file description</b> </span></div>
 <div class="panel-body">
 <style type="text/css">
@@ -301,15 +301,15 @@ text-align: center
 </style>
 <table class="tg">
 <tr>
-<th class="tg-031e"> <span class="label label-default"> Format</span></th>
+<th class="tg-031e"> <span class="label label-primary"> Format</span></th>
 <th class="tg-031e"> comma-separated values (CSV)
 </tr>
 <tr>
-<th class="tg-031e"> <span class="label label-default"> Column 1</span></th>
+<th class="tg-031e"> <span class="label label-primary"> Column 1</span></th>
 <th class="tg-031e"> Sample ID (same from raw counts data)
 </tr>
 <tr>
-<th class="tg-031e"> <span class="label label-default"> Column 2-n</span></th>
+<th class="tg-031e"> <span class="label label-primary"> Column 2-n</span></th>
 <th class="tg-031e"> Other metadata (condition, covariates) </th>
 </tr>
 <tr>
