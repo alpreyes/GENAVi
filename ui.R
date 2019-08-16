@@ -12,6 +12,13 @@ ui <- fluidPage(title = "GENAVi",
                        font-family: "Arial";
                        }
                        
+                       .btn-file {
+                        background-color:#5B81AE; 
+                        border-color: #5B81AE; 
+                        background: #5B81AE;
+                       }
+                      
+         
                       .bttn-bordered.bttn-sm {
                           width: 200px;
                           text-align: left;
