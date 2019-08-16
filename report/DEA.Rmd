@@ -74,7 +74,7 @@ dim(metadata)
 ```
 
 
-#### Define formual
+# Defining formula
 ```{R plot2dall, message = FALSE}
 form <- NULL
 if(is.null(covariates)){
@@ -87,8 +87,7 @@ if(is.null(covariates)){
 as.character(form)
 ```
 
-
-### DEA
+# Differential Expression Analasysi (DEA)
 
 ```{R,eval = TRUE}
 res <- NULL
