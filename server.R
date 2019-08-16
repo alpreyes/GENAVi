@@ -932,6 +932,8 @@ server <- function(input,output,session)
                            choices = c("Dot plot",
                                        "Enrichment map (network)"),
                            server = TRUE)
+      shinyjs::hide(id = "eagsearankingui", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+      shinyjs::show(id = "eaorasectui", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
     } else {
       updateSelectizeInput(session, 'ea_plottype', 
                            selected = "Dot plot",
@@ -941,6 +943,9 @@ server <- function(input,output,session)
                                        "Ranked list of genes",
                                        "Enrichment map (network)"),
                            server = TRUE)
+      shinyjs::hide(id = "eaorasectui", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+      shinyjs::show(id = "eagsearankingui", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+      
     }
   })
   

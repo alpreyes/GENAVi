@@ -77,6 +77,9 @@ head(dea_result)
 # Selecting genes from DEA file
 
 ## GSEA analysis - Ranking method
+
+Observation: if method is `ORA`, the ranking will not be used, only the gene names will be.
+
 ```{r gsearankmethod, eval=TRUE}
 # Calculate method score for each gene using the DEA file
 params$earankingmethod
@@ -172,7 +175,7 @@ wpid2name <- wp2gene %>% dplyr::select(wpid, name) #TERM2NAME
 if(params$deaanalysistype == "ORA"){
   results <- enricher(dea.genes, 
                       TERM2GENE = wpid2gene, 
-                      universe      = names(geneList),
+                      universe  = names(geneList),
                       TERM2NAME = wpid2name,
                       pvalueCutoff = params$enrichmentfdr
   )
@@ -224,7 +227,7 @@ params$gotype
 results <- enrichGO(gene          = dea.genes,
                     universe      = names(geneList),
                     OrgDb         = org.Hs.eg.db,
-                    keyType = ifelse(all(grepl("ENSG",names(geneList))), "ENSEMBL","ENTREZID"),
+                    keyType       = ifelse(all(grepl("ENSG",names(geneList))), "ENSEMBL","ENTREZID"),
                     ont           = params$gotype,
                     pAdjustMethod = "BH",
                     pvalueCutoff  = params$enrichmentfdr,
@@ -236,7 +239,7 @@ params$gotype
 results <- gseGO(geneList     = geneList,
                  OrgDb        = org.Hs.eg.db,
                  ont          = params$gotype,
-                 keyType = ifelse(all(grepl("ENSG",names(geneList))), "ENSEMBL","ENTREZID"),
+                 keyType      = ifelse(all(grepl("ENSG",names(geneList))), "ENSEMBL","ENTREZID"),
                  nPerm        = 1000,
                  minGSSize    = 100,
                  maxGSSize    = 500,
@@ -275,8 +278,8 @@ if(params$deaanalysistype == "ORA"){
 } else {
   results <- gseDO(geneList     = geneList,
                    nPerm        = 1000,
-                   minGSSize = 10,
-                   maxGSSize = 500,
+                   minGSSize    = 10,
+                   maxGSSize    = 500,
                    pvalueCutoff = params$enrichmentfdr,
                    verbose      = FALSE)
 }
