@@ -137,7 +137,7 @@ dea.genes <- na.omit(ora$ensembl_gene_id)
 ```
 
 ### Evaluated genes
-```{R genes}
+```{R genes, eval=( params$deaanalysistype == "ORA"), include = (params$deaanalysistype == "ORA")} 
 head(dea.genes)
 length(dea.genes)
 ```
@@ -150,6 +150,7 @@ length(geneList)
 
 ## Enrichment analysis (EA) parameters
 ```{r eaparams}
+params$deaanalysistype
 params$deaanalysisselect
 params$ea_plottype
 params$enrichmentfdr
@@ -160,6 +161,7 @@ params$enrichmentfdr
 `r if (params$deaanalysisselect  ==  "WikiPathways analysis")'## WikiPathways analysis'`
 
 ```{R WikiPathways, eval = (params$deaanalysisselect ==  "WikiPathways analysis"), include =   (params$deaanalysisselect ==  "WikiPathways analysis")}
+
 wpgmtfile <- system.file("extdata/wikipathways-20180810-gmt-Homo_sapiens.gmt", 
                          package = "clusterProfiler")
 wp2gene <- read.gmt(wpgmtfile)
