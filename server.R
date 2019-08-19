@@ -877,7 +877,7 @@ server <- function(input,output,session)
       ret.ora <- ret.ora[ret.ora$log2FoldChange < 0,]
     }
     dea.genes <- na.omit(ret.ora$entrezgene)
-    dea.genes.ensembl <- na.omit(ret.ora$ensembl_gene_id)
+    dea.genes.ensembl <- unique(na.omit(ret.ora$ensembl_gene_id))
     message("ORA: Using ", length(dea.genes), " genes")
     
     # For GSEA
@@ -896,6 +896,7 @@ server <- function(input,output,session)
     names(geneList.metric) <- ret$entrezgene
     geneList.metric <- sort(geneList.metric, decreasing = TRUE)
     geneList.metric <- geneList.metric[!is.na(names(geneList.metric))]
+    geneList.metric <- geneList.metric[!duplicated(names(geneList.metric))]
     
     return(list("dea.genes" = dea.genes,
                 "dea.genes.ensembl" = dea.genes.ensembl,
