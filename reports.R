@@ -31,13 +31,17 @@ output$reportNorm <- downloadHandler(
       mouse.genes =  GRCm38,
       human.genes =  hg38,
       norm.method = isolate({input$select_tab1})
-      )
-    print(params)
-    rmarkdown::render(input = "report/normalization.Rmd", 
-                      params = params,
-                      output_file = file,
-                      envir = new.env(parent = globalenv()))
-
+    )
+    
+    shiny::withProgress(value = 0,
+                        message = 'Rendering Normalization report.',
+                        detail =  'This might take some minutes.',{
+                          rmarkdown::render(input = "report/normalization.Rmd", 
+                                            params = params,
+                                            output_file = file,
+                                            envir = new.env(parent = globalenv()))
+                        })
+    
   }
 )
 
@@ -177,7 +181,7 @@ output$reportEA <- downloadHandler(
                             ea_subsetlc = isolate({input$ea_subsetlc}),
                             ea_subsettype = isolate({input$ea_subsettype}),
                             data = data)
-
+                          
                           # Knit the document, passing in the `params` list, and eval it in a
                           # child of the global environment (this isolates the code in the document
                           # from the code in this app).

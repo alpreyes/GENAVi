@@ -881,7 +881,38 @@ server <- function(input,output,session)
         )
       }
     }
-    if(is.null(data)) return(NULL)
+    if(is.null(data)) {
+      sendSweetAlert(
+        session = session,
+        title = "Missing input data", 
+        text = "Please upload DEA results",
+        type = "error"
+      )
+      return(NULL)
+    }
+    
+   
+    if("log2FoldChange" %in% colnames(data)){
+      sendSweetAlert(
+        session = session,
+        title = "Data input not as expected", 
+        text = paste0("No log2FoldChange column in the input"),
+        type = "error"
+      )
+      return(NULL)
+    } 
+    
+    
+    if("pvalue" %in% colnames(data)){
+      sendSweetAlert(
+        session = session,
+        title = "Data input not as expected", 
+        text = paste0("No log2FoldChange column in the input"),
+        type = "error"
+      )
+      return(NULL)
+    } 
+    
     ret <- data
     if("Symbol" %in% colnames(ret)){
       GRCh38.p12 <- readRDS("GRCh38.p12.rds")
@@ -978,12 +1009,7 @@ server <- function(input,output,session)
     enrichement.analysis <- reactive({
       data <- readDEA()
       if(is.null(data)) {
-        sendSweetAlert(
-          session = session,
-          title = "Missing input data", 
-          text = "Please upload DEA results",
-          type = "error"
-        )
+
         return(NULL)
       }
       
