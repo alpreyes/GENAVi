@@ -88,7 +88,7 @@ params$norm.method
 norm.matrix <- normalized_data(raw.counts, type = params$norm.method)
 
 # Add gene name as a column
-norm.data <- cbind(gene.ID,raw.counts)
+norm.data <- cbind(gene.ID,norm.matrix)
 head(norm.data)
 ```
 
