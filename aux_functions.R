@@ -175,7 +175,8 @@ rownorm <- function(counts.filtered)
 }
 
 getEndGeneInfo <- function(data){
-  numeric.cols <-   sum(sapply(colnames(data), function(x) {class(data[[x]]) %in% c("integer","numeric")}))
+  
+  numeric.cols <-   sum(sapply(colnames(data), function(x) {unique(class(data[[x]]) %in% c("integer","numeric"))}))
   if(ncol(data) - numeric.cols > 2) { # we have metadata
     idx <- sum(ifelse(grepl("Start",colnames(data),ignore.case = T),class(data[[grep("Start",colnames(data),ignore.case = T)]])  %in% c("numeric","integer"),0),
                ifelse(grepl("End",colnames(data),ignore.case = T),class(data[[grep("End",colnames(data),ignore.case = T)]]) %in% c("numeric","integer"),0),

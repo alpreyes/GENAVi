@@ -79,15 +79,30 @@ server <- function(input,output,session)
   checkDataInput <- function(data){
     if(is.null(data)) return(NULL)
     if("status" %in% colnames(data)) data$status <- NULL
-    res <- getEndGeneInfo(data)
     
-    if(all(res$data == "gene-error")){
+    tryCatch({
+      res <- getEndGeneInfo(data)
+    }, error = function(e){
       sendSweetAlert(
         session = session,
         title =  "Input error", 
-        text =   paste0("Data uploaded does not have the expected format. We were unable to identify the gene column or map it to hg38 or mm10."),
+        text =   paste0("Data uploaded does not have the expected format.\n", 
+                        "\nWe were unable to identify the gene column or map it to hg38 or mm10.", 
+                        "\nThe expected input is a table with genes in the first column and genes raw counts on the other ones."),
         type = "error"
       )
+      return(NULL)
+    })
+    if(!"Chr" %in% colnames(res$data)){
+      sendSweetAlert(
+        session = session,
+        title =  "Input error", 
+        text =   paste0("Data uploaded does not have the expected format.\n", 
+                        "\nWe were unable to identify the gene column or map it to hg38 or mm10.", 
+                        "\nThe expected input is a table with genes in the first column and genes raw counts on the other ones."),
+        type = "error"
+      )
+      return(NULL)
     }
     
     data <- tryCatch({
@@ -98,7 +113,9 @@ server <- function(input,output,session)
       sendSweetAlert(
         session = session,
         title =  "Input error", 
-        text =   paste0("Data uploaded does not have the expected format. Please check the input file description."),
+        text =   paste0("Data uploaded does not have the expected format.\n", 
+                        "\nWe were unable to identify the gene column or map it to hg38 or mm10.", 
+                        "\nThe expected input is a table with genes in the first column and genes raw counts on the other ones."),
         type = "error"
       )
       return(NULL)
@@ -130,9 +147,17 @@ server <- function(input,output,session)
       withProgress(message = 'Adding gene metadata',
                    detail = "This may take a while", value = 0, {
                      # We will check if metadata was added
+                     tryCatch({
                      res <- getEndGeneInfo(all_cell_lines)
                      all_cell_lines <- res$data
                      ngene <- res$ngene
+                     } , error = function(e){
+                       sendSweetAlert(
+                         session = session,
+                         title =  "Error reading the data",
+                         text =   paste0("Please check"),
+                         type = "error"
+                       )                     })
                    }
       )
       
@@ -476,17 +501,19 @@ server <- function(input,output,session)
     
     matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% dplyr::select((res$ngene+1):ncol(tbl.tab1)) %>% as.matrix
     
-    ##may need to change order of cell lines from default alphabetic to histotype specific???...do that with dendro???
-    heatmap_expr <- main_heatmap(matrix_expr, colors = custom_pal_blues, name = isolate(input$select_tab1)) %>%
-      add_col_labels(ticktext = colnames(matrix_expr)) %>%
-      add_row_labels(ticktext = geneNames, font = list(size = 7)) %>% ##trying to add dendro
-      add_col_dendro(hclust(dist(t(as.matrix(matrix_expr)))), reorder = TRUE) ##may have to take out -1 to avoid losing 1st data col
+    font.size <- ifelse(ncol(matrix_expr) > 30, 6, 12)
+    font.size.genes <- ifelse(nrow(matrix_expr) > 30, 6, 12)
     
-    if(nrow(matrix_expr) > 1) ##currently still trying to cluster genes selected
+    heatmap_expr <- main_heatmap(matrix_expr, colors = custom_pal_blues, name = isolate(input$select_tab1)) %>%
+      add_col_labels(ticktext = colnames(matrix_expr),font = list(size = font.size),size = 0.2) %>%
+      add_row_labels(ticktext = geneNames,font = list(size = font.size),size = 0.2) %>% 
+      add_col_dendro(hclust(dist(t(as.matrix(matrix_expr)))), reorder = TRUE) 
+    
+    if(nrow(matrix_expr) > 1) 
     {
-      heatmap_expr <- heatmap_expr %>% add_row_dendro(hclust(dist((as.matrix(matrix_expr)))), reorder = TRUE, side = "right") ##adding t() inside dist() makes heatmap_expr not work in app..."Error: subscript out of bounds"
-    } ##taking out t() works but still has to be there...see DESeq2 workflow
-    print(heatmap_expr)  ## currently rlog visualization takes too long
+      heatmap_expr <- heatmap_expr %>% add_row_dendro(hclust(dist((as.matrix(matrix_expr)))), reorder = TRUE, side = "right") 
+    } 
+    heatmap_expr
   })
   
   
@@ -549,18 +576,19 @@ server <- function(input,output,session)
       data <- t(data)
     }
     
+    font.size <- ifelse(ncol(data) > 30, 6, 12)
     heatmap_clus <-  tryCatch({
-      main_heatmap(as.matrix(cor(data, method = "pearson")), name = "Correlation", colors = custom_pal_blues) %>% ##adding this custom color palette breaks this heatmap...wait no it doesn't?
-        add_col_labels(ticktext = colnames(data)) %>%
-        add_row_labels(ticktext = colnames(data)) %>% ##works when not using add dendro, but calculates dist wrong?
-        add_col_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE) %>% ##add_dendro not working...save for later, try taking out t(matrix[]), but put back in later if it doesnt work
-        add_row_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE, side = "right") ##try taking out t(matrix[]), but put back in later if it doesnt work
+      main_heatmap(as.matrix(cor(data, method = "pearson")), name = "Correlation", colors = custom_pal_blues) %>% 
+        add_col_labels(ticktext = colnames(data),font = list(size = font.size),size = 0.2) %>%
+        add_row_labels(ticktext = colnames(data),font = list(size = font.size),size = 0.2) %>% 
+        add_col_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE) %>% 
+        add_row_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE, side = "right") 
     }, warning = function(w){
       sendSweetAlert(
         session = session,
         title =  "Sorry, we had an error...",
         text =  paste0("Clustering is not possible.",
-                       "We tried to cluster ", input$select_clus_type ,"using", input$select_clus,"."),
+                       "We tried to cluster ", input$select_clus_type ," using ", input$select_clus,"."),
         type = "error"
       )
       return(NULL)
