@@ -361,11 +361,11 @@ server <- function(input,output,session)
       select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
     } else   if(input$select_pca_type == "Selected genes"){
       select <- input$tbl.tab1_rows_selected
-      if(length(select) < 1) {
+      if(length(select) < 3) {
         sendSweetAlert(
           session = session,
           title =  "Missing data",
-          text =   paste0("Please select genes in Gene Expression tab"),
+          text =   paste0("Please select at least 3 genes in Gene Expression tab"),
           type = "info"
         )
         return(NULL)
