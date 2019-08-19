@@ -1251,12 +1251,15 @@ server <- function(input,output,session)
     output$volcanoplot <- renderPlotly({
       res <- get.DEA.results()
       
+      x.cut <- isolate({input$log2FoldChange})
+      y.cut <- isolate({input$padj})
+      
       if(is.null(res)) return(NULL)
-      deaSelect <- input$deaSelect
+      deaSelect <- isolate(input$deaSelect)
       if(str_length(deaSelect) == 0) {
         dea <-  as.data.frame(results(res))
       } else {
-        if(input$lfc) {
+        if(isolate(input$lfc)) {
           
           #dea <-  as.data.frame(lfcShrink(res, coef = deaSelect)) ### comment out this line to merge with tiagos changes, adding in apeglm for lfcshrink, doesn't break the app
           
@@ -1269,19 +1272,17 @@ server <- function(input,output,session)
           )
           
         } else {
-          if(input$log2FoldChange > 0){
+          if(x.cut > 0){
             dea <-  as.data.frame(results(res,
                                           name = deaSelect,
-                                          lfcThreshold = input$log2FoldChange,  
+                                          lfcThreshold = x.cut,
                                           altHypothesis = "greaterAbs"))
           } else {
             dea <-  as.data.frame(results(res, name = deaSelect))
           }
         }
       }
-      x.cut <- isolate({input$log2FoldChange})
-      y.cut <- isolate({input$padj})
-      
+           
       dea$group <- "Not Significant"
       dea[which(dea$padj < y.cut & dea$log2FoldChange < -x.cut ),"group"] <- "Downregulated"
       dea[which(dea$padj < y.cut & dea$log2FoldChange > x.cut ),"group"] <- "Upregulated"
