@@ -37,6 +37,7 @@ library(DESeq2)
 # DEA formula definition
 condition <- params$condition
 condition
+
 covariates <- params$covariates
 covariates
 
@@ -55,6 +56,7 @@ padj
 deaSelect <- params$deaSelect
 deaSelect
 
+# Perform lfcShrink?
 lfc <- params$lfc
 lfc
 ```
@@ -72,7 +74,6 @@ metadata <- params$metadata
 head(metadata)
 dim(metadata)
 ```
-
 
 # Defining formula
 ```{R plot2dall, message = FALSE}
@@ -102,6 +103,8 @@ keep.samples <- !is.na(metadata[,condition,drop = T])
 dds <- DESeqDataSetFromMatrix(countData = raw_cts[,keep.samples],
                               colData = metadata[keep.samples,],
                               design = form)
+
+# remove genes with low number of counts as suggested in DESeq2 vignette
 keep <- rowSums(counts(dds)) >= 10
 dds[[condition]] <- relevel(dds[[condition]], ref = reference)
 dds <- dds[keep,]
@@ -113,18 +116,16 @@ DESeq2::resultsNames(res)
 ## Get results
 
 ```{R,eval = TRUE , message = FALSE}  
-# results selected
-deaSelect
 if(str_length(deaSelect) == 0) {
   # if not result selected get the first one
   dea <-  DESeq2::results(res) %>% as.data.frame
 } else {
-  if(lfc) {
+  if (lfc) {
     dea <-  as.data.frame(lfcShrink(res, 
                                     coef = deaSelect,
                                     type = "apeglm"))
   } else {
-    if(log2FoldChange > 0){
+    if (log2FoldChange > 0){
       dea <-  DESeq2::results(res,
                               name = deaSelect,
                               lfcThreshold = log2FoldChange,

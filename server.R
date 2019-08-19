@@ -219,7 +219,7 @@ server <- function(input,output,session)
     # get original table
     tab <- getTab1()
     if(gene.selection() == "Most Var"){
-      m <- as.matrix(tab[,grep("Genename|Geneid|Chr|Start|End|Strand|Length", colnames(tab),ignore.case = T,invert = T)])
+      m <- as.matrix(tab[,grep("EnsemblID|Symbol|Genename|Geneid|Chr|Start|End|Strand|Length", colnames(tab),ignore.case = T,invert = T)])
       selected_rows <- sort(rowVars(m,na.rm = T), decreasing = T,index.return=TRUE)$ix[1:1000]
       status <- factor("Unselected",levels = c("Unselected","Selected"))
       tab <- cbind(status,tab)
