@@ -136,11 +136,6 @@ if(params$ea_subsettype == "Upregulated"){
 dea.genes <- na.omit(ora$ensembl_gene_id)
 ```
 
-```{R}
-save(geneList,dea_result,dea.genes,file = "test.rda")
-```
-
-
 ### Evaluated genes
 ```{R genes}
 head(dea.genes)
