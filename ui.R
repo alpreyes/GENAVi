@@ -78,7 +78,19 @@ ui <- fluidPage(title = "GENAVi",
                                            ),
                                            downloadButton("downloadNormalizedData", "Download normalized files",class = "btn-primary")
                                   ),
-                                  #downloadButton("reportNorm", "Download report"),
+                                  dropdown(label = "Generate report",
+                                           icon = icon("file-code"),
+                                           style = "bordered", 
+                                           status = "primary", 
+                                           width = "300px",
+                                           size =  "sm",
+                                           animate = animateOptions(
+                                             enter = animations$fading_entrances$fadeInLeftBig,
+                                             exit = animations$fading_exits$fadeOutLeft
+                                           ),
+                                           downloadButton("reportNorm", "Download report",class = "btn-primary")
+                                  ),
+                                
                                   dropdown(label = "Gene selection",
                                            icon = icon("mouse-pointer"),
                                            style = "bordered", 

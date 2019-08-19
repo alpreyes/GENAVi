@@ -14,8 +14,30 @@ output$reportNorm <- downloadHandler(
   # For PDF output, change this to "report.pdf"
   filename = "report_normalization_genavi.html",
   content = function(file) {
-    rmarkdown::render(input = "report/normalization.Rmd", output_file = file)
     
+    data <- readData()
+    if(is.null(data)) {
+      sendSweetAlert(
+        session = session,
+        title = "Opps...",
+        text = "Missing data input",
+        type = "error"
+      )
+      return(NULL)
+    }
+    # Set up parameters to pass to Rmd document
+    params <- list( 
+      file = isolate({input$rawcounts}),
+      mouse.genes =  GRCm38,
+      human.genes =  hg38,
+      norm.method = isolate({input$select_tab1})
+      )
+    print(params)
+    rmarkdown::render(input = "report/normalization.Rmd", 
+                      params = params,
+                      output_file = file,
+                      envir = new.env(parent = globalenv()))
+
   }
 )
 
@@ -155,8 +177,7 @@ output$reportEA <- downloadHandler(
                             ea_subsetlc = isolate({input$ea_subsetlc}),
                             ea_subsettype = isolate({input$ea_subsettype}),
                             data = data)
-                          print(params)
-                          
+
                           # Knit the document, passing in the `params` list, and eval it in a
                           # child of the global environment (this isolates the code in the document
                           # from the code in this app).
