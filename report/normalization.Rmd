@@ -66,19 +66,19 @@ rownorm <- function(counts) {
 
 normalized_data <- function(data = NULL, type = NULL){
   ret <- NULL
-  if (type == "rlog") {
+  if (type == "rlog - regularized logarithm") {
     ret <- DESeq2::rlog(data)
-  } else if(type == "vst") {
+  } else if(type == "vst - Variance Stabilizing Transformation") {
     ret <- tryCatch(
       DESeq2::vst(data),
       error = function(e){ 
         DESeq2::varianceStabilizingTransformation(data) 
       })
-  } else if (type == "cpm") {
+  } else if (type == "logCPM - log Counts per Million") {
     ret <- edgeR::cpm(data, log = TRUE)
   } else if (type == "raw counts") {
     ret <- data
-  } else if (type == "rownorm") {
+  } else if (type == "row normalized") {
     ret <- rownorm(data)
   }
   return(ret)
