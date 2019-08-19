@@ -174,7 +174,7 @@ ui <- fluidPage(title = "GENAVi",
                                                               selectInput("pcacolor", "Color samples by", NULL, multiple = FALSE), 
                                                               downloadButton("reportPCA", "Generate report",class = "btn-primary")),
                                                        column(6,
-                                                              plotlyOutput("pca_plot",height = "600",width = "600")
+                                                              plotlyOutput("pca_plot",height = "600",width = "600") %>% withSpinner()
                                                        )
                                                    )
                                        )

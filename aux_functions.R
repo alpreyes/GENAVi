@@ -9,6 +9,7 @@ list.of.packages <- c("shiny",
                       "shinyBS",
                       "magrittr",
                       "shinyjs",
+                      "shinycssloaders",
                       "shinyWidgets",
                       "prettydoc",
                       "msigdbr",
@@ -35,6 +36,7 @@ if(length(new.packages)) {
 }
 suppressPackageStartupMessages({
   library(shiny)
+  library(shinycssloaders)
   library(tidyr) 
   library(ggplot2) 
   library(rmarkdown)
