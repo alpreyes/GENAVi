@@ -251,8 +251,7 @@ ui <- fluidPage(title = "GENAVi",
                                              exit = animations$fading_exits$fadeOutLeft
                                            ),
                                            numericInput("log2FoldChange", "log2FoldChange  cut-off:", value = 0, min = 0, max = 10, step = 0.1),
-                                           numericInput("padj", "P adjusted cut-off:", 0.01, min = 0, max = 1,step = 0.1),
-                                           actionButton("volcanoplotBt", "Plot volcano plot", class = "btn-primary")
+                                           numericInput("padj", "P adjusted cut-off:", 0.01, min = 0, max = 1,step = 0.1)
                                   ),
                                   dropdown(label = "Generate report",
                                            icon = icon("file-code"),
@@ -280,7 +279,7 @@ ui <- fluidPage(title = "GENAVi",
                                               ),
                                               tabPanel("Volcano plot",
                                                        tags$hr(),
-                                                       plotlyOutput('volcanoplot') #%>% withSpinner(type = 6)
+                                                       plotlyOutput('volcanoplot') %>% withSpinner(type = 6)
                                               )
                                   )
                            )
@@ -455,13 +454,13 @@ ui <- fluidPage(title = "GENAVi",
                                   
                                   tabsetPanel(type = "pills",
                                               tabPanel("Plots",
-                                                       
                                                        jqui_resizable(
                                                          plotOutput("plotenrichment", height = "600")
                                                        ) #%>% withSpinner(type = 6)
                                               ),
                                               tabPanel("Table",
-                                                       DT::dataTableOutput('tbl.analysis'))
+                                                       DT::dataTableOutput('tbl.analysis') # %>% withSpinner(type = 6)
+                                                       )
                                   )
                            )
                   ),

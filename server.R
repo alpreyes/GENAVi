@@ -617,7 +617,6 @@ server <- function(input,output,session)
     input$dea
     metadata <- readMetaData()
     if(is.null(metadata)) {
-      
       sendSweetAlert(
         session = session,
         title =  "Missing metadata",
@@ -947,9 +946,6 @@ server <- function(input,output,session)
   })
   
   observeEvent(input$enrichementbt,  {
-    
-    
-    
     enrichement.analysis <- reactive({
       data <- readDEA()
       if(is.null(data)) {
@@ -1250,21 +1246,18 @@ server <- function(input,output,session)
   #---------------------------------
   # Volcano plot tab
   #---------------------------------
-  observeEvent(input$volcanoplotBt, {
-    updateTabsetPanel(session, inputId="DEA", selected = "Volcano plot")
     output$volcanoplot <- renderPlotly({
       res <- get.DEA.results()
       if(is.null(res)) return(NULL)
       
-      x.cut <- isolate({input$log2FoldChange})
-      y.cut <- isolate({input$padj})
-      
+      x.cut <- input$log2FoldChange
+      y.cut <- input$padj
     
-      deaSelect <- isolate(input$deaSelect)
+      deaSelect <- input$deaSelect
       if(str_length(deaSelect) == 0) {
         dea <-  as.data.frame(results(res))
       } else {
-        if(isolate(input$lfc)) {
+        if(input$lfc) {
           
           #dea <-  as.data.frame(lfcShrink(res, coef = deaSelect)) ### comment out this line to merge with tiagos changes, adding in apeglm for lfcshrink, doesn't break the app
           
@@ -1336,7 +1329,6 @@ server <- function(input,output,session)
         ) 
         )
       return(p)
-    })
   })
 }
 
