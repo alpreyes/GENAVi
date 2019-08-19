@@ -128,7 +128,7 @@ ui <- fluidPage(title = "GENAVi",
                                                 hidden(
                                                   div(id = "expression_plots",
                                                       h3('Expression Barplot'), 
-                                                      plotlyOutput("barplot", width = "auto")
+                                                      plotlyOutput("barplot", width = "auto") %>% withSpinner(type = 6)
                                                   )),
                                                 hidden(
                                                   div(id = "expression_heatmap",
@@ -137,7 +137,7 @@ ui <- fluidPage(title = "GENAVi",
                                                       #            label = "Standardized scores?", 
                                                       #            choices = c("No","Rows z-score", "Columns z-score"), 
                                                       #            multiple = FALSE),
-                                                      iheatmaprOutput("heatmap_expr",height = "auto")
+                                                      iheatmaprOutput("heatmap_expr",height = "auto") %>% withSpinner(type = 6)
                                                   )
                                                 )
                                        ),
@@ -152,10 +152,9 @@ ui <- fluidPage(title = "GENAVi",
                                                                        multiple = FALSE),
                                                            selectInput("select_clus", "Cluster by what genes", 
                                                                        c("All genes", "Selected genes"), 
-                                                                       multiple = FALSE),
-                                                           bsAlert("genemessage2")),
+                                                                       multiple = FALSE)
                                                     column(9,
-                                                           iheatmaprOutput("heatmap_clus",height = "800px")
+                                                           iheatmaprOutput("heatmap_clus",height = "800px") %>% withSpinner(type = 6)
                                                     )
                                                 )
                                        ), tabPanel("PCA plots",
@@ -174,7 +173,7 @@ ui <- fluidPage(title = "GENAVi",
                                                               selectInput("pcacolor", "Color samples by", NULL, multiple = FALSE), 
                                                               downloadButton("reportPCA", "Generate report",class = "btn-primary")),
                                                        column(6,
-                                                              plotlyOutput("pca_plot",height = "600",width = "600") %>% withSpinner()
+                                                              plotlyOutput("pca_plot",height = "600",width = "600") %>% withSpinner(type = 6)
                                                        )
                                                    )
                                        )
@@ -282,7 +281,7 @@ ui <- fluidPage(title = "GENAVi",
                                               ),
                                               tabPanel("Volcano plot",
                                                        tags$hr(),
-                                                       plotlyOutput('volcanoplot') 
+                                                       plotlyOutput('volcanoplot') %>% withSpinner(type = 6)
                                               )
                                   )
                            )

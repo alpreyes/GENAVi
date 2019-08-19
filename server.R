@@ -475,7 +475,7 @@ server <- function(input,output,session)
     ngene <- res$ngene
     
     matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% dplyr::select((res$ngene+1):ncol(tbl.tab1)) %>% as.matrix
-
+    
     ##may need to change order of cell lines from default alphabetic to histotype specific???...do that with dendro???
     heatmap_expr <- main_heatmap(matrix_expr, colors = custom_pal_blues, name = isolate(input$select_tab1)) %>%
       add_col_labels(ticktext = colnames(matrix_expr)) %>%
@@ -511,9 +511,12 @@ server <- function(input,output,session)
       # get selected genes
       selected_rows <- input$tbl.tab1_rows_selected
       if(length(selected_rows) < 1) {
-        createAlert(session, "genemessage2", "geneAlert", title = "Missing data", style =  "danger",
-                    content = paste0("Please select genes in Gene Expression tab"),
-                    append = FALSE)
+        sendSweetAlert(
+          session = session,
+          title =  "Missing data",
+          text =   paste0("Please select genes in Gene Expression tab"),
+          type = "error"
+        )
         return(NULL)
       }
       inFile <- input$input_gene_list_tab1
@@ -556,7 +559,8 @@ server <- function(input,output,session)
       sendSweetAlert(
         session = session,
         title =  "Sorry, we had an error...",
-        text =  "Clustering is not possible",
+        text =  paste0("Clustering is not possible.",
+                       "We tried to cluster ", input$select_clus_type ,"using", input$select_clus,"."),
         type = "error"
       )
       return(NULL)
@@ -943,8 +947,8 @@ server <- function(input,output,session)
   })
   
   observeEvent(input$enrichementbt,  {
-
-  
+    
+    
     
     enrichement.analysis <- reactive({
       data <- readDEA()
@@ -1216,10 +1220,10 @@ server <- function(input,output,session)
     })
     
     
- 
+    
   })
   
-
+  
   output$downloadExampleDEAData <- downloadHandler(
     filename = function() {
       "subtype_BRCA_Subtype_PAM50_LumA_vs_Basal.csv"
@@ -1230,7 +1234,7 @@ server <- function(input,output,session)
     }
   )
   
-
+  
   
   
   observeEvent(input$ea_plottype, {
@@ -1282,7 +1286,7 @@ server <- function(input,output,session)
           }
         }
       }
-           
+      
       dea$group <- "Not Significant"
       dea[which(dea$padj < y.cut & dea$log2FoldChange < -x.cut ),"group"] <- "Downregulated"
       dea[which(dea$padj < y.cut & dea$log2FoldChange > x.cut ),"group"] <- "Upregulated"
