@@ -892,7 +892,7 @@ server <- function(input,output,session)
     }
     
    
-    if("log2FoldChange" %in% colnames(data)){
+    if(!"log2FoldChange" %in% colnames(data)){
       sendSweetAlert(
         session = session,
         title = "Data input not as expected", 
@@ -903,11 +903,11 @@ server <- function(input,output,session)
     } 
     
     
-    if("pvalue" %in% colnames(data)){
+    if(!"pvalue" %in% colnames(data)){
       sendSweetAlert(
         session = session,
         title = "Data input not as expected", 
-        text = paste0("No log2FoldChange column in the input"),
+        text = paste0("No pvalue column in the input"),
         type = "error"
       )
       return(NULL)
