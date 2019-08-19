@@ -330,9 +330,13 @@ server <- function(input,output,session)
     colnames(p) <- "value"
     p$cell_line <- rownames(p)
     order <- rownames(p)
+    
+    
+    select <- isolate(input$select_tab1)
     barplot <- ggplot(p, aes(x=cell_line, y=value)) + 
       geom_bar(stat = "identity") +  
       theme_bw() + 
+      labs(x =  "", y = select) +
       scale_x_discrete(limits = order) + 
       theme(axis.text.x = element_text(angle = 90, hjust = 1))
     
@@ -471,20 +475,9 @@ server <- function(input,output,session)
     ngene <- res$ngene
     
     matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% dplyr::select((res$ngene+1):ncol(tbl.tab1)) %>% as.matrix
-    name <- "Expression"
-    #if(input$select_z_score == "Rows z-score"){
-    #  name <- "Expression (Rows z-score)"
-    #  aux <-  colnames(matrix_expr)
-    #  matrix_expr = t(apply(matrix_expr, 1, scale))
-    #  colnames(matrix_expr) <- aux
-    #}
-    #if(input$select_z_score == "Columns z-score"){
-    #  name <- "Expression (Column z-score)"
-    #  matrix_expr <- scale(matrix_expr)
-    #}
-    
+
     ##may need to change order of cell lines from default alphabetic to histotype specific???...do that with dendro???
-    heatmap_expr <- main_heatmap(matrix_expr, name = name, colors = custom_pal_blues) %>%
+    heatmap_expr <- main_heatmap(matrix_expr, colors = custom_pal_blues, name = isolate(input$select_tab1)) %>%
       add_col_labels(ticktext = colnames(matrix_expr)) %>%
       add_row_labels(ticktext = geneNames, font = list(size = 7)) %>% ##trying to add dendro
       add_col_dendro(hclust(dist(t(as.matrix(matrix_expr)))), reorder = TRUE) ##may have to take out -1 to avoid losing 1st data col
