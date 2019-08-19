@@ -1254,11 +1254,12 @@ server <- function(input,output,session)
     updateTabsetPanel(session, inputId="DEA", selected = "Volcano plot")
     output$volcanoplot <- renderPlotly({
       res <- get.DEA.results()
+      if(is.null(res)) return(NULL)
       
       x.cut <- isolate({input$log2FoldChange})
       y.cut <- isolate({input$padj})
       
-      if(is.null(res)) return(NULL)
+    
       deaSelect <- isolate(input$deaSelect)
       if(str_length(deaSelect) == 0) {
         dea <-  as.data.frame(results(res))

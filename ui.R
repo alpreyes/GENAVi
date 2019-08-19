@@ -115,7 +115,7 @@ ui <- fluidPage(title = "GENAVi",
                                   #selectInput("select_sort_tab1", "Sort Table By", sortby, multiple = FALSE),
                            ),
                            column(10,
-                                  DT::dataTableOutput('tbl.tab1') ##dont think i need to change this to calc/render data tables live
+                                  DT::dataTableOutput('tbl.tab1') %>% withSpinner(type = 6) 
                            )
                   ),
                   tabPanel("Visualization", ##changing from tab 2, but still usibg tab2 in other parts of code
@@ -153,6 +153,7 @@ ui <- fluidPage(title = "GENAVi",
                                                            selectInput("select_clus", "Cluster by what genes", 
                                                                        c("All genes", "Selected genes"), 
                                                                        multiple = FALSE)
+                                                    ),
                                                     column(9,
                                                            iheatmaprOutput("heatmap_clus",height = "800px") %>% withSpinner(type = 6)
                                                     )
@@ -249,8 +250,6 @@ ui <- fluidPage(title = "GENAVi",
                                              enter = animations$fading_entrances$fadeInLeftBig,
                                              exit = animations$fading_exits$fadeOutLeft
                                            ),
-                                           
-                                           
                                            numericInput("log2FoldChange", "log2FoldChange  cut-off:", value = 0, min = 0, max = 10, step = 0.1),
                                            numericInput("padj", "P adjusted cut-off:", 0.01, min = 0, max = 1,step = 0.1),
                                            actionButton("volcanoplotBt", "Plot volcano plot", class = "btn-primary")
@@ -281,7 +280,7 @@ ui <- fluidPage(title = "GENAVi",
                                               ),
                                               tabPanel("Volcano plot",
                                                        tags$hr(),
-                                                       plotlyOutput('volcanoplot') %>% withSpinner(type = 6)
+                                                       plotlyOutput('volcanoplot') #%>% withSpinner(type = 6)
                                               )
                                   )
                            )
@@ -355,25 +354,25 @@ ui <- fluidPage(title = "GENAVi",
                                                         max = 1, 
                                                         step = 0.05),
                                            div(id = "eaorasectui",
-                                           tags$hr(),
-                                           h3('ORA - selecting genes'), 
-                                           numericInput("ea_subsetfdr", "P-adj cut-off", value = 0.05, min = 0, max = 1, step = 0.05),
-                                           numericInput("ea_subsetlc", "LogFC cut-off", value = 1, min = 0, max = 3, step = 1),
-                                           selectInput("ea_subsettype", 
-                                                       "Gene status", 
-                                                       c("Upregulated",
-                                                         "Downregulated"), 
-                                                       multiple = FALSE)
+                                               tags$hr(),
+                                               h3('ORA - selecting genes'), 
+                                               numericInput("ea_subsetfdr", "P-adj cut-off", value = 0.05, min = 0, max = 1, step = 0.05),
+                                               numericInput("ea_subsetlc", "LogFC cut-off", value = 1, min = 0, max = 3, step = 1),
+                                               selectInput("ea_subsettype", 
+                                                           "Gene status", 
+                                                           c("Upregulated",
+                                                             "Downregulated"), 
+                                                           multiple = FALSE)
                                            ),
                                            div(id = "eagsearankingui",
-                                           tags$hr(),
-                                           h3('GSEA - ranking method'), 
-                                           selectInput("earankingmethod", 
-                                                       "Select the ranking method", 
-                                                       c("log Fold Change",
-                                                         "-log10(P-value) * sig(log2FC)",
-                                                         "-log10(P-value) * log2FC"), 
-                                                       multiple = FALSE)
+                                               tags$hr(),
+                                               h3('GSEA - ranking method'), 
+                                               selectInput("earankingmethod", 
+                                                           "Select the ranking method", 
+                                                           c("log Fold Change",
+                                                             "-log10(P-value) * sig(log2FC)",
+                                                             "-log10(P-value) * log2FC"), 
+                                                           multiple = FALSE)
                                            ),
                                            
                                            actionButton("enrichementbt", "Perform analysis", class = "btn-primary")
@@ -441,13 +440,15 @@ ui <- fluidPage(title = "GENAVi",
                                       enter = animations$fading_entrances$fadeInLeftBig,
                                       exit = animations$fading_exits$fadeOutLeft
                                     ),
-                                    shiny::actionButton(inputId='ab1', label="Learn More", 
+                                    shiny::actionButton(inputId='ab1', 
+                                                        label = "Learn More", 
                                                         icon = icon("th"), 
-                                                        onclick ="window.open('https://guangchuangyu.github.io/pathway-analysis-workshop/', '_blank')", 
+                                                        onclick = "window.open('https://guangchuangyu.github.io/pathway-analysis-workshop/', '_blank')", 
                                                         class = "btn-primary"),
-                                    shiny::actionButton(inputId='ab1', label="MSigDB Collections", 
+                                    shiny::actionButton(inputId = 'ab1', 
+                                                        label="MSigDB Collections", 
                                                         icon = icon("th"), 
-                                                        onclick ="window.open('http://software.broadinstitute.org/gsea/msigdb/collection_details.jsp', '_blank')", 
+                                                        onclick = "window.open('http://software.broadinstitute.org/gsea/msigdb/collection_details.jsp', '_blank')", 
                                                         class = "btn-primary"))
                            ),
                            column(8,
@@ -457,7 +458,8 @@ ui <- fluidPage(title = "GENAVi",
                                                        
                                                        jqui_resizable(
                                                          plotOutput("plotenrichment", height = "600")
-                                                       )),
+                                                       ) #%>% withSpinner(type = 6)
+                                              ),
                                               tabPanel("Table",
                                                        DT::dataTableOutput('tbl.analysis'))
                                   )
