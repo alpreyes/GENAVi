@@ -8,11 +8,11 @@ output:
 
 # References 
 
-Since GENEAVi uses a set of bioinformatics tools in its backend, please cite them if they were used in your analysis.
+Since GENAVi uses a set of bioinformatics tools in its backend, please cite them if they were used in your analysis.
 
 * Heatmaps:
   * Schep, Alicia N., and Sarah K. Kummerfeld. "iheatmapr: interactive complex heatmaps in R." J Open Sour Softw 2.16 (2017): 359.
-* DEA analysis: 
+* Differential expression analysis: 
   * Love MI, Huber W, Anders S (2014). “Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.” Genome Biology, 15, 550. doi: 10.1186/s13059-014-0550-8.
 * Enrichment analysis: 
   * Yu G, Wang L, Han Y, He Q (2012). “clusterProfiler: an R package for comparing biological themes among gene clusters.” OMICS: A Journal of Integrative Biology, 16(5), 284-287. doi: 10.1089/omi.2011.0118.

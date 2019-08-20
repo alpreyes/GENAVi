@@ -35,7 +35,7 @@ output$reportNorm <- downloadHandler(
     
     shiny::withProgress(value = 0,
                         message = 'Rendering Normalization report.',
-                        detail =  'This might take some minutes.',{
+                        detail =  'This might take several minutes.',{
                           rmarkdown::render(input = "report/normalization.Rmd", 
                                             params = params,
                                             output_file = file,
@@ -66,7 +66,7 @@ output$reportPCA <- downloadHandler(
     # from the code in this app).
     shiny::withProgress(value = 0,
                         message = 'Rendering PCA report.',
-                        detail =  'This might take some minutes.',{
+                        detail =  'This might take several minutes.',{
                           rmarkdown::render(input = "report/pca.Rmd", 
                                             params = params, 
                                             output_file = file,
@@ -82,7 +82,7 @@ output$reportDEA <- downloadHandler(
   filename = "report_DEA_genavi.html",
   content = function(file) {
     shiny::withProgress(value = 0,message = 'Rendering DEA report.',
-                        detail =  'This might take some minutes.',{
+                        detail =  'This might take several minutes.',{
                           
                           metadata <- readMetaData()
                           
@@ -154,7 +154,7 @@ output$reportEA <- downloadHandler(
   filename = "report_EA_genavi.html",
   content = function(file) {
     shiny::withProgress(value = 0,message = 'Rendering EA report.',
-                        detail =  'This might take some minutes.',{
+                        detail =  'This might take several minutes.',{
                           
                           data <- readDEA()
                           if(is.null(data)) {

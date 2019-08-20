@@ -20,7 +20,7 @@ https://drive.google.com/drive/folders/1FocRZ6x05_0TwC_xiSIYwhsj9KAYNZwZ?usp=sha
 
 * GENAVi_Cell_Line_RNA_seq_count_matrix.csv
 * GENAVi_Cell_Line_RNA_seq_metadata.csv
-* GENAV_gene_list_input.txt
+* GENAVi_gene_list_input.txt
 
 3.	Open [junkdnalab.shinyapps.io/GENAVi/](junkdnalab.shinyapps.io/GENAVi/)
 
@@ -64,7 +64,7 @@ https://drive.google.com/drive/folders/1FocRZ6x05_0TwC_xiSIYwhsj9KAYNZwZ?usp=sha
 11.	The results of DEA can be downloaded through the pop up menu that appears after clicking the ‘Select Results’ button then selecting the ‘Download DEA Results’ button. These can easily be used to generate gene lists. An example gene list labeled GENAVi_gene_list_input.txt  is in the Google Drive folder and can be used to select differentially expressed genes to include in clustering or expression plots (such as Figure 2 in the Vignette).
 
 
-12. You can use the DEA results as input for an enrichment analysis of gene expression data with regard to functional gene sets and pathways. For more information, please read this workshop material [https://guangchuangyu.github.io/pathway-analysis-workshop/](https://guangchuangyu.github.io/pathway-analysis-workshop/). A video demonstrating this part of the tools is available at [https://youtu.be/gyfp45lmcV0](https://youtu.be/gyfp45lmcV0).
+12. You can use the DEA results as input for an enrichment analysis of gene expression data with regard to functional gene sets and pathways. For more information, please read this workshop material [https://guangchuangyu.github.io/pathway-analysis-workshop/](https://guangchuangyu.github.io/pathway-analysis-workshop/). A video demonstrating this part of the tools is available at [https://youtu.be/EJowR5ScARE](https://youtu.be/EJowR5ScARE).
 
 
 Among the options, GENAVi offers: 
