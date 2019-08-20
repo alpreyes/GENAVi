@@ -12,7 +12,7 @@ output:
 3. [Transformation and Normalization of Gene Expression Data (Tab 1)](#transform)
 4. [Visualization (Tab 2)](#vis)
 5. [Differential Expression Analysis](#dea)
-6. [Gene Set Enrichment Analysis] (#gsea)
+6. [Gene Set Enrichment Analysis](#gsea)
 
 # 1. Introduction <a name="intro"></a>
 
