@@ -1,0 +1,362 @@
+---
+title: "Enrichment analysis (EA)"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    toc: true
+    number_sections: true
+    df_print: paged
+params:
+  data: NA
+  deaanalysistype: NA
+  ea_plottype: NA
+  gsea_gene_sets: NA
+  enrichmentfdr: NA
+  msigdbtype: NA
+  gotype: NA
+  deaanalysisselect: NA
+  ea_nb_categories: NA
+  earankingmethod: NA
+  ea_subsetfdr: NA
+  ea_subsetlc: NA
+  ea_subsettype: NA
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = FALSE,fig.width = 10,fig.height = 10)
+```
+
+
+# Load required libraries
+```{r libraries, message = FALSE}
+library(plotly)
+library(plyr)
+library(dplyr)
+```
+
+# Input DEA file
+```{R}
+dea_result <- params$data$dea.results
+dea_result %>% head
+```
+
+
+## Add gene information
+
+### Retrieve gene information
+
+```{R biomart, eval = FALSE}
+library(biomaRt)
+attributes <-  c(
+  "chromosome_name",
+  "start_position",
+  "end_position",
+  "strand",
+  "ensembl_gene_id",
+  "entrezgene_id",
+  "external_gene_name"
+)
+
+# Get last version of human from EMSEMBL using  biomaRt
+human <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+hg38 <- getBM(attributes =  attributes, mart = human)
+```
+
+```{R biomartlocal,include = FALSE, eval = TRUE}
+hg38 <- params$data$hg38
+hg38$entrezgene_id <- hg38$entrezgene
+```
+
+```{R mapgenes}
+dea_result$entrezgene_id <- hg38$entrezgene_id[match(dea_result$Symbol,hg38$external_gene_name)]
+dea_result$ensembl_gene_id <- hg38$ensembl_gene_id[match(dea_result$Symbol,hg38$external_gene_name)]
+head(dea_result)
+```
+
+# Selecting genes from DEA file
+
+## GSEA analysis - Ranking method
+
+Observation: if method is `ORA`, the ranking will not be used, only the gene names will be.
+
+```{r gsearankmethod, eval=TRUE}
+# Calculate method score for each gene using the DEA file
+params$earankingmethod
+if(params$earankingmethod == "log Fold Change") {
+  geneList.metric <- dea_result$log2FoldChange
+} else if(params$earankingmethod ==  "-log10(P-value) * sig(log2FC)") {
+  geneList.metric <- -log10(dea_result$pvalue) * sign(dea_result$log2FoldChange)
+} else {
+  geneList.metric <- -log10(dea_result$pvalue) * dea_result$log2FoldChange
+}
+```
+
+```{r gsearankingensembl, eval = (params$deaanalysisselect == "Gene Ontology Analysis"), include =   (params$deaanalysisselect == "Gene Ontology Analysis" )}
+# Gene entrez ENSEMBL version (used in Gene Ontology Analysis")
+geneList <- geneList.metric
+names(geneList) <- dea_result$ensembl_gene_id
+geneList <- sort(geneList, decreasing = TRUE)
+geneList <- geneList[!is.na(names(geneList))]
+```
+
+```{r gsearankingentrez, eval=(params$deaanalysisselect != "Gene Ontology Analysis"), include = (params$deaanalysisselect != "Gene Ontology Analysis" )}
+# Gene entrez ID version   
+geneList <- geneList.metric 
+names(geneList) <- dea_result$entrezgene_id
+geneList <- sort(geneList, decreasing = TRUE)
+geneList <- geneList[!is.na(names(geneList))]
+```
+
+`r if (params$deaanalysistype != "ORA")'## ORA analysis - Selecting significant genes'`
+
+```{r oraparams, eval= (params$deaanalysisselect != "Gene Ontology Analysis"  & params$deaanalysistype == "ORA"), include = (params$deaanalysisselect != "Gene Ontology Analysis"  & params$deaanalysistype == "ORA")}
+params$ea_subsettype # Direction (upregulated or downregulated genes)
+params$ea_subsetlc # log FC cut-off
+params$ea_subsetfdr # FDR cut-off
+```
+
+```{r oraentrez, eval= (params$deaanalysisselect != "Gene Ontology Analysis"  & params$deaanalysistype == "ORA"), include = (params$deaanalysisselect != "Gene Ontology Analysis"  & params$deaanalysistype == "ORA")}
+ora <- dea_result[abs(dea_result$log2FoldChange) > params$ea_subsetlc & dea_result$pvalue < params$ea_subsetfdr,]
+if(params$ea_subsettype == "Upregulated"){
+  ora <- ora[ora$log2FoldChange > 0,]
+} else {
+  ora <- ora[ora$log2FoldChange < 0,]
+}
+dea.genes <- na.omit(ora$entrezgene_id)
+```
+
+```{r oraensembl, eval=(params$deaanalysisselect == "Gene Ontology Analysis"  & params$deaanalysistype == "ORA"), include = (params$deaanalysisselect == "Gene Ontology Analysis"  & params$deaanalysistype == "ORA")}
+ora <- dea_result[abs(dea_result$log2FoldChange) > params$ea_subsetlc & dea_result$pvalue < params$ea_subsetfdr,]
+if(params$ea_subsettype == "Upregulated"){
+  ora <- ora[ora$log2FoldChange > 0,]
+} else {
+  ora <- ora[ora$log2FoldChange < 0,]
+}
+dea.genes <- na.omit(ora$ensembl_gene_id)
+```
+
+### Evaluated genes
+```{R genes, eval=( params$deaanalysistype == "ORA"), include = (params$deaanalysistype == "ORA")} 
+head(dea.genes)
+length(dea.genes)
+```
+
+### Background genes
+```{R background_genes}
+head(geneList)
+length(geneList)
+```    
+
+## Enrichment analysis (EA) parameters
+```{r eaparams}
+params$deaanalysistype
+params$deaanalysisselect
+params$ea_plottype
+params$enrichmentfdr
+```
+
+# Enrichment analysis (EA)
+
+`r if (params$deaanalysisselect  ==  "WikiPathways analysis")'## WikiPathways analysis'`
+
+```{R WikiPathways, eval = (params$deaanalysisselect ==  "WikiPathways analysis"), include =   (params$deaanalysisselect ==  "WikiPathways analysis")}
+
+wpgmtfile <- system.file("extdata/wikipathways-20180810-gmt-Homo_sapiens.gmt", 
+                         package = "clusterProfiler")
+wp2gene <- read.gmt(wpgmtfile)
+wp2gene <- wp2gene %>% tidyr::separate(ont, c("name","version","wpid","org"), "%")
+wpid2gene <- wp2gene %>% dplyr::select(wpid, gene) #TERM2GENE
+wpid2name <- wp2gene %>% dplyr::select(wpid, name) #TERM2NAME
+
+if(params$deaanalysistype == "ORA"){
+  results <- enricher(dea.genes, 
+                      TERM2GENE = wpid2gene, 
+                      universe  = names(geneList),
+                      TERM2NAME = wpid2name,
+                      pvalueCutoff = params$enrichmentfdr
+  )
+} else {
+  results <- GSEA(geneList, 
+                  TERM2GENE = wpid2gene, 
+                  TERM2NAME = wpid2name, 
+                  verbose = FALSE,
+                  pvalueCutoff = params$enrichmentfdr
+  )
+}
+```
+
+
+`r if (params$deaanalysisselect == "MSigDb analysis")'##  MSigDb analysis'`
+
+```{R MSigDb, eval = (params$deaanalysisselect == "MSigDb analysis"), include = (params$deaanalysisselect == "MSigDb analysis")}
+params$msigdbtype
+if(params$msigdbtype != "All"){
+  m_t2g <- msigdbr(species = "Homo sapiens", category = params$msigdbtype) %>% 
+    dplyr::select(gs_name, entrez_gene)
+} else {
+  m_t2g <- msigdbr(species = "Homo sapiens") %>% 
+    dplyr::select(gs_name, entrez_gene)
+}
+```
+
+
+```{R MSigDbORA, eval = (params$deaanalysisselect == "MSigDb analysis"  & params$deaanalysistype == "ORA"), include = (params$deaanalysisselect == "MSigDb analysis"  & params$deaanalysistype == "ORA")}
+results <- enricher(dea.genes, 
+                    TERM2GENE = m_t2g,
+                    universe = names(geneList),
+                    pvalueCutoff = params$enrichmentfdr
+)
+```
+
+```{R MSigDbGSEA, eval = (params$deaanalysistype != "ORA" & params$deaanalysisselect == "MSigDb analysis" ), include = (params$deaanalysistype != "ORA" & params$deaanalysisselect == "MSigDb analysis" )}
+params$enrichmentfdr
+results <- GSEA(geneList, 
+                TERM2GENE = m_t2g,
+                pvalueCutoff =  params$enrichmentfdr
+)
+```
+
+`r if (params$deaanalysisselect == "Gene Ontology Analysis")'##  Gene Ontology Analysis'`
+
+```{R GOORA, eval = (params$deaanalysisselect == "Gene Ontology Analysis" & params$deaanalysistype == "ORA"), include = (params$deaanalysistype == "ORA" & params$deaanalysisselect == "Gene Ontology Analysis")}
+params$gotype
+results <- enrichGO(gene          = dea.genes,
+                    universe      = names(geneList),
+                    OrgDb         = org.Hs.eg.db,
+                    keyType       = ifelse(all(grepl("ENSG",names(geneList))), "ENSEMBL","ENTREZID"),
+                    ont           = params$gotype,
+                    pAdjustMethod = "BH",
+                    pvalueCutoff  = params$enrichmentfdr,
+                    readable      = TRUE)
+```
+
+```{R GOGSEA, eval = (params$deaanalysisselect == "Gene Ontology Analysis" & params$deaanalysistype != "ORA"), include = (params$deaanalysistype != "ORA" & params$deaanalysisselect == "Gene Ontology Analysis")}
+params$gotype
+results <- gseGO(geneList     = geneList,
+                 OrgDb        = org.Hs.eg.db,
+                 ont          = params$gotype,
+                 keyType      = ifelse(all(grepl("ENSG",names(geneList))), "ENSEMBL","ENTREZID"),
+                 nPerm        = 1000,
+                 minGSSize    = 100,
+                 maxGSSize    = 500,
+                 pvalueCutoff = params$enrichmentfdr,
+                 verbose      = FALSE)
+```
+
+
+`r if (params$deaanalysisselect == "KEGG Analysis")'## KEGG Analysis'`
+
+```{R KEGG, eval = (params$deaanalysisselect == "KEGG Analysis"), include = (params$deaanalysisselect == "KEGG Analysis")}
+if(params$deaanalysistype == "ORA"){
+  results <- enrichKEGG(dea.genes, 
+                        pvalueCutoff = params$enrichmentfdr,
+                        organism = "hsa")
+} else {
+  results <- gseKEGG(geneList, 
+                     pvalueCutoff = params$enrichmentfdr,
+                     organism = "hsa", 
+                     nPerm = 10000)
+}
+```
+
+`r if (params$deaanalysisselect == "Disease Ontology Analysis")'## Disease Ontology Analysis'`
+
+```{R DOA, eval = (params$deaanalysisselect == "Disease Ontology Analysis"), include = (params$deaanalysisselect == "Disease Ontology Analysis")}
+if(params$deaanalysistype == "ORA"){
+  # Gene Ontology Analysis
+  results <- enrichDO(gene          = dea.genes,
+                      universe      = names(geneList),
+                      pAdjustMethod = "BH",
+                      ont           = "DO",
+                      pvalueCutoff  = params$enrichmentfdr,
+                      readable      = TRUE)
+  
+} else {
+  results <- gseDO(geneList     = geneList,
+                   nPerm        = 1000,
+                   minGSSize    = 10,
+                   maxGSSize    = 500,
+                   pvalueCutoff = params$enrichmentfdr,
+                   verbose      = FALSE)
+}
+```
+
+
+`r if (nrow(summary(results)) > 0)'## Results table'`
+
+```{R table, eval = (nrow(summary(results)) > 0), include = (nrow(summary(results)) > 0)}
+results %>% summary %>% DT::datatable(options = list(scrollX = TRUE,  class = 'cell-border stripe'))
+```
+
+
+`r if (nrow(summary(results)) > 0)'## Plots'`
+
+`r if (params$deaanalysistype == "ORA" & nrow(summary(results)) > 0)'### Dot plot'`
+
+```{R ORA_dot, eval = (params$deaanalysistype == "ORA"  & nrow(summary(results)) > 0), include = (params$deaanalysistype == "ORA" & nrow(summary(results)) > 0)}
+params$ea_nb_categories
+dotplot(results, showCategory = params$ea_nb_categories)
+```
+
+
+`r if (params$deaanalysistype == "ORA" & nrow(summary(results)) > 0)'### Enrichment map (network)'`
+
+```{R ORA_map, eval = (params$deaanalysistype == "ORA" & nrow(summary(results)) > 0), include = (params$deaanalysistype == "ORA" & nrow(summary(results)) > 0)}
+emapplot(results)
+```
+
+`r if (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0)'### Dot plot'`
+
+```{R, eval = (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0), include = (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0)}
+params$ea_nb_categories
+dotplot(results, showCategory = params$ea_nb_categories) + 
+  facet_grid(.~ifelse(NES < 0, 'suppressed', 'activated'))
+```
+
+`r if (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0)'### Ridgeline'`
+
+```{R, eval = (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0), include = (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0)}
+params$ea_nb_categories
+ridgeplot(results,showCategory = params$ea_nb_categories)
+```
+
+`r if (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0)'### Running score and preranked list'`
+
+```{R, eval = (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0), include = (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0)}
+gseaplot2(results, geneSetID = match(params$gsea_gene_sets, results$Description))
+```
+
+`r if (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0)'### Ranked list of genes'`
+
+```{R, eval = (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0), include = (params$deaanalysistype != "ORA" & nrow(summary(results)) > 0)}
+p <- gsearank(results,  which(params$gsea_gene_sets ==  results$Description), 
+              title = results[ match(params$gsea_gene_sets, results$Description), "Description"])
+params$gsea_gene_sets
+pp <- lapply( match(params$gsea_gene_sets, results$Description), function(i) {
+  anno <- results[i, c("NES",  "p.adjust")]
+  lab <- paste0(names(anno), "=",  round(anno, 3), collapse = "\n")
+  
+  es <- results[i, "enrichmentScore"]
+  x <- ifelse(es < 0, 0, length(geneList) * .8)
+  gsearank(results, i, results[i, 2]) + 
+    xlab(NULL) +
+    ylab(NULL) +
+    annotate("text", 
+             x,  
+             es * .5, 
+             label = lab, 
+             hjust = 0, 
+             vjust = 0, 
+             size = 4) + xlim(0, 12500)
+  
+})
+p <- plot_grid(plotlist = pp, ncol = 1)
+
+p
+```
+
+# Session Information
+```{r sessionInfo}
+sessionInfo()
+```

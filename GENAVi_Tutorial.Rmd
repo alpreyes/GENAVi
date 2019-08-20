@@ -4,6 +4,9 @@ output:
   html_document:
     theme: spacelab
     highlight: tango
+    toc: true
+    number_sections: true
+
 ---
 
 
@@ -13,46 +16,56 @@ This quick-start tutorial will guide you through using the provided data files t
 1.	A set of example files for use with this tutorial can be found at;
 https://drive.google.com/drive/folders/1FocRZ6x05_0TwC_xiSIYwhsj9KAYNZwZ?usp=sharing
 
-2.	Download and save the following files;
-GENAVi_Cell_Line_RNA_seq_count_matrix.csv
-GENAVi_Cell_Line_RNA_seq_metadata.csv
-GENAV_gene_list_input.txt
+2.	Download and save the following files:
 
-3.	Open junkdnalab.shinyapps.io/GENAVi/
+* GENAVi_Cell_Line_RNA_seq_count_matrix.csv
+* GENAVi_Cell_Line_RNA_seq_metadata.csv
+* GENAV_gene_list_input.txt
 
-4.	Select the ‘Browse’ button on the ‘Gene Expression’ tab of the app.  
+3.	Open [junkdnalab.shinyapps.io/GENAVi/](junkdnalab.shinyapps.io/GENAVi/)
 
-![](tutorial_figures/step4.png)  
+4.	In the ‘Gene Expression’ tab of GENAVi, select the ‘Data upload’ button to bring up a separate menu then select the ‘Browse’ button to upload your count matrix.
 
-5.	Select the ‘Visualization’ tab, and then the ‘Clustering Plots’ sub tab. Figure 3 from the Vignette will be created, showing the clustering of all samples by all genes shown in the data table.  
+![](tutorial_figures/step4.png){width=1000px}  
 
-![](tutorial_figures/step5.png)  
+5.	Select the ‘Visualization’ tab, and then the ‘Clustering Plots’ sub tab. By default, Figure 3 from the Vignette will be created, showing the clustering of all samples by all genes shown in the data table.
 
-6.	To plot single genes as bar charts select the appropriate normalization method (a detailed explaination of which normalization method is suited to different datatypes is available in the Vignette). Variance stabilization transformation is optimal for most datasets for this purpose. Search and select the gene of interest in the data table. Once selected move to the ‘Visualization’ tab, and the ‘Expression plots’ sub-tab.  
+![](tutorial_figures/step5.png){width=1000px}  
 
-![](tutorial_figures/step6a.png)  
+6. To plot the expression of individual genes as bar charts select the appropriate normalization method (a detailed explanation of which normalization method is suited to different data types is available in the Vignette). Variance stabilization transformation is optimal for most datasets for this purpose. Search and select the gene of interest in the data table. Once selected move to the ‘Visualization’ tab, and the ‘Expression plots’ sub-tab.
 
-![](tutorial_figures/step6b.png)  
+![](tutorial_figures/step6a.png){width=1000px}  
 
-7.	To perform DEA select the Differential Expression Analysis tab. Select the Browser button to upload the metadata, which will be displayed in the app. 
+![](tutorial_figures/step6b.png){width=1000px}  
 
-![](tutorial_figures/step7.png)  
 
-8.	The settings for the DEA can then be selected. The column headers from the metadata file will be listed under the condition and covariate menus for selection. In this example select model as the condition and batch as the covariate to perform DEA between different ovarian cancer subtypes correcting for sequencing batch.  
+7.	To perform DEA select the ‘Differential Expression Analysis’ tab. Select ‘Metadata upload’ to bring up a separate menu then select the ‘Browse’ button to upload the metadata file, which will be displayed in the app.
 
-![](tutorial_figures/step8.png)  
 
-9.	The DEA results are displayed in the main pane. A full description of each column in the table is available in the Vignette.  
+![](tutorial_figures/step7.png){width=1000px}  
 
-![](tutorial_figures/step9.png)  
+8.	The settings for DEA can then be set by selecting the ‘DE analysis’ button which will bring up  separate menu. The column headers of the metadata file will be listed under the ‘condition’ and ‘covariate’ menus for selection. In this example select ‘model’ as the condition and ‘batch’ as the covariate to perform DEA between different ovarian cancer subtypes correcting for sequencing batch.
 
-10.	A volcano plot can be generated with customized parameters for fold change and P value thresholds. Select the checkbox next to Perform Log fold change shrinkage, a log2FoldChange threshold of 1.5 and a P adjusted cut off of 0.01 for this example, which recreates Figure 4 from the Vignette.  
 
-![](tutorial_figures/step10.png)  
+![](tutorial_figures/step8.png){width=1000px}  
 
-11.	The results of DEA can be downloaded using the ‘Download DEA Results’ button. These can easily be used to generate gene lists (example of a gene list is in the Google Drive folder and called GENAV_gene_list_input.txt to select differentially expressed genes to include in cluster, expression or bar plots (such as Figure 2 in the Vignette). 
+9.	The DEA results are displayed in the main pane. A full description of each column in the table is available in the Vignette.
 
-12. You can use the DEA results as a input for an  enrichment analysis of gene expression data with regard to functional gene sets and pathways. For more information, please read this workshop material https://guangchuangyu.github.io/pathway-analysis-workshop/.  A video demonstrating this part of the tools is available at https://youtu.be/gyfp45lmcV0.
+
+![](tutorial_figures/step9.png){width=1000px}
+
+
+10.	A volcano plot can be generated with customized parameters for fold change and P value thresholds. First, we recommend performing log fold change shrinkage on the DEA results by clicking the ‘Select Results’ button then selecting the checkbox next to ‘Perform Log fold change shrinkage’. To recreate Figure 4 from the Vignette, select the ‘Volcano plot’ button to bring up a separate menu then set a log2FoldChange threshold of 1.5 and a P adjusted cut off of 0.01.
+
+
+![](tutorial_figures/step10a.png){width=1000px}
+
+![](tutorial_figures/step10b.png){width=1000px}  
+11.	The results of DEA can be downloaded through the pop up menu that appears after clicking the ‘Select Results’ button then selecting the ‘Download DEA Results’ button. These can easily be used to generate gene lists. An example gene list labeled GENAVi_gene_list_input.txt  is in the Google Drive folder and can be used to select differentially expressed genes to include in clustering or expression plots (such as Figure 2 in the Vignette).
+
+
+12. You can use the DEA results as input for an enrichment analysis of gene expression data with regard to functional gene sets and pathways. For more information, please read this workshop material [https://guangchuangyu.github.io/pathway-analysis-workshop/](https://guangchuangyu.github.io/pathway-analysis-workshop/). A video demonstrating this part of the tools is available at [https://youtu.be/gyfp45lmcV0](https://youtu.be/gyfp45lmcV0).
+
 
 Among the options, GENAVi offers: 
 
@@ -73,4 +86,8 @@ Among the analysis, GENAVi provides:
   * KEGG Analysis. 
 
 
-![](tutorial_figures/step12.png)  
+![](tutorial_figures/step12.png){width=1000px}
+
+13. To obtain the code used to perform analysis and generate plots in GENAVi, select the ‘Generate report’ button in any tab to download an html file outlining the analysis performed in that section. 
+
+

@@ -1,0 +1,167 @@
+---
+title: "Principal component analysis (PCA)"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    toc: true
+    number_sections: true
+    df_print: paged
+params:
+  matrix: NA
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = FALSE)
+matrix <- params$matrix
+```
+
+
+# Load required libraries
+```{r libraries, message = FALSE}
+library(plotly)
+library(plyr)
+library(dplyr)
+```
+
+# Data
+```{r data}
+matrix %>% as.data.frame %>% head
+dim(matrix)
+```
+
+
+# PCA using all genes
+```{R}
+pca <- prcomp(t(matrix))
+
+# the contribution to the total variance for each component
+percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
+
+pca.df <- data.frame(PC1 = pca$x[,1], 
+                     PC2 = pca$x[,2], 
+                     PC3 = pca$x[,3], 
+                     name = colnames(matrix),
+                     color = rep("blue",length(colnames(matrix))))
+
+percentVar <- pca$sdev ^ 2 / sum( pca$sdev ^ 2 )
+```    
+
+## Plot 
+
+### Plot 2D
+```{R plot2d, message = FALSE}
+plot.2d <- plot_ly(pca.df, 
+                   x = ~PC1 , 
+                   y = ~PC2, 
+                   text = colnames(matrix), 
+                   marker = list(size=16), 
+                   width = 1080, 
+                   height = 880)
+plot.2d <- layout(plot.2d, 
+                  title = "Principal Component Analysis", 
+                  xaxis = list(title = paste0("PC1: ", round(percentVar[1] * 100, digits = 2),"% variance")), 
+                  yaxis = list(title = paste0("PC2: ", round(percentVar[2] * 100, digits = 2),"% variance")) 
+)
+plot.2d
+```
+
+### Plot 3D
+
+```{R plot3d, message = FALSE}  
+plot.3d <- plot_ly(pca.df,
+                   x = ~PC1 , 
+                   y = ~PC2, 
+                   z = ~PC3, 
+                   text = ~paste(name), 
+                   type = "scatter3d", 
+                   marker = list(size=14), 
+                   width = 1180, 
+                   height = 980) %>%
+  add_markers()
+plot.3d <- layout(plot.3d, 
+                  showlegend = FALSE,
+                  scene = list(
+                    title = "Principal Component Analysis", 
+                    xaxis = list(title = paste0("PC1: ", round(percentVar[1] * 100, digits = 2),"% variance")), 
+                    yaxis = list(title = paste0("PC2: ", round(percentVar[2] * 100, digits = 2),"% variance")),
+                    zaxis = list(title = paste0("PC3: ", round(percentVar[3] * 100, digits = 2),"% variance")) 
+                  )
+)
+plot.3d
+```
+
+
+# PCA using most variable genes
+```{R}
+ntop <- 1000
+rv <- rowVars(matrix)
+# select the ntop genes by variance
+select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
+length(select)
+
+matrix <- matrix[select,]
+dim(matrix)
+pca <- prcomp(t(matrix))
+
+# the contribution to the total variance for each component
+percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
+
+pca.df <- data.frame(PC1 = pca$x[,1], 
+                     PC2 = pca$x[,2], 
+                     PC3 = pca$x[,3], 
+                     name = colnames(matrix),
+                     color = rep("blue",length(colnames(matrix))))
+
+percentVar <- pca$sdev ^ 2 / sum( pca$sdev ^ 2 )
+```    
+
+## Plot 
+
+### Plot 2D
+```{R plot2var, message = FALSE}
+plot.2d <- plot_ly(pca.df, 
+                   x = ~PC1 , 
+                   y = ~PC2, 
+                   text = colnames(matrix), 
+                   marker = list(size = 16), 
+                   width = 1080, 
+                   height = 880)
+plot.2d <- layout(plot.2d, 
+                  showlegend = FALSE,
+                  title = "Principal Component Analysis", 
+                  xaxis = list(title = paste0("PC1: ", round(percentVar[1] * 100, digits = 2), "% variance")), 
+                  yaxis = list(title = paste0("PC2: ", round(percentVar[2] * 100, digits = 2), "% variance")) 
+)
+plot.2d
+```
+
+### Plot 3D
+
+```{R plot3var, message = FALSE}  
+plot.3d <- plot_ly(pca.df,
+                   x = ~PC1 , 
+                   y = ~PC2, 
+                   z = ~PC3, 
+                   text = ~paste(name), 
+                   type = "scatter3d", 
+                   marker = list(size = 14), 
+                   width = 1180, 
+                   height = 980) %>%
+  add_markers()
+plot.3d <- layout(plot.3d, 
+                  showlegend = FALSE,
+                  scene = list(
+                    title = "Principal Component Analysis", 
+                    xaxis = list(title = paste0("PC1: ", round(percentVar[1] * 100, digits = 2),"% variance")), 
+                    yaxis = list(title = paste0("PC2: ", round(percentVar[2] * 100, digits = 2),"% variance")),
+                    zaxis = list(title = paste0("PC3: ", round(percentVar[3] * 100, digits = 2),"% variance")) 
+                  )
+)
+plot.3d
+```
+
+# Session Information
+```{r sessionInfo}
+sessionInfo()
+```

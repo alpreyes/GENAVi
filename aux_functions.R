@@ -9,8 +9,13 @@ list.of.packages <- c("shiny",
                       "shinyBS",
                       "magrittr",
                       "shinyjs",
+                      "shinycssloaders",
+                      "shinyWidgets",
+                      "prettydoc",
                       "msigdbr",
                       "DOSE",
+                      "shinyjqui",
+                      "shinydashboard",
                       "org.Hs.eg.db",
                       "apeglm",
                       "clusterProfiler",
@@ -25,13 +30,16 @@ new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"
 #install missing ones
 if(length(new.packages)) {
   install.packages(new.packages, dependencies = TRUE,quiet = TRUE)
-  source("https://bioconductor.org/biocLite.R")
-  biocLite(new.packages, dependencies = TRUE,quiet = TRUE)
+  if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+  BiocManager::install(new.packages, dependencies = TRUE,quiet = TRUE)
 }
 suppressPackageStartupMessages({
   library(shiny)
+  library(shinycssloaders)
   library(tidyr) 
   library(ggplot2) 
+  library(rmarkdown)
   library(DESeq2)
   library(edgeR)
   library(iheatmapr)
@@ -40,8 +48,11 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(shinyjs)
   library(plotly)
+  library(shinyjqui)
+  library(shinydashboard)
   library(shinythemes)
   library(shinyBS)
+  library(shinyWidgets)
   library(apeglm)
   library(ashr)
   library("plotly")
@@ -55,7 +66,7 @@ suppressPackageStartupMessages({
 })
 # options(repos = BiocInstaller::biocinstallRepos())
 
-options(shiny.maxRequestSize=1024^3) # Max file upload 1GB 
+options(shiny.maxRequestSize = 1024^3) # Max file upload 1GB 
 options(shiny.sanitize.errors = FALSE) # show original message problem
 
 # default input file
@@ -164,7 +175,8 @@ rownorm <- function(counts.filtered)
 }
 
 getEndGeneInfo <- function(data){
-  numeric.cols <-   sum(sapply(colnames(data), function(x) {class(data[[x]]) %in% c("integer","numeric")}))
+  
+  numeric.cols <-   sum(sapply(colnames(data), function(x) {unique(class(data[[x]]) %in% c("integer","numeric"))}))
   if(ncol(data) - numeric.cols > 2) { # we have metadata
     idx <- sum(ifelse(grepl("Start",colnames(data),ignore.case = T),class(data[[grep("Start",colnames(data),ignore.case = T)]])  %in% c("numeric","integer"),0),
                ifelse(grepl("End",colnames(data),ignore.case = T),class(data[[grep("End",colnames(data),ignore.case = T)]]) %in% c("numeric","integer"),0),
@@ -182,12 +194,16 @@ getEndGeneInfo <- function(data){
 
 addgeneinfo <- function(data){
   id <- data %>% pull(1)
+  
+  mouse.only.symbols <- setdiff(GRCm38$Symbol,hg38$Symbol)
+  human.only.symbols <- setdiff(hg38$Symbol,GRCm38$Symbol)
+  
   if(all(grepl("ENSG",id))) {
     colnames(data)[1] <- "EnsemblID"
     aux <- strsplit(data$EnsemblID,"\\.")
     data$EnsemblID <- as.character(unlist(lapply(aux,function(x) x[1])))
     data <- merge(hg38,data,by = "EnsemblID")
-  } else if(any(id %in% hg38$Symbol)) {
+  } else if(any(id %in% human.only.symbols)) {
     colnames(data)[1] <- "Symbol"
     data <- merge(hg38,data,by = "Symbol")
   } else  if(all(grepl("ENSMUSG",id))) { # Mouse
@@ -195,7 +211,7 @@ addgeneinfo <- function(data){
     aux <- strsplit(data$EnsemblID,"\\.")
     data$EnsemblID <- as.character(unlist(lapply(aux,function(x) x[1])))
     data <- merge(GRCm38,data,by = "EnsemblID")
-  } else if(any(id %in% GRCm38$Symbol)) {
+  } else if(any(id %in% mouse.only.symbols)) {
     colnames(data)[1] <- "Symbol"
     data <- merge(GRCm38,data,by = "Symbol")
   } else {
@@ -204,7 +220,7 @@ addgeneinfo <- function(data){
   return(data)
 }
 
-help_text <-  '<div class="panel panel-default">
+help_text <-  '<div class="panel panel-primary">
   <div class="panel-heading"> <span style="padding-left:10px"><b> Input file description</b> </span></div>
 <div class="panel-body">
 <style type="text/css">
@@ -238,15 +254,15 @@ text-align: center
 </style>
 <table class="tg">
 <tr>
-<th class="tg-031e"> <span class="label label-default"> Format</span></th>
+<th class="tg-031e"> <span class="label label-primary"> Format</span></th>
 <th class="tg-031e"> comma-separated values (CSV)
 </tr>
 <tr>
-<th class="tg-031e"> <span class="label label-default"> Column 1</span></th>
+<th class="tg-031e"> <span class="label label-primary"> Column 1</span></th>
 <th class="tg-031e"> Gene Identifier -  Gene symbol or ENSEMBL ID
 </tr>
 <tr>
-<th class="tg-031e"> <span class="label label-default"> Column 2-n</span></th>
+<th class="tg-031e"> <span class="label label-primary"> Column 2-n</span></th>
 <th class="tg-031e"> Gene expression raw counts </th>
 </tr>
 <tr>
@@ -254,7 +270,7 @@ text-align: center
 </div>
 </div>'
 
-help_text2 <-  '<div class="panel panel-default">
+help_text2 <-  '<div class="panel panel-primary">
   <div class="panel-heading"> <span style="padding-left:10px"><b> Input file description</b> </span></div>
 <div class="panel-body">
 <style type="text/css">
@@ -288,15 +304,15 @@ text-align: center
 </style>
 <table class="tg">
 <tr>
-<th class="tg-031e"> <span class="label label-default"> Format</span></th>
+<th class="tg-031e"> <span class="label label-primary"> Format</span></th>
 <th class="tg-031e"> comma-separated values (CSV)
 </tr>
 <tr>
-<th class="tg-031e"> <span class="label label-default"> Column 1</span></th>
+<th class="tg-031e"> <span class="label label-primary"> Column 1</span></th>
 <th class="tg-031e"> Sample ID (same from raw counts data)
 </tr>
 <tr>
-<th class="tg-031e"> <span class="label label-default"> Column 2-n</span></th>
+<th class="tg-031e"> <span class="label label-primary"> Column 2-n</span></th>
 <th class="tg-031e"> Other metadata (condition, covariates) </th>
 </tr>
 <tr>

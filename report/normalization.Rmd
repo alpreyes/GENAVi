@@ -1,0 +1,166 @@
+---
+title: "Data normalization using DESeq2"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    toc: true
+    number_sections: true
+    df_print: paged
+params:
+  file: NA
+  mouse.genes: NA
+  human.genes: NA
+  norm.method: NA
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+human.genes <- params$human.genes
+mouse.genes <- params$mouse.genes
+```
+
+# Data Normalization
+
+This report provides the code used to data normalization in GENAVi.
+
+## Load required libraries
+```{r libraries}
+library(DESeq2)
+library(readr)
+```
+
+
+## Read input file
+
+```{r data,eval=TRUE}
+inFile <- params$file
+inFile$name
+
+if (!is.null(inFile)){
+  data <-  readr::read_csv(inFile$datapath, col_types = readr::cols())
+}
+if(!is.data.frame(data)){
+  data <-  readr::read_csv2(inFile$datapath, col_types = readr::cols())
+}  
+
+gene.ID <- data %>% pull(1)
+raw.counts <- data[,-1]
+rownames(raw.counts) <- gene.ID
+
+dim(raw.counts)
+head(raw.counts)
+```
+
+
+
+## Normalizing data
+
+```{R}
+rownorm <- function(counts) {
+  rownorm.tbl <- (counts - rowMeans(counts,na.rm = TRUE)) / apply(counts,1,sd)
+  colnames(rownorm.tbl) <- colnames(counts)
+  return(rownorm.tbl)
+}
+
+
+normalized_data <- function(data = NULL, type = NULL){
+  ret <- NULL
+  if (type == "rlog - regularized logarithm") {
+    ret <- DESeq2::rlog(data)
+  } else if(type == "vst - Variance Stabilizing Transformation") {
+    ret <- tryCatch(
+      DESeq2::vst(data),
+      error = function(e){ 
+        DESeq2::varianceStabilizingTransformation(data) 
+      })
+  } else if (type == "logCPM - log Counts per Million") {
+    ret <- edgeR::cpm(data, log = TRUE)
+  } else if (type == "raw counts") {
+    ret <- data
+  } else if (type == "row normalized") {
+    ret <- rownorm(data)
+  }
+  return(ret)
+}
+
+params$norm.method
+norm.matrix <- normalized_data(raw.counts, type = params$norm.method)
+
+# Add gene name as a column
+norm.data <- cbind(gene.ID,norm.matrix)
+head(norm.data)
+```
+
+
+## Adding gene information
+
+### Retrieve gene information
+
+```{R biomart, eval = FALSE, include = TRUE}
+library(biomaRt)
+attributes <-  c(
+  "chromosome_name",
+  "start_position",
+  "end_position",
+  "strand",
+  "ensembl_gene_id",
+  "entrezgene_id",
+  "external_gene_name"
+)
+
+mouse <- useMart("ensembl", dataset = "mmusculus_gene_ensembl")
+mouse.genes <- getBM(attributes = attributes , mart = mouse)
+
+# Get last version of human from EMSEMBL using  biomaRt
+# to access hg19, the host argument should be set to "grch37.ensembl.org"
+human <- useMart("ensembl", dataset = "hsapiens_gene_ensembl", host = "www.ensembl.org")
+human.genes <- getBM(attributes =  attributes, mart = human)
+```
+
+```{R}
+head(human.genes)
+head(mouse.genes)
+```
+
+### Annotate the data
+
+We will first check if the gene information is from Human or Mouse, then merge gene symbols/names
+and gene information.
+
+
+```{R, eval = TRUE}
+# Get gene symbol/IDs
+head(gene.ID)
+save(gene.ID,norm.data,human.genes,file = "test.rda")
+mouse.only.symbols <- setdiff(mouse.genes$Symbol,human.genes$Symbol)
+human.only.symbols <- setdiff(human.genes$Symbol,mouse.genes$Symbol)
+```
+
+```{R, eval = TRUE}
+if(all(grepl("ENSG",gene.ID))) {
+  colnames(norm.data)[1] <- "EnsemblID"
+  aux <- strsplit(gene.ID,"\\.")
+  norm.data$EnsemblID <- as.character(unlist(lapply(aux,function(x) x[1])))
+  norm.data <- merge(human.genes, norm.data,by = "EnsemblID")
+} else if(any(gene.ID %in% human.only.symbols)) {
+  colnames(norm.data)[1] <- "Symbol"
+  norm.data <- merge(human.genes, norm.data,by = "Symbol")
+} else  if(all(grepl("ENSMUSG",gene.ID))) { # Mouse
+  colnames(norm.data)[1] <- "EnsemblID"
+  aux <- strsplit(norm.data$EnsemblID,"\\.")
+  norm.data$EnsemblID <- as.character(unlist(lapply(aux,function(x) x[1])))
+  norm.data <- merge(mouse.genes,norm.data,by = "EnsemblID")
+} else if(any(gene.ID %in% mouse.only.symbols)) {
+  colnames(norm.data)[1] <- "Symbol"
+  norm.data <- merge(mouse.genes, norm.data,by = "Symbol")
+}
+
+head(norm.data)
+```
+
+
+# Session Information
+```{r sessionInfo}
+sessionInfo()
+```

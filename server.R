@@ -3,6 +3,9 @@ source("aux_functions.R")$value
 server <- function(input,output,session) 
 {
   
+  # Adding code for rendering reports with code
+  source("reports.R", local = TRUE)$value
+  
   output$contents <-  DT::renderDataTable({
     data <- getNormalizedData()$raw
     if(!is.null(data)) data %>% DT::datatable(
@@ -74,33 +77,47 @@ server <- function(input,output,session)
   })
   
   checkDataInput <- function(data){
-    closeAlert(session, "tab1Alert")
     if(is.null(data)) return(NULL)
     if("status" %in% colnames(data)) data$status <- NULL
-    res <- getEndGeneInfo(data)
     
-    if(all(res$data == "gene-error")){
-      createAlert(session, 
-                  "tab1message", 
-                  "tab1Alert", 
-                  title = "Input error", 
-                  style =  "danger",
-                  content = paste0("Data uploaded does not have the expected format. We were unable to identify the gene column or map it to hg38 or mm10."),
-                  append = FALSE)
+    tryCatch({
+      res <- getEndGeneInfo(data)
+    }, error = function(e){
+      sendSweetAlert(
+        session = session,
+        title =  "Input error", 
+        text =   paste0("Data uploaded does not have the expected format.\n", 
+                        "\nWe were unable to identify the gene column or map it to hg38 or mm10.", 
+                        "\nThe expected input is a table with genes in the first column and genes raw counts on the other ones."),
+        type = "error"
+      )
+      return(NULL)
+    })
+    if(!"Chr" %in% colnames(res$data)){
+      sendSweetAlert(
+        session = session,
+        title =  "Input error", 
+        text =   paste0("Data uploaded does not have the expected format.\n", 
+                        "\nWe were unable to identify the gene column or map it to hg38 or mm10.", 
+                        "\nThe expected input is a table with genes in the first column and genes raw counts on the other ones."),
+        type = "error"
+      )
+      return(NULL)
     }
     
     data <- tryCatch({
       colSums(res$data[,(res$ngene + 1):ncol(res$data)])
       return(data)
     }, error = function(e){
-      createAlert(session, 
-                  "tab1message", 
-                  "tab1Alert", 
-                  title = "Input error", 
-                  style =  "danger",
-                  content = paste0("Data uploaded does not have the expected format. Please check the input file description."),
-                  append = FALSE)
       
+      sendSweetAlert(
+        session = session,
+        title =  "Input error", 
+        text =   paste0("Data uploaded does not have the expected format.\n", 
+                        "\nWe were unable to identify the gene column or map it to hg38 or mm10.", 
+                        "\nThe expected input is a table with genes in the first column and genes raw counts on the other ones."),
+        type = "error"
+      )
       return(NULL)
     })
     return(data)
@@ -130,9 +147,17 @@ server <- function(input,output,session)
       withProgress(message = 'Adding gene metadata',
                    detail = "This may take a while", value = 0, {
                      # We will check if metadata was added
+                     tryCatch({
                      res <- getEndGeneInfo(all_cell_lines)
                      all_cell_lines <- res$data
                      ngene <- res$ngene
+                     } , error = function(e){
+                       sendSweetAlert(
+                         session = session,
+                         title =  "Error reading the data",
+                         text =   paste0("Please check"),
+                         type = "error"
+                       )                     })
                    }
       )
       
@@ -143,7 +168,7 @@ server <- function(input,output,session)
       withProgress(message = 'Normalizing data',
                    detail = "This may take a while", value = 0, {
                      # normalization: rlog takes a lot of time (hours for a big matrix)
-                     raw      <- cbind(metadata, data) ##might might have to take out blind option???
+                     raw      <- cbind(metadata, data) # might might have to take out blind option???
                      setProgress(0.1, detail = paste("Starting VST"))
                      vst      <- cbind(metadata, tryCatch(vst(data),error = function(e){varianceStabilizingTransformation(data)}))
                      setProgress(0.2, detail = paste("VST completed, starting rownorm"))
@@ -167,9 +192,16 @@ server <- function(input,output,session)
       ret <- get(load("genavi.rda"))
     }
     if(length(names(ret)) == 5){
-      transforms <-  c("raw counts",  "row normalized",  "logCPM - log Counts per Million",  "vst - Variance Stabilizing Transformation",  "rlog - regularized logarithm")
+      transforms <-  c("raw counts",  
+                       "row normalized",  
+                       "logCPM - log Counts per Million",  
+                       "vst - Variance Stabilizing Transformation",  
+                       "rlog - regularized logarithm")
     } else {
-      transforms <-  c("raw counts",  "row normalized",  "logCPM - log Counts per Million",  "vst - Variance Stabilizing Transformation")
+      transforms <-  c("raw counts",  
+                       "row normalized",  
+                       "logCPM - log Counts per Million",  
+                       "vst - Variance Stabilizing Transformation")
     }
     updateSelectizeInput(session, 'select_tab1', 
                          selected = "raw counts",
@@ -212,7 +244,7 @@ server <- function(input,output,session)
     # get original table
     tab <- getTab1()
     if(gene.selection() == "Most Var"){
-      m <- as.matrix(tab[,grep("Genename|Geneid|Chr|Start|End|Strand|Length", colnames(tab),ignore.case = T,invert = T)])
+      m <- as.matrix(tab[,grep("EnsemblID|Symbol|Genename|Geneid|Chr|Start|End|Strand|Length", colnames(tab),ignore.case = T,invert = T)])
       selected_rows <- sort(rowVars(m,na.rm = T), decreasing = T,index.return=TRUE)$ix[1:1000]
       status <- factor("Unselected",levels = c("Unselected","Selected"))
       tab <- cbind(status,tab)
@@ -323,9 +355,13 @@ server <- function(input,output,session)
     colnames(p) <- "value"
     p$cell_line <- rownames(p)
     order <- rownames(p)
+    
+    
+    select <- isolate(input$select_tab1)
     barplot <- ggplot(p, aes(x=cell_line, y=value)) + 
       geom_bar(stat = "identity") +  
       theme_bw() + 
+      labs(x =  "", y = select) +
       scale_x_discrete(limits = order) + 
       theme(axis.text.x = element_text(angle = 90, hjust = 1))
     
@@ -337,7 +373,6 @@ server <- function(input,output,session)
   #---------------------------------
   # calculate the variance for each gene
   output$pca_plot <- renderPlotly({ 
-    closeAlert(session, "pcaAlert")
     tbl.tab1 <- getTab1()
     
     # Columns 1 to 7: Genename  Geneid Chr   Start   End Strand Length 
@@ -346,7 +381,7 @@ server <- function(input,output,session)
     
     m <- tbl.tab1 %>% dplyr::select((res$ngene + 1):ncol(tbl.tab1)) %>% as.matrix  
     
-    select <- 1:ncol(m)
+    select <- 1:nrow(m)
     if(input$select_pca_type == "Top 1000 variable genes"){
       ntop <- 1000
       rv <- rowVars(m)
@@ -355,10 +390,13 @@ server <- function(input,output,session)
       select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
     } else   if(input$select_pca_type == "Selected genes"){
       select <- input$tbl.tab1_rows_selected
-      if(length(select) < 1) {
-        createAlert(session, "genemessage3", "pcaAlert", title = "Missing data", style =  "danger",
-                    content = paste0("Please select genes in Gene Expression tab"),
-                    append = FALSE)
+      if(length(select) < 3) {
+        sendSweetAlert(
+          session = session,
+          title =  "Missing data",
+          text =   paste0("Please select at least 3 genes in Gene Expression tab"),
+          type = "info"
+        )
         return(NULL)
       }
     }
@@ -388,14 +426,42 @@ server <- function(input,output,session)
     percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
     
     if(input$pca_dimensions == "2D") {
-      p <- plot_ly(d, x = ~PC1 , y = ~PC2, color = ~color, text = colnames(m), marker=list(size=16), width = 1080, height = 880)
-      p <- layout(p, title = "Principal Component Analysis", 
-                  xaxis = list(title = paste0("PC1: ", round(percentVar[1] * 100, digits = 2),"% variance")), 
-                  yaxis = list(title = paste0("PC2: ", round(percentVar[2] * 100, digits = 2),"% variance")) 
+      p <-
+        plot_ly(
+          d,
+          x = ~ PC1 ,
+          y = ~ PC2,
+          color = ~ color,
+          text = colnames(m),
+          marker = list(size = 16),
+          width = 800,
+          height = 600
+        )
+      p <- layout(
+        p,
+        title = "Principal Component Analysis",
+        xaxis = list(title = paste0(
+          "PC1: ", round(percentVar[1] * 100, digits = 2), "% variance"
+        )),
+        yaxis = list(title = paste0(
+          "PC2: ", round(percentVar[2] * 100, digits = 2), "% variance"
+        ))
       )
       
     } else {
-      p <- plot_ly(d, x = ~PC1 , y = ~PC2, z = ~PC3, color = ~color, text = ~paste(name), type = "scatter3d", marker=list(size=14), width = 1180, height = 980) %>%
+      p <-
+        plot_ly(
+          d,
+          x = ~ PC1 ,
+          y = ~ PC2,
+          z = ~ PC3,
+          color = ~ color,
+          text = ~ paste(name),
+          type = "scatter3d",
+          marker = list(size = 14),
+          width = 800,
+          height = 600
+        ) %>%
         add_markers()
       p <- layout(p, 
                   scene = list(
@@ -405,7 +471,9 @@ server <- function(input,output,session)
                     zaxis = list(title = paste0("PC3: ", round(percentVar[3] * 100, digits = 2),"% variance")) 
                   )
       )
-      
+      if(is.null(input$pcacolor) || stringr::str_length(input$pcacolor) == 0) { 
+        p <- layout(p,showlegend = FALSE)
+      }
     }
     
     p
@@ -432,29 +500,20 @@ server <- function(input,output,session)
     ngene <- res$ngene
     
     matrix_expr <- tbl.tab1 %>% slice(input$tbl.tab1_rows_selected) %>% dplyr::select((res$ngene+1):ncol(tbl.tab1)) %>% as.matrix
-    name <- "Expression"
-    #if(input$select_z_score == "Rows z-score"){
-    #  name <- "Expression (Rows z-score)"
-    #  aux <-  colnames(matrix_expr)
-    #  matrix_expr = t(apply(matrix_expr, 1, scale))
-    #  colnames(matrix_expr) <- aux
-    #}
-    #if(input$select_z_score == "Columns z-score"){
-    #  name <- "Expression (Column z-score)"
-    #  matrix_expr <- scale(matrix_expr)
-    #}
     
-    ##may need to change order of cell lines from default alphabetic to histotype specific???...do that with dendro???
-    heatmap_expr <- main_heatmap(matrix_expr, name = name, colors = custom_pal_blues) %>%
-      add_col_labels(ticktext = colnames(matrix_expr)) %>%
-      add_row_labels(ticktext = geneNames, font = list(size = 7)) %>% ##trying to add dendro
-      add_col_dendro(hclust(dist(t(as.matrix(matrix_expr)))), reorder = TRUE) ##may have to take out -1 to avoid losing 1st data col
+    font.size <- ifelse(ncol(matrix_expr) > 30, 6, 12)
+    font.size.genes <- ifelse(nrow(matrix_expr) > 30, 6, 12)
     
-    if(nrow(matrix_expr) > 1) ##currently still trying to cluster genes selected
+    heatmap_expr <- main_heatmap(matrix_expr, colors = custom_pal_blues, name = isolate(input$select_tab1)) %>%
+      add_col_labels(ticktext = colnames(matrix_expr),font = list(size = font.size),size = 0.2) %>%
+      add_row_labels(ticktext = geneNames,font = list(size = font.size),size = 0.2) %>% 
+      add_col_dendro(hclust(dist(t(as.matrix(matrix_expr)))), reorder = TRUE) 
+    
+    if(nrow(matrix_expr) > 1) 
     {
-      heatmap_expr <- heatmap_expr %>% add_row_dendro(hclust(dist((as.matrix(matrix_expr)))), reorder = TRUE, side = "right") ##adding t() inside dist() makes heatmap_expr not work in app..."Error: subscript out of bounds"
-    } ##taking out t() works but still has to be there...see DESeq2 workflow
-    print(heatmap_expr)  ## currently rlog visualization takes too long
+      heatmap_expr <- heatmap_expr %>% add_row_dendro(hclust(dist((as.matrix(matrix_expr)))), reorder = TRUE, side = "right") 
+    } 
+    heatmap_expr
   })
   
   
@@ -479,9 +538,12 @@ server <- function(input,output,session)
       # get selected genes
       selected_rows <- input$tbl.tab1_rows_selected
       if(length(selected_rows) < 1) {
-        createAlert(session, "genemessage2", "geneAlert", title = "Missing data", style =  "danger",
-                    content = paste0("Please select genes in Gene Expression tab"),
-                    append = FALSE)
+        sendSweetAlert(
+          session = session,
+          title =  "Missing data",
+          text =   paste0("Please select genes in Gene Expression tab"),
+          type = "error"
+        )
         return(NULL)
       }
       inFile <- input$input_gene_list_tab1
@@ -496,9 +558,12 @@ server <- function(input,output,session)
     if(input$select_clus_type == "Genes") {
       selected_rows <- input$tbl.tab1_rows_selected
       if(length(selected_rows) < 1) {
-        createAlert(session, "genemessage2", "geneAlert", title = "Missing data", style =  "danger",
-                    content = paste0("Please select genes in Gene Expression tab"),
-                    append = FALSE)
+        sendSweetAlert(
+          session = session,
+          title =  "Missing data",
+          text =   paste0("Please select genes in Gene Expression tab"),
+          type = "error"
+        )
         return(NULL)
       }
       inFile <- input$input_gene_list_tab1
@@ -511,21 +576,30 @@ server <- function(input,output,session)
       data <- t(data)
     }
     
+    font.size <- ifelse(ncol(data) > 30, 6, 12)
     heatmap_clus <-  tryCatch({
-      main_heatmap(as.matrix(cor(data, method = "pearson")), name = "Correlation", colors = custom_pal_blues) %>% ##adding this custom color palette breaks this heatmap...wait no it doesn't?
-        add_col_labels(ticktext = colnames(data)) %>%
-        add_row_labels(ticktext = colnames(data)) %>% ##works when not using add dendro, but calculates dist wrong?
-        add_col_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE) %>% ##add_dendro not working...save for later, try taking out t(matrix[]), but put back in later if it doesnt work
-        add_row_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE, side = "right") ##try taking out t(matrix[]), but put back in later if it doesnt work
+      main_heatmap(as.matrix(cor(data, method = "pearson")), name = "Correlation", colors = custom_pal_blues) %>% 
+        add_col_labels(ticktext = colnames(data),font = list(size = font.size),size = 0.2) %>%
+        add_row_labels(ticktext = colnames(data),font = list(size = font.size),size = 0.2) %>% 
+        add_col_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE) %>% 
+        add_row_dendro(hclust(as.dist(1 - cor(data, method = "pearson"))), reorder = TRUE, side = "right") 
     }, warning = function(w){
-      createAlert(session, "genemessage2", "geneAlert", title = "Error: Clustering not possible", style =  "danger",
-                  content = paste0(w),
-                  append = TRUE)
+      sendSweetAlert(
+        session = session,
+        title =  "Sorry, we had an error...",
+        text =  paste0("Clustering is not possible.",
+                       "We tried to cluster ", input$select_clus_type ," using ", input$select_clus,"."),
+        type = "error"
+      )
       return(NULL)
     }, error = function(e){
-      createAlert(session, "genemessage2", "geneAlert", title = "Error: Clustering not possible", style =  "danger",
-                  content = paste0(e),
-                  append = TRUE)
+      
+      sendSweetAlert(
+        session = session,
+        title =  "Sorry, we had an error...",
+        text =  "Clustering is not possible",
+        type = "error"
+      )
       return(NULL)
     })
     if(is.null(heatmap_clus)) return(NULL)
@@ -564,22 +638,19 @@ server <- function(input,output,session)
     } else {
       shinyjs::hide("pcacolor")
     }
-    #if(is.null(getDataType(as.logical(input$tcgaDatabase),input$tcgaDataCategoryFilter))) {
-    #  shinyjs::hide("tcgaDataTypeFilter")
-    #} else {
-    #  shinyjs::show("tcgaDataTypeFilter")
-    #}
   })
   
   
   get.DEA.results <- reactive({
-    closeAlert(session, "deaAlert")
     input$dea
     metadata <- readMetaData()
     if(is.null(metadata)) {
-      createAlert(session, "deamessage", "deaAlert", title = "Missing metadata", style =  "danger",
-                  content = paste0("Please upload metadata file"),
-                  append = FALSE)
+      sendSweetAlert(
+        session = session,
+        title =  "Missing metadata",
+        text = paste0("Please upload metadata file"),
+        type = "error"
+      )
       return(NULL)
     }
     if(!is.null(readData())) all_cell_lines <- readData()
@@ -605,58 +676,77 @@ server <- function(input,output,session)
     ref <-  isolate(input$reference)
     
     if(is.null(cond))   {
-      createAlert(session, "deamessage", "deaAlert", title = "Missing metadata", style =  "danger",
-                  content = paste0("Please select condition file"),
-                  append = FALSE)
+      sendSweetAlert(
+        session = session,
+        title =  "Missing condition",
+        text = paste0("Please select condition file"),
+        type = "error"
+      )
       return(NULL)
     } 
     form <- getFormula()
     if(is.null(form)){
-      createAlert(session, "deamessage", "deaAlert", title = "Missing formula", style =  "danger",
-                  content = paste0("Please select condition column"),
-                  append = FALSE)
+      sendSweetAlert(
+        session = session,
+        title =  "Missing formula",
+        text = paste0("Please select condition column"),
+        type = "error"
+      )
       return(NULL)
     }
     if(str_length(ref) == 0)   {
-      createAlert(session, "deamessage", "deaAlert", title = "Missing reference level", style =  "danger",
-                  content = paste0("Please select reference level"),
-                  append = FALSE)
+      
+      sendSweetAlert(
+        session = session,
+        title =  "Missing reference level",
+        text = paste0("Please select reference level"),
+        type = "error"
+      )
       return(NULL)
     } 
     if(nrow(metadata) != ncol(cts))   {
-      createAlert(session, "deamessage", "deaAlert", title = "Metadata error", style =  "danger",
-                  content = paste0("Metadata and data does not have same samples"),
-                  append = FALSE)
+      sendSweetAlert(
+        session = session,
+        title =  "Metadata error",
+        text = paste0("Metadata and data does not have same samples"),
+        type = "error"
+      )
       return(NULL)
     } 
     
     withProgress(message = 'DESeq2 Analysis',
                  detail = "Creating input file", value = 0, {
                    
-                   
                    if(!all(metadata %>% pull(1) %in% colnames(cts)))   {
-                     createAlert(session, "deamessage", "deaAlert", title = "Metadata error", style =  "danger",
-                                 content = paste0("First column of the metadata file must have the mapping to the samples with the exact names"),
-                                 append = FALSE)
+                     sendSweetAlert(
+                       session = session,
+                       title =  "Metadata error",
+                       text = paste0("First column of the metadata file must have the mapping to the samples with the exact names"),
+                       type = "error"
+                     )
                      return(NULL)
                    } 
                    metadata <- metadata[match(colnames(cts), metadata %>% pull(1)),]
                    if(!all(metadata %>% pull(1) == colnames(cts)))   {
-                     createAlert(session, "deamessage", "deaAlert", title = "Metadata error", style =  "danger",
-                                 content = paste0("First column of the metadata file must have the mapping to the samples with the exact names"),
-                                 append = FALSE)
+                     
+                     sendSweetAlert(
+                       session = session,
+                       title =  "Metadata error",
+                       text = paste0("First column of the metadata file must have the mapping to the samples with the exact names"),
+                       type = "error"
+                     )
                      return(NULL)
                    } 
                    dds <-  tryCatch({
                      keep.samples <- !is.na(metadata[,input$condition,drop = T])
                      if(any(is.na(metadata[,input$condition,drop = T]))){
-                       createAlert(session, 
-                                   "deamessage", 
-                                   "deaAlert", 
-                                   title = paste0(sum(!keep.samples), " samples with have NA annotations"), 
-                                   style =  "warning",
-                                   content = "To perform the DEA samples cannot be labled as NA we will remove it",
-                                   append = FALSE)
+                       
+                       sendSweetAlert(
+                         session = session,
+                         title =  paste0(sum(!keep.samples), " samples with have NA annotations"), 
+                         text = "To perform the DEA samples cannot be labled as NA we will remove it",
+                         type = "error"
+                       )
                      }
                      
                      dds <- DESeqDataSetFromMatrix(countData = cts[,keep.samples],
@@ -669,10 +759,13 @@ server <- function(input,output,session)
                      dds <- DESeq(dds)
                      return(dds)
                    }, error = function(e){
-                     createAlert(session, "deamessage", "deaAlert", 
-                                 title = "Error in DEA", style =  "danger",
-                                 content = paste0(e),
-                                 append = FALSE)
+                     
+                     sendSweetAlert(
+                       session = session,
+                       title = "Error in DEA",
+                       text = paste0(e),
+                       type = "error"
+                     )
                      
                      return(NULL)
                    })
@@ -726,12 +819,12 @@ server <- function(input,output,session)
       res <- get.DEA.results()
       if(is.null(res)) return(NULL)
       deaSelect <- input$deaSelect
-      lfcThreshold <- input$log2FoldChange
+      
       if(str_length(deaSelect) == 0) {
-        if(lfcThreshold > 0){
+        if(input$log2FoldChange > 0){
           tbl <-  as.data.frame(results(res,
-                                        lfcThreshold=input$log2FoldChange,  
-                                        altHypothesis="greaterAbs"))
+                                        lfcThreshold = input$log2FoldChange,  
+                                        altHypothesis = "greaterAbs"))
           
         } else {
           tbl <-  as.data.frame(results(res,name = deaSelect))
@@ -748,7 +841,7 @@ server <- function(input,output,session)
                        })
           
         } else {
-          if(lfcThreshold > 0){
+          if(input$log2FoldChange > 0){
             tbl <-  as.data.frame(results(res,
                                           name = deaSelect,
                                           lfcThreshold = input$log2FoldChange,  
@@ -770,38 +863,68 @@ server <- function(input,output,session)
   
   # Return list of DEA genes sorted and the names of the most significant ones  
   readDEA <- reactive({
-    closeAlert(session, "messageanalysisAlertInput")
-    ret <- NULL
+    data <- NULL
     inFile <- input$deafile
     if (!is.null(inFile))  {
       withProgress(message = 'Reading the data',
                    detail = "This may take a while", value = 0, {
-                     ret <-  read_csv(inFile$datapath, col_types = readr::cols())
+                     data <-  read_csv(inFile$datapath, col_types = readr::cols())
                      setProgress(1, detail = paste("Completed"))
                    }
       )
-      if(!is.data.frame(ret)){
+      if(!is.data.frame(data)){
         withProgress(message = 'Reading the data',
                      detail = "This may take a while", value = 0, {
-                       ret <-  read_csv2(inFile$datapath, col_types = readr::cols())
+                       data <-  read_csv2(inFile$datapath, col_types = readr::cols())
                        setProgress(1, detail = paste("Completed"))
                      }
         )
       }
     }
-    if(is.null(ret)) return(NULL)
+    if(is.null(data)) {
+      sendSweetAlert(
+        session = session,
+        title = "Missing input data", 
+        text = "Please upload DEA results",
+        type = "error"
+      )
+      return(NULL)
+    }
+    
+   
+    if(!"log2FoldChange" %in% colnames(data)){
+      sendSweetAlert(
+        session = session,
+        title = "Data input not as expected", 
+        text = paste0("No log2FoldChange column in the input"),
+        type = "error"
+      )
+      return(NULL)
+    } 
+    
+    
+    if(!"pvalue" %in% colnames(data)){
+      sendSweetAlert(
+        session = session,
+        title = "Data input not as expected", 
+        text = paste0("No pvalue column in the input"),
+        type = "error"
+      )
+      return(NULL)
+    } 
+    
+    ret <- data
     if("Symbol" %in% colnames(ret)){
       GRCh38.p12 <- readRDS("GRCh38.p12.rds")
       ret$entrezgene <- GRCh38.p12$entrezgene[match(ret$Symbol,GRCh38.p12$external_gene_name)]
       ret$ensembl_gene_id <- GRCh38.p12$ensembl_gene_id[match(ret$Symbol,GRCh38.p12$external_gene_name)]
     } else {
-      createAlert(session, 
-                  "messageanalysis", 
-                  "messageanalysisAlertInput", 
-                  title = "Data input not as expected", 
-                  style =  "danger",
-                  content = paste0("No Symbol column in the input"),
-                  append = FALSE)
+      sendSweetAlert(
+        session = session,
+        title = "Data input not as expected", 
+        text = paste0("No Symbol column in the input"),
+        type = "error"
+      )
       return(NULL)
     }
     # ENTREZ ID
@@ -813,10 +936,9 @@ server <- function(input,output,session)
       ret.ora <- ret.ora[ret.ora$log2FoldChange < 0,]
     }
     dea.genes <- na.omit(ret.ora$entrezgene)
-    dea.genes.ensembl <- na.omit(ret.ora$ensembl_gene_id)
+    dea.genes.ensembl <- unique(na.omit(ret.ora$ensembl_gene_id))
     message("ORA: Using ", length(dea.genes), " genes")
     
-    ret.entrezid <- ret
     # For GSEA
     if(input$earankingmethod == "log Fold Change") {
       geneList.metric <- ret$log2FoldChange
@@ -833,11 +955,14 @@ server <- function(input,output,session)
     names(geneList.metric) <- ret$entrezgene
     geneList.metric <- sort(geneList.metric, decreasing = TRUE)
     geneList.metric <- geneList.metric[!is.na(names(geneList.metric))]
+    geneList.metric <- geneList.metric[!duplicated(names(geneList.metric))]
     
     return(list("dea.genes" = dea.genes,
-                "geneList" = geneList.metric,
                 "dea.genes.ensembl" = dea.genes.ensembl,
-                "geneList.ensembl" = geneList.metric.ensembl))
+                "geneList" = geneList.metric,
+                "geneList.ensembl" = geneList.metric.ensembl,
+                "dea.results" = data,
+                "hg38" = GRCh38.p12))
   })
   
   # Perform selected analysis
@@ -863,6 +988,8 @@ server <- function(input,output,session)
                            choices = c("Dot plot",
                                        "Enrichment map (network)"),
                            server = TRUE)
+      shinyjs::hide(id = "eagsearankingui", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+      shinyjs::show(id = "eaorasectui", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
     } else {
       updateSelectizeInput(session, 'ea_plottype', 
                            selected = "Dot plot",
@@ -872,25 +999,29 @@ server <- function(input,output,session)
                                        "Ranked list of genes",
                                        "Enrichment map (network)"),
                            server = TRUE)
+      shinyjs::hide(id = "eaorasectui", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+      shinyjs::show(id = "eagsearankingui", anim = FALSE, animType = "slide", time = 0.5,selector = NULL)
+      
     }
   })
   
   observeEvent(input$enrichementbt,  {
-    
     enrichement.analysis <- reactive({
-      closeAlert(session, "messageanalysisAlertSymbol")
       data <- readDEA()
-      save(data,file = "test.rda")
-      if(is.null(data)) return(NULL)
+      if(is.null(data)) {
+
+        return(NULL)
+      }
       
       if(length(data$dea.genes) == 0){
-        createAlert(session, 
-                    "messageanalysis", 
-                    "messageanalysisAlertSymbol", 
-                    title = "No genes identified", 
-                    style =  "danger",
-                    content = paste0("We could not map the genes Symbols to entrez gene ID. Please check input data."),
-                    append = FALSE)
+        
+        sendSweetAlert(
+          session = session,
+          title = "No genes identified", 
+          text = "We could not map the genes Symbols to entrez gene ID. Please check input data.",
+          type = "error"
+        )
+        
         return(NULL)
       }
       if(isolate({input$deaanalysisselect}) != "Gene Ontology Analysis") {
@@ -1016,7 +1147,10 @@ server <- function(input,output,session)
     output$tbl.analysis <-  DT::renderDataTable({
       input$enrichementbt
       tbl <- enrichement.analysis()
-      if(is.null(tbl)) return(NULL)
+      if(is.null(tbl)) {
+        
+        return(NULL)
+      }
       tbl %>% summary %>% createTable2(show.rownames = F)
       
     })
@@ -1037,13 +1171,13 @@ server <- function(input,output,session)
         } else {
           aux <- results@params$pvalueCutoff
         }
-        createAlert(session, 
-                    "messageanalysis", 
-                    "messageanalysisAlert", 
-                    title = "No enriched terms found", 
-                    style =  "danger",
-                    content = paste0("No results for enrichment analysis P-value cut-off = ", aux),
-                    append = FALSE)
+        
+        sendSweetAlert(
+          session = session,
+          title =  "No enriched terms found", 
+          text =  paste0("No results for enrichment analysis P-value cut-off = ", aux),
+          type = "error"
+        )
         return(NULL)
       }
       
@@ -1096,7 +1230,6 @@ server <- function(input,output,session)
       p
     })
     
-    
     # Save figure 
     output$saveenrichementpicture <- downloadHandler(
       filename = function(){input$enrichementPlot.filename},
@@ -1116,13 +1249,13 @@ server <- function(input,output,session)
             grDevices::svg(..., width = isolate({input$ea_width}), height = isolate({input$ea_height}))
           } 
         } else {
-          createAlert(session, 
-                      "messageanalysis", 
-                      "messageanalysisAlert", 
-                      title = "Extension not recognized (svg, pdf and png allowed)", 
-                      style =  "danger",
-                      content = paste0("No results for: P-value cut-off = ", aux),
-                      append = FALSE)
+          
+          sendSweetAlert(
+            session = session,
+            title = "Extension not recognized", 
+            text =  paste0("svg, pdf and png allowed"),
+            type = "error"
+          )
         }
         p <- getEnrichementPlot()
         ggsave(file, 
@@ -1134,10 +1267,13 @@ server <- function(input,output,session)
       })
     
     output$plotenrichment <- renderPlot({
-      closeAlert(session, "messageanalysisAlert")
       getEnrichementPlot()
     })
+    
+    
+    
   })
+  
   
   output$downloadExampleDEAData <- downloadHandler(
     filename = function() {
@@ -1148,6 +1284,8 @@ server <- function(input,output,session)
       write_csv(metadata, file)
     }
   )
+  
+  
   
   
   observeEvent(input$ea_plottype, {
@@ -1163,12 +1301,13 @@ server <- function(input,output,session)
   #---------------------------------
   # Volcano plot tab
   #---------------------------------
-  observeEvent(input$volcanoplotBt, {
-    updateTabsetPanel(session, inputId="DEA", selected = "Volcano plot")
     output$volcanoplot <- renderPlotly({
       res <- get.DEA.results()
-      
       if(is.null(res)) return(NULL)
+      
+      x.cut <- input$log2FoldChange
+      y.cut <- input$padj
+    
       deaSelect <- input$deaSelect
       if(str_length(deaSelect) == 0) {
         dea <-  as.data.frame(results(res))
@@ -1186,19 +1325,16 @@ server <- function(input,output,session)
           )
           
         } else {
-          lfcThreshold <- input$log2FoldChange
-          if(lfcThreshold > 0){
+          if(x.cut > 0){
             dea <-  as.data.frame(results(res,
                                           name = deaSelect,
-                                          lfcThreshold = input$log2FoldChange,  
+                                          lfcThreshold = x.cut,
                                           altHypothesis = "greaterAbs"))
           } else {
             dea <-  as.data.frame(results(res, name = deaSelect))
           }
         }
       }
-      x.cut <- isolate({input$log2FoldChange})
-      y.cut <- isolate({input$padj})
       
       dea$group <- "Not Significant"
       dea[which(dea$padj < y.cut & dea$log2FoldChange < -x.cut ),"group"] <- "Downregulated"
@@ -1248,7 +1384,6 @@ server <- function(input,output,session)
         ) 
         )
       return(p)
-    })
   })
 }
 
