@@ -127,7 +127,7 @@ ui <- fluidPage(title = "GENAVi",
                                   #selectInput("select_sort_tab1", "Sort Table By", sortby, multiple = FALSE),
                            ),
                            column(10,
-                                  DT::dataTableOutput('tbl.tab1') %>% withSpinner(type = 6) 
+                                  DT::dataTableOutput('tbl.tab1') 
                            )
                   ),
                   tabPanel("Visualization", ##changing from tab 2, but still usibg tab2 in other parts of code
