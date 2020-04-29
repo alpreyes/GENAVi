@@ -1,5 +1,5 @@
 ---
-title: "Differential Expression Analasysi (DEA)"
+title: "Differential Expression Analysis (DEA)"
 output:
   prettydoc::html_pretty:
     theme: cayman
@@ -88,7 +88,7 @@ if(is.null(covariates)){
 as.character(form)
 ```
 
-# Differential Expression Analasysi (DEA)
+# Differential Expression Analysis (DEA)
 
 ```{R,eval = TRUE}
 res <- NULL
